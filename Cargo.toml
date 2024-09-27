@@ -1,0 +1,46 @@
+[package]
+authors = ["g0h4n <g0h4n_0@protonmail.com>"]
+name = "rusthound-ce"
+description = "Active Directory data collector for Bloodhound Community Edition written in rust."
+keywords = ["bloodhound", "pentest", "ldap", "tokio", "async"]
+repository = "https://github.com/g0h4n/RustHound-CE"
+homepage = "https://github.com/g0h4n/RustHound-CE"
+documentation = "https://docs.rs/rusthound-ce/"
+version = "2.1.0"
+edition = "2021"
+license = "MIT"
+readme = "README.md"
+
+[dependencies]
+tokio = "1.1"
+clap = "4.0"
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1.0", features = ["preserve_order"] }
+nom7 = { version="7.0", package="nom" }
+colored = "2"
+chrono = "0.4"
+bitflags = "2.4.1"
+regex = "1"
+env_logger = "0.11"
+log = "0.4"
+lazy_static = "1.4.0"
+indicatif = "0.17"
+x509-parser = "0.16"
+trust-dns-resolver = "0.23"
+zip= { version = "2.2.0", default-features = false }
+rpassword = "7.2"
+ldap3 = { version = "0.11.5", default-features = false }
+winreg = { version = "0.52", optional = true }
+sha1 = "0.10"
+
+[features]
+noargs = ["winreg"] # Only available for Windows
+nogssapi = ["ldap3/tls-native"] # Used for linux_musl armv7 and macos compilation
+default = ["ldap3/tls-rustls","ldap3/gssapi"]
+
+[profile.release]
+opt-level = "z"
+lto = true
+strip = true
+codegen-units = 1
+panic = "abort"

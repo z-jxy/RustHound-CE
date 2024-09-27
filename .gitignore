@@ -1,0 +1,7 @@
+target/
+*.json
+*.zip
+*.exe
+datas/
+rusthound-ce*
+.vscode
