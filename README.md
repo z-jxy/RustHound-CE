@@ -1,8 +1,8 @@
 <p align="center">
     <picture>
-        <source media="(prefers-color-scheme: dark)" srcset="img/rusthoundce-transparent-dark-theme.png">
-        <source media="(prefers-color-scheme: light)" srcset="img/rusthoundce-transparent-light-theme.png">
-        <img src="img/rusthoundce-transparent-dark-theme.png" alt="rusthound-ce logo" width='250' />
+        <source media="(prefers-color-scheme: dark)" srcset="https://github.com/g0h4n/RustHound-CE/raw/main/img/rusthoundce-transparent-dark-theme.png">
+        <source media="(prefers-color-scheme: light)" srcset="https://github.com/g0h4n/RustHound-CE/raw/main/img/rusthoundce-transparent-light-theme.png">
+        <img src="https://github.com/g0h4n/RustHound-CE/raw/main/img/rusthoundce-transparent-dark-theme.png" alt="rusthound-ce logo" width='250' />
     </picture>
 </p>
 
@@ -11,9 +11,9 @@
 <p align="left">
     <a href="https://neverhack.com/" >
     <picture>
-        <source media="(prefers-color-scheme: dark)" srcset="img/neverhack-transparent-dark-theme.svg">
-        <source media="(prefers-color-scheme: light)" srcset="img/neverhack-transparent-light-theme.svg">
-        <img src="img/neverhack-transparent-dark-theme.svg" alt="neverhack logo" width='120' style="margin-right: 15px; margin-top: 20px;" />
+        <source media="(prefers-color-scheme: dark)" srcset="https://github.com/g0h4n/RustHound-CE/raw/main/img/neverhack-transparent-dark-theme.svg">
+        <source media="(prefers-color-scheme: light)" srcset="https://github.com/g0h4n/RustHound-CE/raw/main/img/neverhack-transparent-light-theme.svg">
+        <img src="https://github.com/g0h4n/RustHound-CE/raw/main/img/neverhack-transparent-dark-theme.svg" alt="neverhack logo" width='120' style="margin-right: 15px; margin-top: 20px;" />
     </picture>
     </a>
 </p>
