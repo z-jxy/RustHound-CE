@@ -217,6 +217,9 @@ impl Computer {
                         if flag.contains("TrustedToAuthForDelegation") {
                             self.properties.trustedtoauth = true;
                         };
+                        if flag.contains("ServerTrustAccount") {
+                            self.properties.is_dc = true;
+                        }
                     }
                 }
                 "msDS-AllowedToDelegateTo"  => {
@@ -459,18 +462,23 @@ pub struct ComputerProperties {
     pwdlastset: i64,
     serviceprincipalnames: Vec<String>,
     operatingsystem: String,
-    sidhistory: Vec<String>
+    sidhistory: Vec<String>,
+    #[serde(skip_serializing)]
+    is_dc: bool
 }
 
 impl ComputerProperties {  
-   // Immutable access.
-   pub fn name(&self) -> &String {
-      &self.name
-   }
-   pub fn unconstraineddelegation(&self) -> &bool {
-      &self.unconstraineddelegation
-   }
-   pub fn enabled(&self) -> &bool {
-      &self.enabled
-   }
+    // Immutable access.
+    pub fn name(&self) -> &String {
+        &self.name
+    }
+    pub fn unconstraineddelegation(&self) -> &bool {
+        &self.unconstraineddelegation
+    }
+    pub fn enabled(&self) -> &bool {
+        &self.enabled
+    }
+    pub fn get_is_dc(&self) -> &bool {
+        &self.is_dc
+    }
 }

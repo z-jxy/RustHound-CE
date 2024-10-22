@@ -34,7 +34,7 @@ pub fn add_default_groups(vec_groups: &mut Vec<Group>, vec_computers: &Vec<Compu
 
     let mut vec_members: Vec<Member> = Vec::new();
     for computer in vec_computers {
-        if computer.properties().unconstraineddelegation().to_owned()
+        if computer.properties().get_is_dc().to_owned()
         {
             *template_member.object_identifier_mut() = computer.object_identifier().to_string();
             vec_members.push(template_member.to_owned());
