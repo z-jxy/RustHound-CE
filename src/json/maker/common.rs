@@ -76,7 +76,7 @@ pub fn add_file<T: LdapObject>(
    path: &String,
    json_result: &HashMap<String, String>
  ){
-   let final_path = format!("{}/{}_{}_rusthound.zip",path,datetime,domain);
+   let final_path = format!("{}/{}_{}_rusthound-ce.zip",path,datetime,domain);
    let mut file = File::create(&final_path).expect("Couldn't create file");
    create_zip_archive(&mut file, json_result).expect("Couldn't create archive");
  
