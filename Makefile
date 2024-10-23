@@ -40,7 +40,7 @@ uninstall:
 	@cargo uninstall rusthound-ce
 
 clean:
-	rm target -rf
+	cargo clean
 
 install_windows_deps: update_rustup
 	@rustup install stable-x86_64-pc-windows-gnu --force-non-host
