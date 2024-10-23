@@ -260,7 +260,7 @@ pub fn auto_args() -> Options {
         password: "not set".to_string(),
         ldapfqdn: fqdn.to_string(),
         ip: None, 
-        port: port.to_string(),
+        port: port,
         name_server: "127.0.0.1".to_string(),
         path: "./output".to_string(),
         collection_method: CollectionMethod::All,
