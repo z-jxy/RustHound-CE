@@ -63,7 +63,7 @@ pub fn add_file<T: LdapObject>(
     }
     else
     {
-        json_result.insert(format!("{}_{}.json",datetime,name).to_string(),serde_json::to_string(&final_json)?);
+        json_result.insert(format!("{}_{}_{}.json",datetime,domain_format,name).to_string(),serde_json::to_string(&final_json)?);
     }
   }
   Ok(())
