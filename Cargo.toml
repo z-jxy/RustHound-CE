@@ -6,14 +6,14 @@ keywords = ["bloodhound", "pentest", "ldap", "tokio", "async"]
 repository = "https://github.com/g0h4n/RustHound-CE"
 homepage = "https://github.com/g0h4n/RustHound-CE"
 documentation = "https://docs.rs/rusthound-ce/"
-version = "2.1.0"
+version = "2.1.1"
 edition = "2021"
 license = "MIT"
 readme = "README.md"
 
 [dependencies]
-tokio = "1.1"
-clap = "4.0"
+tokio = "1.41.0"
+clap = "4.5.20"
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1.0", features = ["preserve_order"] }
 nom7 = { version="7.0", package="nom" }

@@ -1,10 +1,13 @@
 //! <p align="center">
-//! <img width="15%" src="https://raw.githubusercontent.com/NH-RED-TEAM/RustHound/main/img/rusthound_logo_v3.png">
+//!     <picture>
+//!         <img src="https://github.com/g0h4n/RustHound-CE/raw/main/img/rusthoundce-transparent-dark-theme.png" alt="rusthound-ce logo" width='250' />
+//!     </picture>
 //! </p>
-//! 
-//! `rusthound-ce` is a cross-platform and cross-compiled BloodHound collector tool, written in Rust.
-//! `rusthound-ce` generate users,groups,computers,ous,gpos,containers,domains,ntauthstores,aiacas,rootcas,enterprisecas,certtemplates json files to analyze it with BloodHound Community Edition application.
-//! 
+//! <hr />
+//!
+//! RustHound-CE is a cross-platform and cross-compiled BloodHound collector tool written in Rust, making it compatible with Linux, Windows, and macOS. It therefore generates all the JSON files that can be analyzed by BloodHound Community Edition. This version is only compatible with [BloodHound Community Edition](https://github.com/SpecterOps/BloodHound). The version compatible with [BloodHound Legacy](https://github.com/BloodHoundAD/BloodHound) can be found on [NeverHack's github](https://github.com/NH-RED-TEAM/RustHound).
+//!
+//!
 //! You can either run the binary:
 //! ```ignore
 //! ---------------------------------------------------
