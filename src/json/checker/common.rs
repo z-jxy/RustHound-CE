@@ -12,6 +12,7 @@ use crate::objects::{
 };
 //use log::{info,debug,trace};
 use crate::ldap::prepare_ldap_dc;
+use crate::utils::format::domain_to_dc;
 use indicatif::ProgressBar;
 use crate::banner::progress_bar;
 use std::convert::TryInto;
@@ -669,6 +670,10 @@ pub fn add_trustdomain(
             trusts.push(trust.to_owned());
             let mut new_domain = Domain::new();
             *new_domain.object_identifier_mut() = trust.target_domain_sid().to_string();
+            *new_domain.properties_mut().name_mut() = trust.target_domain_name().to_string();
+            *new_domain.properties_mut().domain_mut() = trust.target_domain_name().to_string();
+            *new_domain.properties_mut().distinguishedname_mut() = domain_to_dc(trust.target_domain_name());
+            *new_domain.properties_mut().highvalue_mut() = true;
             vec_domains.push(new_domain);
         }
         *vec_domains[0].trusts_mut() = trusts.to_owned();

@@ -10,16 +10,18 @@
 //! let search = ldap_search(...)
 //! ```
 use crate::errors::Result;
+use crate::banner::progress_bar;
+use crate::utils::format::domain_to_dc;
+
 use colored::Colorize;
+use indicatif::ProgressBar;
 use ldap3::adapters::{Adapter, EntriesOnly};
 use ldap3::{adapters::PagedResults, controls::RawControl, LdapConnAsync, LdapConnSettings};
 use ldap3::{Scope, SearchEntry};
-use log::{info, debug, error, trace};
 use std::collections::HashMap;
 use std::process;
-use indicatif::ProgressBar;
-use crate::banner::progress_bar;
 use std::io::{self, Write, stdin};
+use log::{info, debug, error, trace};
 
 /// Function to request all AD values.
 pub async fn ldap_search(
@@ -295,23 +297,7 @@ pub fn prepare_ldap_dc(domain: &String) -> Vec<String> {
     }
     else 
     {
-        let split = domain.split(".");
-        let slen = split.to_owned().count();
-        let mut cpt = 1;
-        for s in split {
-            if cpt < slen {
-                dc.push_str("DC=");
-                dc.push_str(&s);
-                dc.push_str(",");
-            }
-            else
-            {
-                dc.push_str("DC=");
-                dc.push_str(&s);
-            }
-            cpt += 1;
-        }
-        naming_context.push(dc[..].to_string());
+        naming_context.push(domain_to_dc(domain));
     }
 
     // For ADCS values

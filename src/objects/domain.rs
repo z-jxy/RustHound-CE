@@ -57,6 +57,9 @@ impl Domain {
     }
 
     // Mutable access.
+    pub fn properties_mut(&mut self) -> &mut DomainProperties {
+        &mut self.properties
+    }
     pub fn object_identifier_mut(&mut self) -> &mut String {
         &mut self.object_identifier
     }
@@ -268,3 +271,19 @@ pub struct DomainProperties {
     functionallevel: String,
     collected: bool
 }
+
+impl DomainProperties {
+    // Mutable access.
+    pub fn domain_mut(&mut self) -> &mut String {
+       &mut self.domain
+    }
+    pub fn name_mut(&mut self) -> &mut String {
+       &mut self.name
+    }
+    pub fn highvalue_mut(&mut self) -> &mut bool {
+        &mut self.highvalue
+     }
+    pub fn distinguishedname_mut(&mut self) -> &mut String {
+        &mut self.distinguishedname
+     }
+} 
