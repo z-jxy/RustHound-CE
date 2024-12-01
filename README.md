@@ -41,6 +41,15 @@ docker run --rm -v $PWD:/usr/src/rusthound-ce rusthound-ce windows
 docker run --rm -v $PWD:/usr/src/rusthound-ce rusthound-ce linux
 ```
 
+## Installation
+
+<img alt="Crates.io Version" src="https://img.shields.io/crates/v/rusthound-ce"> <img alt="Crates.io Total Downloads" src="https://img.shields.io/crates/d/rusthound-ce?color=f74c00">
+
+```bash
+# Install and/or update RustHound-CE from cargo command
+cargo install rusthound-ce
+```
+
 ## Usage
 
 Here's an example of a command to collect domain objects and obtain the zip archive containing the json files to be imported into BloodHound CE:
