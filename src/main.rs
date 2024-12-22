@@ -6,7 +6,6 @@ pub mod args;
 pub mod objects;
 pub mod utils;
 pub mod banner;
-pub mod errors;
 pub mod ldap;
 
 use log::{info,trace,error};
