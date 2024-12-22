@@ -3,10 +3,9 @@ extern crate lazy_static;
 use lazy_static::lazy_static;
 use std::collections::HashMap;
 
-use crate::objects::{
-    user::User,
-    common::{LdapObject,AceTemplate},
-};
+use crate::{enums::decode_guid_le, objects::{
+    common::{AceTemplate, LdapObject}, user::User
+}};
 use crate::enums::constants::*;
 use crate::enums::secdesc::*;
 use crate::enums::sid::{bin_to_string, sid_maker};
@@ -191,7 +190,7 @@ fn ace_maker<T: LdapObject>(
                 // if not ace_applies(ace_object.acedata.get_inherited_object_type().lower(), entrytype, objecttype_guid_map):
                 // continue
                 // https://github.com/fox-it/BloodHound.py/blob/645082e3462c93f31b571db945cde1fd7b837fb9/bloodhound/enumeration/acls.py#L85
-                let ace_guid = bin_to_string(&inherited_object_type.to_be_bytes().to_vec()).to_lowercase();
+                let ace_guid = decode_guid_le(&inherited_object_type.to_le_bytes().to_vec()).to_lowercase();
                 if !(ace_applies(&ace_guid, &entry_type)) 
                 {
                     continue
@@ -204,7 +203,7 @@ fn ace_maker<T: LdapObject>(
             };
             trace!("ACE MASK for ACETYPE 0x05: {:?}", mask);
 
-            let ace_guid = bin_to_string(&object_type.to_be_bytes().to_vec()).to_lowercase();
+            let ace_guid = decode_guid_le(&object_type.to_le_bytes().to_vec()).to_lowercase();
             trace!("ACE GUID for ACETYPE 0x05: {:?}", ace_guid);
 
             // https://github.com/fox-it/BloodHound.py/blob/645082e3462c93f31b571db945cde1fd7b837fb9/bloodhound/enumeration/acls.py#L92
@@ -611,10 +610,10 @@ fn can_write_property(ace: &Ace, bin_property: &str) -> bool {
         None => 0,
     };
 
-    trace!("AceFormat::get_object_type {}",bin_to_string(&typea.to_be_bytes().to_vec()));
+    trace!("AceFormat::get_object_type {}",decode_guid_le(&typea.to_le_bytes().to_vec()));
     trace!("bin_property_guid_string {}", bin_property.to_uppercase());
 
-    if bin_to_string(&typea.to_be_bytes().to_vec()) == bin_property.to_uppercase()
+    if bin_to_string(&typea.to_le_bytes().to_vec()) == bin_property.to_uppercase()
     {
         trace!("MATCHED AceFormat::get_object_type with bin_property!");
         return true;
@@ -654,12 +653,10 @@ fn has_extended_right(ace: &Ace, bin_right_guid: &str) -> bool {
         None => 0,
     };
 
-    trace!("AceFormat::get_object_type {}",
-        bin_to_string(&typea.to_be_bytes().to_vec())
-    );
+    trace!("AceFormat::get_object_type {}",decode_guid_le(&typea.to_le_bytes().to_vec()).to_uppercase());
     trace!("bin_right_guid {}", bin_right_guid.to_uppercase());
 
-    if bin_to_string(&typea.to_be_bytes().to_vec()) == bin_right_guid.to_uppercase() {
+    if decode_guid_le(&typea.to_le_bytes().to_vec()) == bin_right_guid.to_uppercase() {
         trace!("MATCHED AceFormat::get_object_type with bin_right_guid!");
         return true;
     }

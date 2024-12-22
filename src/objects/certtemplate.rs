@@ -167,7 +167,7 @@ impl CertTemplate {
                     // Needed with acl
                     let entry_type = "CertTemplate".to_string();
                     // nTSecurityDescriptor raw to string
-                    let relations_ace = parse_ntsecuritydescriptor(
+                    let relations_ace =  parse_ntsecuritydescriptor(
                         self,
                         &value[0],
                         entry_type,

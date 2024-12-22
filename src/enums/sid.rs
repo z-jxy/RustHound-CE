@@ -51,7 +51,7 @@ pub fn decode_guid(raw_guid: &Vec<u8>) -> String
     // Note slice syntax means up to the second number, but not including, so [0..4] is [0, 1, 2, 3] for example.
     let str_guid = format!(
         "{}-{}-{}-{}-{}",
-        &hex_push(&rev(&raw_guid[0..4])),
+        &hex_push(&raw_guid[0..4]),
         &hex_push(&rev(&raw_guid[4..6])),
         &hex_push(&rev(&raw_guid[6..8])),
         &hex_push(&raw_guid[8..10]),
@@ -89,4 +89,18 @@ pub fn bin_to_string(raw_guid: &Vec<u8>) -> String
     );
 
     return str_guid  
+}
+/// Function to decode GUID from binary to string format with correct little-endian handling
+pub fn decode_guid_le(raw_guid: &Vec<u8>) -> String {
+    // Correct GUID format with proper endianness
+    let str_guid = format!(
+        "{:02X}{:02X}{:02X}{:02X}-{:02X}{:02X}-{:02X}{:02X}-{:02X}{:02X}-{:02X}{:02X}{:02X}{:02X}{:02X}{:02X}",
+        raw_guid[3], raw_guid[2], raw_guid[1], raw_guid[0], // Data1 (little-endian)
+        raw_guid[5], raw_guid[4],                           // Data2 (little-endian)
+        raw_guid[7], raw_guid[6],                           // Data3 (little-endian)
+        raw_guid[8], raw_guid[9],                           // Data4 (big-endian)
+        raw_guid[10], raw_guid[11], raw_guid[12], raw_guid[13], raw_guid[14], raw_guid[15] // Data5 (big-endian)
+    );
+
+    str_guid
 }
