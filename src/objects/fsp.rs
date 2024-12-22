@@ -13,6 +13,7 @@ use ldap3::SearchEntry;
 use log::{debug, trace};
 use regex::Regex;
 use std::collections::HashMap;
+use std::error::Error;
 
 use crate::utils::date::string_to_epoch;
 use crate::enums::secdesc::LdapSid;
@@ -48,7 +49,7 @@ impl Fsp {
         domain: &String,
         dn_sid: &mut HashMap<String, String>,
         sid_type: &mut HashMap<String, String>,
-    ) {
+    ) -> Result<(), Box<dyn Error>> {
         let result_dn: String = result.dn.to_uppercase();
         let result_attrs: HashMap<String, Vec<String>> = result.attrs;
         let result_bin: HashMap<String, Vec<Vec<u8>>> = result.bin_attrs;
@@ -103,7 +104,7 @@ impl Fsp {
                     sid = sid_maker(LdapSid::parse(&vec_sid).unwrap().1, domain);
                     self.object_identifier = sid.to_owned();
         
-                    let re = Regex::new(r"^S-[0-9]{1}-[0-9]{1}-[0-9]{1,}-[0-9]{1,}-[0-9]{1,}-[0-9]{1,}").unwrap();
+                    let re = Regex::new(r"^S-[0-9]{1}-[0-9]{1}-[0-9]{1,}-[0-9]{1,}-[0-9]{1,}-[0-9]{1,}")?;
                     for domain_sid in re.captures_iter(&sid) 
                     {
                         self.properties.domainsid = domain_sid[0].to_owned().to_string();
@@ -131,6 +132,7 @@ impl Fsp {
         
         // Trace and return Fsp struct
         // trace!("JSON OUTPUT: {:?}",serde_json::to_string(&self).unwrap());
+        Ok(())
     }
 }
 

@@ -1,6 +1,7 @@
 use ldap3::SearchEntry;
 use log::{debug, trace};
 use std::collections::HashMap;
+use std::error::Error;
 use serde::{Deserialize, Serialize};
 
 use crate::enums::secdesc::LdapSid;
@@ -56,7 +57,7 @@ impl Trust {
       &mut self,
       result: SearchEntry,
       domain: &String
-   )  {
+   ) -> Result<(), Box<dyn Error>> {
       let result_dn: String = result.dn.to_uppercase();
       let result_attrs: HashMap<String, Vec<String>> = result.attrs;
       let result_bin: HashMap<String, Vec<Vec<u8>>> = result.bin_attrs;
@@ -108,5 +109,6 @@ impl Trust {
       
       // Trace and return tRUST struct
       // trace!("TRUST VALUE: {:?}",&self);
+      Ok(())
    }
 }

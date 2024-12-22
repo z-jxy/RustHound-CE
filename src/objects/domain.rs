@@ -16,6 +16,7 @@ use ldap3::SearchEntry;
 use log::{info, debug, trace};
 use regex::Regex;
 use std::collections::HashMap;
+use std::error::Error;
 
 use crate::utils::date::string_to_epoch;
 use crate::enums::acl::parse_ntsecuritydescriptor;
@@ -23,7 +24,6 @@ use crate::enums::forestlevel::get_forest_level;
 use crate::enums::gplink::parse_gplink;
 use crate::enums::secdesc::LdapSid;
 use crate::enums::sid::sid_maker;
-
 
 /// Domain structure
 #[derive(Debug, Clone, Deserialize, Serialize, Default)]
@@ -78,7 +78,7 @@ impl Domain {
         domain_name: &String,
         dn_sid: &mut HashMap<String, String>,
         sid_type: &mut HashMap<String, String>,
-    ) -> String {
+    ) -> Result<String, Box<dyn Error>> {
         let result_dn: String = result.dn.to_uppercase();
         let result_attrs: HashMap<String, Vec<String>> = result.attrs;
         let result_bin: HashMap<String, Vec<Vec<u8>>> = result.bin_attrs;
@@ -154,7 +154,7 @@ impl Domain {
                     sid = sid_maker(LdapSid::parse(&value[0]).unwrap().1, domain_name);
                     self.object_identifier = sid.to_owned();
 
-                    let re = Regex::new(r"^S-[0-9]{1}-[0-9]{1}-[0-9]{1,}-[0-9]{1,}-[0-9]{1,}-[0-9]{1,}").unwrap();
+                    let re = Regex::new(r"^S-[0-9]{1}-[0-9]{1}-[0-9]{1,}-[0-9]{1,}-[0-9]{1,}-[0-9]{1,}")?;
                     for domain_sid in re.captures_iter(&sid) 
                     {
                         self.properties.domainsid = domain_sid[0].to_owned().to_string();
@@ -195,7 +195,7 @@ impl Domain {
 
         // Trace and return Domain struct
         // trace!("JSON OUTPUT: {:?}",serde_json::to_string(&self).unwrap());
-        return global_domain_sid
+        Ok(global_domain_sid)
     }
 }
 

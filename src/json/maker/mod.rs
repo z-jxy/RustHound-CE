@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::error::Error;
 
 extern crate zip;
 use crate::args::Options;
@@ -34,8 +35,7 @@ pub fn make_result(
    vec_rootcas:            Vec<RootCA>,
    vec_enterprisecas:      Vec<EnterpriseCA>,
    vec_certtemplates:      Vec<CertTemplate>,
-) -> std::io::Result<()>
-{
+) -> Result<(), Box<dyn Error>> {
    // Format domain name
    let filename = common_args.domain.replace(".", "-").to_lowercase();
 

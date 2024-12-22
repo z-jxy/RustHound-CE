@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::error::Error;
 use ldap3::SearchEntry;
 use regex::Regex;
 use indicatif::ProgressBar;
@@ -51,8 +52,7 @@ pub fn parse_result_type(
     fqdn_sid:           &mut HashMap<String, String>,
     fqdn_ip:            &mut HashMap<String, String>,
     // adcs_templates: &mut HashMap<String, Vec<String>>,
-)
-{
+) -> Result<(), Box<dyn Error>> {
     // Domain name
     let domain = &common_args.domain;
 
@@ -76,7 +76,7 @@ pub fn parse_result_type(
                     domain,
                     dn_sid,
                     sid_type,
-                );
+                )?;
                 vec_users.push(user);
             }
             Type::Group => {
@@ -87,7 +87,7 @@ pub fn parse_result_type(
                     dn_sid,
                     sid_type,
                     &domain_sid
-                );
+                )?;
                 vec_groups.push(group);
             }
             Type::Computer => {
@@ -99,7 +99,7 @@ pub fn parse_result_type(
                     sid_type,
                     fqdn_sid,
                     fqdn_ip,
-                );
+                )?;
                 vec_computers.push(computer);
             }
             Type::Ou => {
@@ -110,7 +110,7 @@ pub fn parse_result_type(
                     dn_sid,
                     sid_type,
                     &domain_sid
-                );
+                )?;
                 vec_ous.push(ou);
             }
             Type::Domain => {
@@ -120,7 +120,7 @@ pub fn parse_result_type(
                     domain,
                     dn_sid,
                     sid_type,
-                );
+                )?;
                 domain_sid = domain_sid_from_domain;
                 vec_domains.push(domain_object);
             }
@@ -132,7 +132,7 @@ pub fn parse_result_type(
                     dn_sid,
                     sid_type,
                     &domain_sid
-                );
+                )?;
                 vec_gpos.push(gpo);
             }
             Type::ForeignSecurityPrincipal => {
@@ -142,17 +142,17 @@ pub fn parse_result_type(
                     domain,
                     dn_sid,
                     sid_type,
-                );
+                )?;
                 vec_fsps.push(security_principal);
             }
             Type::Container => {
-                let re = Regex::new(r"[0-9a-z-A-Z]{1,}-[0-9a-z-A-Z]{1,}-[0-9a-z-A-Z]{1,}-[0-9a-z-A-Z]{1,}").unwrap();
+                let re = Regex::new(r"[0-9a-z-A-Z]{1,}-[0-9a-z-A-Z]{1,}-[0-9a-z-A-Z]{1,}-[0-9a-z-A-Z]{1,}")?;
                 if re.is_match(&cloneresult.dn.to_uppercase()) 
                 {
                     //trace!("Container not to add: {}",&cloneresult.dn.to_uppercase());
                     continue
                 }
-                let re = Regex::new(r"CN=DOMAINUPDATES,CN=SYSTEM,").unwrap();
+                let re = Regex::new(r"CN=DOMAINUPDATES,CN=SYSTEM,")?;
                 if re.is_match(&cloneresult.dn.to_uppercase()) 
                 {
                     //trace!("Container not to add: {}",&cloneresult.dn.to_uppercase());
@@ -166,7 +166,7 @@ pub fn parse_result_type(
                     dn_sid,
                     sid_type,
                     &domain_sid
-                );
+                )?;
                 vec_containers.push(container);
             }
             Type::Trust => {
@@ -174,7 +174,7 @@ pub fn parse_result_type(
                 trust.parse(
                     cloneresult,
                     domain
-                );
+                )?;
                 vec_trusts.push(trust);
             }
             Type::NtAutStore => {
@@ -185,7 +185,7 @@ pub fn parse_result_type(
                     dn_sid,
                     sid_type,
                     &domain_sid
-                );
+                )?;
                 vec_ntauthstore.push(nt_auth_store); 
             }
             Type::AIACA => {
@@ -196,7 +196,7 @@ pub fn parse_result_type(
                     dn_sid,
                     sid_type,
                     &domain_sid
-                );
+                )?;
                 vec_aiacas.push(aiaca); 
             }
             Type::RootCA => {
@@ -207,7 +207,7 @@ pub fn parse_result_type(
                     dn_sid,
                     sid_type,
                     &domain_sid
-                );
+                )?;
                 vec_rootcas.push(root_ca); 
             }
             Type::EnterpriseCA => {
@@ -218,7 +218,7 @@ pub fn parse_result_type(
                     dn_sid,
                     sid_type,
                     &domain_sid
-                );
+                )?;
                 vec_enterprisecas.push(enterprise_ca); 
             }
             Type::CertTemplate => {
@@ -229,7 +229,7 @@ pub fn parse_result_type(
                     dn_sid,
                     sid_type,
                     &domain_sid
-                );
+                )?;
                 vec_certtemplates.push(cert_template);
             }
             Type::Unknown => {
@@ -240,8 +240,9 @@ pub fn parse_result_type(
         // Pourcentage (%) = 100 x Valeur partielle/Valeur totale
 		count += 1;
         let pourcentage = 100 * count / total;
-        progress_bar(pb.to_owned(),"Parsing LDAP objects".to_string(),pourcentage.try_into().unwrap(),"%".to_string());
+        progress_bar(pb.to_owned(),"Parsing LDAP objects".to_string(),pourcentage.try_into()?,"%".to_string());
     }
     pb.finish_and_clear();
     info!("Parsing LDAP objects finished!");
+    Ok(())
 }

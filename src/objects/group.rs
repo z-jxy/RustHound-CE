@@ -13,6 +13,7 @@ use ldap3::SearchEntry;
 use log::{debug, trace};
 use regex::Regex;
 use std::collections::HashMap;
+use std::error::Error;
 
 use crate::enums::acl::parse_ntsecuritydescriptor;
 use crate::enums::secdesc::LdapSid;
@@ -69,7 +70,7 @@ impl Group {
         dn_sid: &mut HashMap<String, String>,
         sid_type: &mut HashMap<String, String>,
         domain_sid: &String,
-    ) {
+    ) -> Result<(), Box<dyn Error>> {
         let result_dn: String = result.dn.to_uppercase();
         let result_attrs: HashMap<String, Vec<String>> = result.attrs;
         let result_bin: HashMap<String, Vec<Vec<u8>>> = result.bin_attrs;
@@ -179,7 +180,7 @@ impl Group {
                     let sid = sid_maker(LdapSid::parse(&value[0]).unwrap().1, domain);
                     self.object_identifier = sid.to_owned();
         
-                    let re = Regex::new(r"^S-[0-9]{1}-[0-9]{1}-[0-9]{1,}-[0-9]{1,}-[0-9]{1,}-[0-9]{1,}").unwrap();
+                    let re = Regex::new(r"^S-[0-9]{1}-[0-9]{1}-[0-9]{1,}-[0-9]{1,}-[0-9]{1,}-[0-9]{1,}")?;
                     for domain_sid in re.captures_iter(&sid) 
                     {
                         self.properties.domainsid = domain_sid[0].to_owned().to_string();
@@ -236,6 +237,7 @@ impl Group {
         
         // Trace and return Group struct
         // trace!("JSON OUTPUT: {:?}",serde_json::to_string(&self).unwrap());
+        Ok(())
     }
 }
 

@@ -82,7 +82,6 @@
 //! 
 pub mod args;
 pub mod banner;
-pub mod errors;
 pub mod ldap;
 pub mod utils;
 
@@ -95,8 +94,6 @@ extern crate chrono;
 extern crate regex;
 
 // Reimport key functions and structure
-#[doc(inline)]
-pub use crate::errors::Error;
 #[doc(inline)]
 pub use ldap::ldap_search;
 #[doc(inline)]

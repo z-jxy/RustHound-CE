@@ -9,7 +9,8 @@
 //! ```
 //! let search = ldap_search(...)
 //! ```
-use crate::errors::Result;
+
+// use crate::errors::Result;
 use crate::banner::progress_bar;
 use crate::utils::format::domain_to_dc;
 
@@ -19,6 +20,7 @@ use ldap3::adapters::{Adapter, EntriesOnly};
 use ldap3::{adapters::PagedResults, controls::RawControl, LdapConnAsync, LdapConnSettings};
 use ldap3::{Scope, SearchEntry};
 use std::collections::HashMap;
+use std::error::Error;
 use std::process;
 use std::io::{self, Write, stdin};
 use log::{info, debug, error, trace};
@@ -33,9 +35,9 @@ pub async fn ldap_search(
     username: &String,
     password: &String,
     kerberos: bool,
-) -> Result<Vec<SearchEntry>> {
+) -> Result<Vec<SearchEntry>, Box<dyn Error>> {
     // Construct LDAP args
-    let ldap_args = ldap_constructor(ldaps, ip, port, domain, ldapfqdn, username, password, kerberos);
+    let ldap_args = ldap_constructor(ldaps, ip, port, domain, ldapfqdn, username, password, kerberos)?;
 
     // LDAP connection
     let consettings = LdapConnSettings::new().set_no_tls_verify(true);
@@ -180,7 +182,7 @@ fn ldap_constructor(
     username: &String,
     password: &String,
     kerberos: bool,
-) -> LdapArgs {
+) -> Result<LdapArgs, Box<dyn Error>>  {
     // Prepare ldap url
     let s_url = prepare_ldap_url(ldaps, ip, port, domain);
 
@@ -192,9 +194,9 @@ fn ldap_constructor(
     let mut _s_username: String;
     if username.contains("not set") && !kerberos {
         print!("Username: ");
-        io::stdout().flush().unwrap();
+        io::stdout().flush()?;
         stdin().read_line(&mut s).expect("Did not enter a correct username");
-        io::stdout().flush().unwrap();
+        io::stdout().flush()?;
         if let Some('\n')=s.chars().next_back() {
             s.pop();
         }
@@ -251,13 +253,13 @@ fn ldap_constructor(
     debug!("DC: {:?}", s_dc);
     debug!("Kerberos: {:?}", kerberos);
 
-    LdapArgs {
+    Ok(LdapArgs {
         s_url: s_url.to_string(),
         _s_dc: s_dc,
         _s_email: s_email.to_string().to_lowercase(),
         s_username: s_email.to_string().to_lowercase(),
         s_password: _s_password.to_string(),
-    }
+    })
 }
 
 /// Function to prepare LDAP url.
@@ -312,7 +314,7 @@ async fn gssapi_connection(
     ldap: &mut ldap3::Ldap,
     ldapfqdn: &String,
     domain: &String,
-) -> Result<()> {
+) -> Result<(), Box<dyn Error>> {
     let res = ldap.sasl_gssapi_bind(ldapfqdn).await?.success();
     match res {
         Ok(_res) => {
@@ -330,7 +332,7 @@ async fn gssapi_connection(
 /// (Not needed yet) Get all namingContext for DC
 pub async fn get_all_naming_contexts(
     ldap: &mut ldap3::Ldap
-) -> Result<Vec<String>> {
+) -> Result<Vec<String>, Box<dyn Error>> {
     // Every 999 max value in ldap response (err 4 ldap)
     let adapters: Vec<Box<dyn Adapter<_,_>>> = vec![
         Box::new(EntriesOnly::new()),

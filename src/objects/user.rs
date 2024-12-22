@@ -14,6 +14,7 @@ use log::{debug, error, trace};
 use regex::Regex;
 use std::collections::HashMap;
 use x509_parser::prelude::*;
+use std::error::Error;
 
 use crate::enums::acl::{parse_ntsecuritydescriptor, parse_gmsa};
 use crate::utils::date::{convert_timestamp, string_to_epoch};
@@ -81,7 +82,7 @@ impl User {
       domain: &String,
       dn_sid: &mut HashMap<String, String>,
       sid_type: &mut HashMap<String, String>,
-   ) {
+   ) -> Result<(), Box<dyn Error>> {
       let result_dn: String = result.dn.to_uppercase();
       let result_attrs: HashMap<String, Vec<String>> = result.attrs;
       let result_bin: HashMap<String, Vec<Vec<u8>>> = result.bin_attrs;
@@ -337,9 +338,12 @@ impl User {
       // primaryGroupID if group_id is set
       #[allow(irrefutable_let_patterns)]
       if let id = group_id {
-         let re = Regex::new(r"S-.*-").unwrap();
-         let part1 = re.find(&sid).unwrap();
-         self.primary_group_sid = format!("{}{}", part1.as_str(), id);
+         let re = Regex::new(r"S-.*-")?;
+         if let Some(part1) = re.find(&sid) {
+            self.primary_group_sid = format!("{}{}", part1.as_str(), id);
+        } else {
+            eprintln!("[!] Regex did not match any part of the SID");
+        }
       }
 
       // Push DN and SID in HashMap
@@ -355,6 +359,7 @@ impl User {
 
       // Trace and return User struct
       // trace!("JSON OUTPUT: {:?}",serde_json::to_string(&self).unwrap());
+      Ok(())
    }
 }
 

@@ -17,6 +17,7 @@ use ldap3::SearchEntry;
 use log::{info, debug, trace};
 use regex::Regex;
 use std::collections::HashMap;
+use std::error::Error;
 
 use crate::utils::date::{convert_timestamp,string_to_epoch};
 use crate::enums::acl::parse_ntsecuritydescriptor;
@@ -102,7 +103,7 @@ impl Computer {
         sid_type: &mut HashMap<String, String>,
         fqdn_sid: &mut HashMap<String, String>,
         fqdn_ip: &mut HashMap<String, String>,
-    ) {
+    ) -> Result<(), Box<dyn Error>> {
         let result_dn: String = result.dn.to_uppercase();
         let result_attrs: HashMap<String, Vec<String>> = result.attrs;
         let result_bin: HashMap<String, Vec<Vec<u8>>> = result.bin_attrs;
@@ -348,12 +349,16 @@ impl Computer {
                 _ => {}
             }
         }
+
         // primaryGroupID if group_id is set
         #[allow(irrefutable_let_patterns)]
         if let id = group_id {
-            let re = Regex::new(r"S-.*-").unwrap();
-            let part1 = re.find(&sid).unwrap();
-            self.primary_group_sid = format!("{}{}", part1.as_str(), id);
+            let re = Regex::new(r"S-.*-")?;
+            if let Some(part1) = re.find(&sid) {
+                self.primary_group_sid = format!("{}{}", part1.as_str(), id);
+            } else {
+                eprintln!("[!] Regex did not match any part of the SID");
+            }
         }
 
         // Push DN and SID in HashMap
@@ -380,6 +385,7 @@ impl Computer {
         
         // Trace and return Computer struct
         // trace!("JSON OUTPUT: {:?}",serde_json::to_string(&self).unwrap());
+        Ok(())
     }
 }
 

@@ -17,6 +17,7 @@ use crate::utils::crypto::calculate_sha1;
 use ldap3::SearchEntry;
 use log::{debug, error, trace};
 use std::collections::HashMap;
+use std::error::Error;
 
 /// RootCA structure
 #[derive(Debug, Clone, Deserialize, Serialize, Default)]
@@ -51,7 +52,7 @@ impl RootCA {
         dn_sid: &mut HashMap<String, String>,
         sid_type: &mut HashMap<String, String>,
         domain_sid: &String
-    ) {
+    ) -> Result<(), Box<dyn Error>> {
         let result_dn: String = result.dn.to_uppercase();
         let result_attrs: HashMap<String, Vec<String>> = result.attrs;
         let result_bin: HashMap<String, Vec<Vec<u8>>> = result.bin_attrs;
@@ -180,6 +181,7 @@ impl RootCA {
 
         // Trace and return RootCA struct
         // trace!("JSON OUTPUT: {:?}",serde_json::to_string(&self).unwrap());
+        Ok(())
     }
 }
 

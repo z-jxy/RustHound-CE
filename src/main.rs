@@ -12,7 +12,7 @@ pub mod ldap;
 use log::{info,trace,error};
 use env_logger::Builder;
 use std::collections::HashMap;
-use crate::errors::Result;
+use std::error::Error;
 
 #[cfg(not(feature = "noargs"))]
 use args::{Options,extract_args};
@@ -46,7 +46,7 @@ use objects::{
 
 /// Main of RustHound
 #[tokio::main]
-async fn main() -> Result<()> {
+async fn main() -> Result<(), Box<dyn Error>> {
     // Banner
     print_banner();
 
@@ -126,7 +126,7 @@ async fn main() -> Result<()> {
         &mut sid_type,
         &mut fqdn_sid,
         &mut fqdn_ip,
-    );
+    )?;
     
     // Functions to replace and add missing values
     check_all_result(

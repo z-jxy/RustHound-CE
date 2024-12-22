@@ -14,6 +14,7 @@ use crate::objects::common::{
 use ldap3::SearchEntry;
 use log::{debug, trace};
 use std::collections::HashMap;
+use std::error::Error;
 
 /// CertTemplate structure
 #[derive(Debug, Clone, Deserialize, Serialize, Default)]
@@ -54,7 +55,7 @@ impl CertTemplate {
         dn_sid: &mut HashMap<String, String>,
         sid_type: &mut HashMap<String, String>,
         domain_sid: &String
-    ) {
+    ) -> Result<(), Box<dyn Error>> {
         let result_dn: String = result.dn.to_uppercase();
         let result_attrs: HashMap<String, Vec<String>> = result.attrs;
         let result_bin: HashMap<String, Vec<Vec<u8>>> = result.bin_attrs;
@@ -211,6 +212,7 @@ impl CertTemplate {
 
         // Trace and return CertTemplate struct
         // trace!("JSON OUTPUT: {:?}",serde_json::to_string(&self).unwrap());
+        Ok(())
     }
 
     /// Function to get effective ekus for one template.
