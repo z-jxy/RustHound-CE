@@ -41,7 +41,7 @@ pub fn objectsid_to_vec8(sid: &String) -> Vec<u8>
 /// Function to decode objectGUID binary to string value. 
 /// src: <https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-dtyp/001eec5a-7f8b-4293-9e21-ca349392db40>
 /// Thanks to: <https://github.com/picketlink/picketlink/blob/master/modules/common/src/main/java/org/picketlink/common/util/LDAPUtil.java>
-pub fn decode_guid(raw_guid: &Vec<u8>) -> String
+pub fn _decode_guid(raw_guid: &Vec<u8>) -> String
 {
     // A byte-based String representation in the form of \[0]\[1]\[2]\[3]\[4]\[5]\[6]\[7]\[8]\[9]\[10]\[11]\[12]\[13]\[14]\[15]
     // A string representing the decoded value in the form of [3][2][1][0]-[5][4]-[7][6]-[8][9]-[10][11][12][13][14][15].

@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use x509_parser::oid_registry::asn1_rs::oid;
 use x509_parser::prelude::*;
 
-use crate::enums::{decode_guid, parse_ntsecuritydescriptor};
+use crate::enums::{decode_guid_le, parse_ntsecuritydescriptor};
 use crate::utils::date::string_to_epoch;
 use crate::objects::common::{
     LdapObject,
@@ -102,7 +102,7 @@ impl RootCA {
             match key.as_str() {
                 "objectGUID" => {
                     // objectGUID raw to string
-                    self.object_identifier = decode_guid(&value[0]).to_owned().into();
+                    self.object_identifier = decode_guid_le(&value[0]).to_owned().into();
                 }
                 "nTSecurityDescriptor" => {
                     // Needed with acl

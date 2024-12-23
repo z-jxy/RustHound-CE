@@ -1,6 +1,7 @@
 use serde_json::value::Value;
 use serde::{Deserialize, Serialize};
 
+use crate::enums::decode_guid_le;
 use crate::objects::common::{
     LdapObject,
     AceTemplate,
@@ -15,7 +16,6 @@ use std::collections::HashMap;
 use std::error::Error;
 
 use crate::enums::acl::parse_ntsecuritydescriptor;
-use crate::enums::sid::decode_guid;
 use crate::utils::date::string_to_epoch;
 
 /// Gpo structure
@@ -105,7 +105,7 @@ impl Gpo {
             match key.as_str() {
                 "objectGUID" => {
                     // objectGUID raw to string
-                    self.object_identifier = decode_guid(&value[0]).to_owned().into();
+                    self.object_identifier = decode_guid_le(&value[0]).to_owned().into();
                 }
                 "nTSecurityDescriptor" => {
                     // Needed with acl

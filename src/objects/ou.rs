@@ -17,7 +17,7 @@ use std::error::Error;
 
 use crate::enums::acl::parse_ntsecuritydescriptor;
 use crate::enums::gplink::parse_gplink;
-use crate::enums::sid::decode_guid;
+use crate::enums::sid::decode_guid_le;
 use crate::utils::date::string_to_epoch;
 
 /// Ou structure
@@ -127,7 +127,7 @@ impl Ou {
             match key.as_str() {
                 "objectGUID" => {
                     // objectGUID raw to string
-                    self.object_identifier = decode_guid(&value[0]).to_owned();
+                    self.object_identifier = decode_guid_le(&value[0]).to_owned();
                 }
                 "nTSecurityDescriptor" => {
                     // trace!("nTSecurityDescriptor ACES ACLS ?");

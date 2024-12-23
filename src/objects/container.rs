@@ -15,7 +15,7 @@ use std::collections::HashMap;
 use std::error::Error;
 
 use crate::enums::acl::parse_ntsecuritydescriptor;
-use crate::enums::sid::decode_guid;
+use crate::enums::sid::decode_guid_le;
 use crate::utils::date::string_to_epoch;
 
 /// Container structure
@@ -96,7 +96,7 @@ impl Container {
         for (key, value) in &result_bin {
             match key.as_str() {
                 "objectGUID" => {
-                    let guid = decode_guid(&value[0]);
+                    let guid = decode_guid_le(&value[0]);
                     self.object_identifier = guid.to_owned();
                 }
                 "nTSecurityDescriptor" => {

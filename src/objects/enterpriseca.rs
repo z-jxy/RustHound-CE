@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use x509_parser::oid_registry::asn1_rs::oid;
 use x509_parser::prelude::*;
 
-use crate::enums::{decode_guid, parse_ntsecuritydescriptor, MaskFlags, SecurityDescriptor, AceFormat, Acl, sid_maker, parse_ca_security};
+use crate::enums::{decode_guid_le, parse_ntsecuritydescriptor, MaskFlags, SecurityDescriptor, AceFormat, Acl, sid_maker, parse_ca_security};
 use crate::json::checker::common::get_name_from_full_distinguishedname;
 use crate::utils::date::string_to_epoch;
 use crate::objects::common::{
@@ -139,7 +139,7 @@ impl EnterpriseCA {
             match key.as_str() {
                 "objectGUID" => {
                     // objectGUID raw to string
-                    let guid = decode_guid(&value[0]);
+                    let guid = decode_guid_le(&value[0]);
                     self.object_identifier = guid.to_owned().into();
                 }
                 "nTSecurityDescriptor" => {

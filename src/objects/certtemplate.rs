@@ -1,7 +1,7 @@
 use serde_json::value::Value;
 use serde::{Deserialize, Serialize};
 
-use crate::enums::{decode_guid, parse_ntsecuritydescriptor, get_pki_cert_name_flags, get_pki_enrollment_flags};
+use crate::enums::{decode_guid_le, get_pki_cert_name_flags, get_pki_enrollment_flags, parse_ntsecuritydescriptor};
 use crate::json::checker::common::get_name_from_full_distinguishedname;
 use crate::utils::date::{string_to_epoch, span_to_string, filetime_to_span};
 use crate::objects::common::{
@@ -160,7 +160,7 @@ impl CertTemplate {
             match key.as_str() {
                 "objectGUID" => {
                     // objectGUID raw to string
-                    let guid = decode_guid(&value[0]);
+                    let guid = decode_guid_le(&value[0]);
                     self.object_identifier = guid.to_owned().into();
                 }
                 "nTSecurityDescriptor" => {
