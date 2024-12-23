@@ -19,6 +19,8 @@ pub struct Trust {
    is_transitive: bool,
    #[serde(rename = "SidFilteringEnabled")]
    sid_filtering_enabled: bool,
+   #[serde(rename = "TrustAttributes")]
+   trust_attributes: u32,
    #[serde(rename = "TrustDirection")]
    trust_direction: String,
    #[serde(rename = "TrustType")]
@@ -92,6 +94,7 @@ impl Trust {
             "trustAttributes" => {
                   let trustflag: u32 = value[0].parse::<u32>().unwrap_or(0);
                   get_trust_flag(trustflag, self);
+                  self.trust_attributes = trustflag;
             }
             _ => {}
          }

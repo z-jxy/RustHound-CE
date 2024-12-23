@@ -160,7 +160,7 @@ impl Group {
                     }
                 }
                 "whenCreated" => {
-                    let epoch = string_to_epoch(&value[0]);
+                    let epoch = string_to_epoch(&value[0])?;
                     if epoch.is_positive() {
                         self.properties.whencreated = epoch;
                     }
@@ -276,9 +276,21 @@ impl LdapObject for Group {
         &false
     }
     
+    // Get mutable values
+    fn get_aces_mut(&mut self) -> &mut Vec<AceTemplate> {
+        &mut self.aces
+    }
+    fn get_spntargets_mut(&mut self) -> &mut Vec<SPNTarget> {
+        panic!("Not used by current object.");
+    }
+    fn get_allowed_to_delegate_mut(&mut self) -> &mut Vec<Member> {
+        panic!("Not used by current object.");
+    }
+    
     // Edit values
     fn set_is_acl_protected(&mut self, is_acl_protected: bool) {
         self.is_acl_protected = is_acl_protected;
+        self.properties.isaclprotected = is_acl_protected;
     }
     fn set_aces(&mut self, aces: Vec<AceTemplate>) {
         self.aces = aces;
@@ -307,6 +319,7 @@ pub struct GroupProperties {
     name: String,
     distinguishedname: String,
     domainsid: String,
+    isaclprotected: bool,
     highvalue: bool,
     samaccountname: String,
     description: Option<String>,

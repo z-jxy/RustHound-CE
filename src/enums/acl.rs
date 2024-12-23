@@ -131,7 +131,9 @@ fn ace_maker<T: LdapObject>(
             osid.to_owned(),
             "Base".to_string(),
             "Owns".to_string(),
-            false)
+            false,
+            "".to_string(),
+            )
         );
     }
 
@@ -227,7 +229,8 @@ fn ace_maker<T: LdapObject>(
                                 sid.to_owned(),
                                 "".to_string(),
                                 "ReadLAPSPassword".to_string(),
-                                is_inherited)
+                                is_inherited,
+                                "".to_string())
                             );
                         }
                     } else {
@@ -235,7 +238,8 @@ fn ace_maker<T: LdapObject>(
                             sid.to_owned(),
                             "".to_string(),
                             "GenericAll".to_string(),
-                            is_inherited)
+                            is_inherited,
+                            "".to_string())
                         );
                     }
                     continue
@@ -245,7 +249,8 @@ fn ace_maker<T: LdapObject>(
                         sid.to_owned(),
                         "".to_string(),
                         "GenericWrite".to_string(),
-                        is_inherited)
+                        is_inherited,
+                        "".to_string())
                     );
                     if (entry_type != "Domain") && (entry_type != "Computer") 
                     {
@@ -257,7 +262,8 @@ fn ace_maker<T: LdapObject>(
                         sid.to_owned(),
                         "".to_string(),
                         "WriteDacl".to_string(),
-                        is_inherited)
+                        is_inherited,
+                        "".to_string())
                     );
                 }
                 if (MaskFlags::WRITE_OWNER.bits() | mask) == mask {
@@ -265,7 +271,8 @@ fn ace_maker<T: LdapObject>(
                         sid.to_owned(),
                         "".to_string(),
                         "WriteOwner".to_string(),
-                        is_inherited)
+                        is_inherited,
+                        "".to_string())
                     );
                 }
             }
@@ -281,7 +288,8 @@ fn ace_maker<T: LdapObject>(
                         sid.to_owned(),
                         "".to_string(),
                         "GenericWrite".to_string(),
-                        is_inherited)
+                        is_inherited,
+                        "".to_string())
                     );
                 }
                 if entry_type == "Group" && can_write_property(&ace, WRITE_MEMBER)
@@ -290,7 +298,18 @@ fn ace_maker<T: LdapObject>(
                         sid.to_owned(),
                         "".to_string(),
                         "AddMember".to_string(),
-                        is_inherited)
+                        is_inherited,
+                        "".to_string())
+                    );
+                }
+                if entry_type == "Group" && can_write_property(&ace, USER_ACCOUNT_RESTRICTIONS_SET) && sid.ends_with("-512")
+                {
+                    relations.push(AceTemplate::new(
+                        sid.to_owned(),
+                        "".to_string(),
+                        "WriteAccountRestrictions".to_string(),
+                        is_inherited,
+                        "".to_string())
                     );
                 }
                 if entry_type == "Computer" && can_write_property(&ace, ALLOWED_TO_ACT)
@@ -299,7 +318,8 @@ fn ace_maker<T: LdapObject>(
                         sid.to_owned(),
                         "".to_string(),
                         "AddAllowedToAct".to_string(),
-                        is_inherited)
+                        is_inherited,
+                        "".to_string())
                     );
                 }
                 if entry_type == "Computer" && can_write_property(&ace, USER_ACCOUNT_RESTRICTIONS_SET) && !&sid.ends_with("-512")
@@ -308,7 +328,8 @@ fn ace_maker<T: LdapObject>(
                         sid.to_owned(),
                         "".to_string(),
                         "WriteAccountRestrictions".to_string(),
-                        is_inherited)
+                        is_inherited,
+                        "".to_string())
                     );
                 }
 
@@ -322,7 +343,8 @@ fn ace_maker<T: LdapObject>(
                         sid.to_owned(),
                         "".to_string(),
                         "AddKeyCredentialLink".to_string(),
-                        is_inherited)
+                        is_inherited,
+                        "".to_string())
                     );
                 }
                 if (entry_type == "User")
@@ -333,7 +355,8 @@ fn ace_maker<T: LdapObject>(
                         sid.to_owned(),
                         "".to_string(),
                         "WriteSPN".to_string(),
-                        is_inherited)
+                        is_inherited,
+                        "".to_string())
                     );
                 }
             } 
@@ -345,7 +368,8 @@ fn ace_maker<T: LdapObject>(
                         sid.to_owned(),
                         "".to_string(),
                         "AddSelf".to_string(),
-                        is_inherited)
+                        is_inherited,
+                        "".to_string())
                     );
                 }
             }
@@ -364,7 +388,8 @@ fn ace_maker<T: LdapObject>(
                             sid.to_owned(),
                             "".to_string(),
                             "ReadLAPSPassword".to_string(),
-                            is_inherited)
+                            is_inherited,
+                            "".to_string())
                         );
                     }
                 }
@@ -381,7 +406,8 @@ fn ace_maker<T: LdapObject>(
                         sid.to_owned(),
                         "".to_string(),
                         "AllExtendedRights".to_string(),
-                        is_inherited)
+                        is_inherited,
+                        "".to_string())
                     );
                 }
                 if (entry_type == "Computer")
@@ -392,7 +418,8 @@ fn ace_maker<T: LdapObject>(
                         sid.to_owned(),
                         "".to_string(),
                         "AllExtendedRights".to_string(),
-                        is_inherited)
+                        is_inherited,
+                        "".to_string())
                     );
                 }
                 if (entry_type == "Domain") && has_extended_right(&ace, GET_CHANGES) 
@@ -401,7 +428,8 @@ fn ace_maker<T: LdapObject>(
                         sid.to_owned(),
                         "".to_string(),
                         "GetChanges".to_string(),
-                        is_inherited)
+                        is_inherited,
+                        "".to_string())
                     );
                 }
                 if (entry_type == "Domain") && has_extended_right(&ace, GET_CHANGES_ALL) 
@@ -410,7 +438,8 @@ fn ace_maker<T: LdapObject>(
                         sid.to_owned(),
                         "".to_string(),
                         "GetChangesAll".to_string(),
-                        is_inherited)
+                        is_inherited,
+                        "".to_string())
                     );
                 }
                 if (entry_type == "Domain") && has_extended_right(&ace, GET_CHANGES_IN_FILTERED_SET)
@@ -419,7 +448,8 @@ fn ace_maker<T: LdapObject>(
                         sid.to_owned(),
                         "".to_string(),
                         "GetChangesInFilteredSet".to_string(),
-                        is_inherited)
+                        is_inherited,
+                        "".to_string())
                     );
                 }
                 if (entry_type == "User") && has_extended_right(&ace, USER_FORCE_CHANGE_PASSWORD)
@@ -428,7 +458,8 @@ fn ace_maker<T: LdapObject>(
                         sid.to_owned(),
                         "".to_string(),
                         "ForceChangePassword".to_string(),
-                        is_inherited)
+                        is_inherited,
+                        "".to_string())
                     );
                 }
                 if vec!["EnterpriseCA","RootCA","CertTemplate"].contains(&entry_type.as_str()) && has_extended_right(&ace, ENROLL)
@@ -437,7 +468,8 @@ fn ace_maker<T: LdapObject>(
                         sid.to_owned(),
                         "".to_string(),
                         "Enroll".to_string(),
-                        is_inherited)
+                        is_inherited,
+                        "".to_string())
                     );
                 }
                 if vec!["EnterpriseCA","RootCA","CertTemplate"].contains(&entry_type.as_str()) && has_extended_right(&ace, AUTO_ENROLL)
@@ -446,7 +478,8 @@ fn ace_maker<T: LdapObject>(
                         sid.to_owned(),
                         "".to_string(),
                         "AutoEnroll".to_string(),
-                        is_inherited)
+                        is_inherited,
+                        "".to_string())
                     );
                 }
             }
@@ -470,7 +503,8 @@ fn ace_maker<T: LdapObject>(
                     sid.to_owned(),
                     "".to_string(),
                     "GenericAll".to_string(),
-                    is_inherited)
+                    is_inherited,
+                    "".to_string())
                 );
                 continue
             }
@@ -480,7 +514,8 @@ fn ace_maker<T: LdapObject>(
                     sid.to_owned(),
                     "".to_string(),
                     "GenericWrite".to_string(),
-                    is_inherited)
+                    is_inherited,
+                    "".to_string())
                 );
             }
             if (MaskFlags::WRITE_OWNER.bits() | mask) == mask
@@ -489,7 +524,8 @@ fn ace_maker<T: LdapObject>(
                     sid.to_owned(),
                     "".to_string(),
                     "WriteOwner".to_string(),
-                    is_inherited)
+                    is_inherited,
+                    "".to_string())
                 );
             }
             // For users and domain, check extended rights
@@ -500,7 +536,8 @@ fn ace_maker<T: LdapObject>(
                     sid.to_owned(),
                     "".to_string(),
                     "AllExtendedRights".to_string(),
-                    is_inherited)
+                    is_inherited,
+                    "".to_string())
                 );
             }
             // For computer
@@ -512,7 +549,8 @@ fn ace_maker<T: LdapObject>(
                     sid.to_owned(),
                     "".to_string(),
                     "AllExtendedRights".to_string(),
-                    is_inherited)
+                    is_inherited,
+                    "".to_string())
                 );
             }
             if (MaskFlags::WRITE_DACL.bits() | mask) == mask 
@@ -521,7 +559,8 @@ fn ace_maker<T: LdapObject>(
                     sid.to_owned(),
                     "".to_string(),
                     "WriteDacl".to_string(),
-                    is_inherited)
+                    is_inherited,
+                    "".to_string())
                 );
             }
             // Self add, also possible ad ACCESS_ALLOWED_ACE
@@ -533,7 +572,8 @@ fn ace_maker<T: LdapObject>(
                     sid.to_owned(),
                     "".to_string(),
                     "AddSelf".to_string(),
-                    is_inherited)
+                    is_inherited,
+                    "".to_string())
                 );
             }
             if vec!["EnterpriseCA","RootCA"].contains(&entry_type.as_str())
@@ -543,7 +583,8 @@ fn ace_maker<T: LdapObject>(
                     sid.to_owned(),
                     "".to_string(),
                     "ManageCA".to_string(),
-                    is_inherited)
+                    is_inherited,
+                    "".to_string())
                 );
             }
             if vec!["EnterpriseCA","RootCA"].contains(&entry_type.as_str())
@@ -553,34 +594,20 @@ fn ace_maker<T: LdapObject>(
                     sid.to_owned(),
                     "".to_string(),
                     "ManageCertificates".to_string(),
-                    is_inherited)
+                    is_inherited,
+                    "".to_string())
                 );
             }
         }
     }
 }
 
-/// Make Relation
-/// <https://github.com/fox-it/BloodHound.py/blob/645082e3462c93f31b571db945cde1fd7b837fb9/bloodhound/enumeration/acls.py#L240>
-// fn build_relation(
-//     sid: &String,
-//     relation: String,
-//     acetype: String,
-//     inherited: bool,
-// ) -> serde_json::value::Value {
-//     let mut relation_builded = bh_41::prepare_acl_relation_template();
-
-//     relation_builded["RightName"] = relation.to_owned().into();
-//     relation_builded["IsInherited"] = inherited.to_owned().into();
-//     relation_builded["PrincipalType"] = acetype.to_owned().into();
-//     relation_builded["PrincipalSID"] = sid.to_owned().into();
-
-//     return relation_builded;
-// }
-
 /// Checks if the access is sufficient to write to a specific property.
 /// <https://github.com/fox-it/BloodHound.py/blob/645082e3462c93f31b571db945cde1fd7b837fb9/bloodhound/enumeration/acls.py#L193>
-fn can_write_property(ace: &Ace, bin_property: &str) -> bool {
+fn can_write_property(
+    ace: &Ace,
+    bin_property: &str
+) -> bool {
     // This can either be because we have the right ADS_RIGHT_DS_WRITE_PROP and the correct GUID
     // is set in ObjectType, or if we have the ADS_RIGHT_DS_WRITE_PROP right and the ObjectType
     // is empty, in which case we can write to any property. This is documented in
@@ -717,7 +744,8 @@ pub fn parse_ca_security(
         hosting_computer_sid.to_owned() + "-544",
         "LocalGroup".to_string(),
         "Owns".to_string(),
-        false)
+        false,
+        "".to_string())
     );
     let secdesc: SecurityDescriptor = SecurityDescriptor::parse(&nt).unwrap().1;
     if secdesc.offset_dacl as usize != 0 
@@ -740,7 +768,8 @@ pub fn parse_ca_security(
                                 sid.to_owned(),
                                 "".to_string(),
                                 "Enroll".to_string(),
-                                false)
+                                false,
+                                "".to_string())
                             );
                         }
                     }
@@ -754,14 +783,16 @@ pub fn parse_ca_security(
                                     sid.to_owned() + "-544",
                                     "LocalGroup".to_string(),
                                     "ManageCertificates".to_string(),
-                                    false)
+                                    false,
+                                    "".to_string())
                                 );
                             } else {
                                 relations.push(AceTemplate::new(
                                     sid.to_owned(),
                                     "Group".to_string(),
                                     "ManageCertificates".to_string(),
-                                    false)
+                                    false,
+                                    "".to_string())
                                 );
                             }
                         }
@@ -774,14 +805,16 @@ pub fn parse_ca_security(
                                     sid.to_owned() + "-544",
                                     "LocalGroup".to_string(),
                                     "ManageCA".to_string(),
-                                    false)
+                                    false,
+                                    "".to_string())
                                 );
                             } else {
                                 relations.push(AceTemplate::new(
                                     sid.to_owned(),
                                     "Group".to_string(),
                                     "ManageCA".to_string(),
-                                    false)
+                                    false,
+                                    "".to_string())
                                 );
                             }
                         }

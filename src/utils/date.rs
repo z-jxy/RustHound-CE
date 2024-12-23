@@ -1,5 +1,6 @@
 use chrono::{NaiveDateTime, Local};
 use std::convert::TryInto;
+use std::error::Error;
 //use log::trace;
 // special thanks to: https://github.com/NH-RED-TEAM/RustHound/pull/30/commits/e4b5dbc0f147dd0f8efe64d515e0a18b69937aeb
 
@@ -11,13 +12,16 @@ pub fn convert_timestamp(timestamp: i64) -> i64
     return epoch
 }
 
-pub fn string_to_epoch(date: &String) -> i64 {
+pub fn string_to_epoch(date: &str) -> Result<i64, Box<dyn Error>> {
+    // Extract the portion before the dot
     // yyyyMMddHHmmss.0z to epoch format
-    let str_representation = date.split(".").next().unwrap();
-    let date = NaiveDateTime::parse_from_str(&str_representation, "%Y%m%d%H%M%S").unwrap();
-    //trace!("whencreated timestamp: {:?}", date.timestamp());
-    return date.and_utc().timestamp()
+    let str_representation = date.split('.').next().ok_or("Invalid date format")?;
+    
+    // Parse the date and convert to epoch
+    let naive_date = NaiveDateTime::parse_from_str(str_representation, "%Y%m%d%H%M%S")?;
+    Ok(naive_date.and_utc().timestamp())
 }
+
 
 /// Function to return current hours.
 pub fn return_current_time() -> String
@@ -38,13 +42,13 @@ pub fn return_current_fulldate() -> String
 }
 
 /// Function to convert pKIExpirationPeriod Vec<u8> format to u64.
-pub fn filetime_to_span(filetime: Vec<u8>) -> u64 {
+pub fn filetime_to_span(filetime: Vec<u8>) -> Result<u64, Box<dyn Error>> {
     if filetime.len() > 0 {
-        let mut span = i64::from_ne_bytes(filetime[0..8].try_into().unwrap()) as f64;
+        let mut span = i64::from_ne_bytes(filetime[0..8].try_into()?) as f64;
         span *= -0.0000001;
-        return span as u64
+        return Ok(span as u64)
     }
-    return 0
+    Ok(0)
 }
 
 /// Function to change span format to String output date.

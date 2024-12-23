@@ -148,14 +148,14 @@ async fn main() -> Result<(), Box<dyn Error>> {
         &mut sid_type,
         &mut fqdn_sid,
         &mut fqdn_ip,
-     );
+    )?;
 
     // Running modules
     run_modules(
         &common_args,
         &mut fqdn_ip,
         &mut vec_computers,
-    ).await;
+    ).await?;
 
     // Add all in json files
     match make_result(

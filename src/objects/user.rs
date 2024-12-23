@@ -39,6 +39,10 @@ pub struct User {
    primary_group_sid: String,
    #[serde(rename = "SPNTargets")]
    spn_targets: Vec<SPNTarget>,
+   #[serde(rename = "UnconstrainedDelegation")]
+   unconstrained_delegation: bool,
+   #[serde(rename = "DomainSID")]
+   domain_sid: String,
    #[serde(rename = "Aces")]
    aces: Vec<AceTemplate>,
    #[serde(rename = "AllowedToDelegate")]
@@ -82,6 +86,7 @@ impl User {
       domain: &String,
       dn_sid: &mut HashMap<String, String>,
       sid_type: &mut HashMap<String, String>,
+      domain_sid: &String
    ) -> Result<(), Box<dyn Error>> {
       let result_dn: String = result.dn.to_uppercase();
       let result_attrs: HashMap<String, Vec<String>> = result.attrs;
@@ -101,6 +106,7 @@ impl User {
       self.properties.domain = domain.to_uppercase();
       self.properties.distinguishedname = result_dn;
       self.properties.enabled = true;
+      self.domain_sid = domain_sid.to_string();
 
       // With a check
       let mut group_id: String = "".to_owned();
@@ -171,6 +177,7 @@ impl User {
                      // KUD (Kerberos Unconstrained Delegation)
                      if flag.contains("TrustedForDelegation") {
                         self.properties.unconstraineddelegation = true;
+                        self.unconstrained_delegation = true;
                      };
                      if flag.contains("NotDelegated") {
                         self.properties.sensitive = true;
@@ -227,7 +234,7 @@ impl User {
                   }
             }
             "whenCreated" => {
-                  let epoch = string_to_epoch(&value[0]);
+                  let epoch = string_to_epoch(&value[0])?;
                   if epoch.is_positive() {
                      self.properties.whencreated = epoch;
                   }
@@ -399,9 +406,21 @@ impl LdapObject for User {
       &false
    }
 
+   // Get mutable values
+   fn get_aces_mut(&mut self) -> &mut Vec<AceTemplate> {
+      &mut self.aces
+   }
+   fn get_spntargets_mut(&mut self) -> &mut Vec<SPNTarget> {
+      &mut self.spn_targets
+   }
+   fn get_allowed_to_delegate_mut(&mut self) -> &mut Vec<Member> {
+      panic!("Not used by current object.");
+   }
+
    // Edit values
    fn set_is_acl_protected(&mut self, is_acl_protected: bool) {
       self.is_acl_protected = is_acl_protected;
+      self.properties.isaclprotected = is_acl_protected;
    }
    fn set_aces(&mut self, aces: Vec<AceTemplate>) {
       self.aces = aces;
@@ -420,7 +439,7 @@ impl LdapObject for User {
    }
    fn set_child_objects(&mut self, _child_objects: Vec<Member>) {
       // Not used by current object.
-  }
+   }
 }
 
 /// User properties structure
@@ -429,6 +448,7 @@ pub struct UserProperties {
    domain: String,
    name: String,
    domainsid: String,
+   isaclprotected: bool,
    distinguishedname: String,
    highvalue: bool,
    description: Option<String>,
@@ -468,6 +488,9 @@ impl UserProperties {
    pub fn domainsid(&self) -> &String {
       &self.domainsid
    }
+   pub fn isaclprotected(&self) -> &bool {
+      &self.isaclprotected
+   }
 
    // Mutable access.
    pub fn name_mut(&mut self) -> &mut String {
@@ -475,5 +498,8 @@ impl UserProperties {
    }
    pub fn domainsid_mut(&mut self) -> &mut String {
       &mut self.domainsid
+   }
+   pub fn isaclprotected_mut(&mut self) -> &mut bool {
+      &mut self.isaclprotected
    }
 }

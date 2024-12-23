@@ -122,13 +122,13 @@ impl Domain {
                     self.properties.functionallevel  = level;
                 }
                 "whenCreated" => {
-                    let epoch = string_to_epoch(&value[0]);
+                    let epoch = string_to_epoch(&value[0])?;
                     if epoch.is_positive() {
                         self.properties.whencreated = epoch;
                     }
                 }
                 "gPLink" => {
-                    self.links = parse_gplink(value[0].to_string());
+                    self.links = parse_gplink(value[0].to_string())?;
                 }
                 "isCriticalSystemObject" => {
                     self.properties.highvalue = value[0].contains("TRUE");
@@ -136,6 +136,7 @@ impl Domain {
                 // The number of computer accounts that a user is allowed to create in a domain.
                 "ms-DS-MachineAccountQuota" => {
                     let machine_account_quota = value[0].parse::<i32>().unwrap_or(0);
+                    self.properties.machineaccountquota = machine_account_quota;
                     if machine_account_quota > 0 {
                         info!("MachineAccountQuota: {}", machine_account_quota.to_string().yellow().bold());
                     }
@@ -234,9 +235,21 @@ impl LdapObject for Domain {
         &false
     }
     
+    // Get mutable values
+    fn get_aces_mut(&mut self) -> &mut Vec<AceTemplate> {
+        &mut self.aces
+    }
+    fn get_spntargets_mut(&mut self) -> &mut Vec<SPNTarget> {
+        panic!("Not used by current object.");
+    }
+    fn get_allowed_to_delegate_mut(&mut self) -> &mut Vec<Member> {
+        panic!("Not used by current object.");
+    }
+    
     // Edit values
     fn set_is_acl_protected(&mut self, is_acl_protected: bool) {
         self.is_acl_protected = is_acl_protected;
+        self.properties.isaclprotected = is_acl_protected;
     }
     fn set_aces(&mut self, aces: Vec<AceTemplate>) {
         self.aces = aces;
@@ -265,9 +278,11 @@ pub struct DomainProperties {
     name: String,
     distinguishedname: String,
     domainsid: String,
+    isaclprotected: bool,
     highvalue: bool,
     description: Option<String>,
     whencreated: i64,
+    machineaccountquota: i32,
     functionallevel: String,
     collected: bool
 }

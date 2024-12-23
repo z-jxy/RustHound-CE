@@ -1,5 +1,6 @@
 use bitflags::bitflags;
 use std::collections::HashMap;
+use std::error::Error;
 
 use crate::objects::{
     certtemplate::CertTemplate,
@@ -316,37 +317,71 @@ pub fn get_pki_private_flags(value: u64) -> String
     return flags.join(", ")
 }
 
-
-/// Function to replace displayname by SID in enabled cert templates.
+/// Function to replace displayname by SID in enabled cert templates v2
 pub fn templates_enabled_change_displayname_to_sid(
     vec_certtemplates: &mut Vec<CertTemplate>,
     vec_enterprisecas: &mut Vec<EnterpriseCA>,
-) {
-    let mut name_sid: HashMap<String, String> = HashMap::new();
-    for certtemplate in vec_certtemplates {
-        name_sid.insert(
-            certtemplate.properties().name().to_owned(),
-            certtemplate.object_identifier().to_owned(),
-         );
-    }
-    // println!("{:?}",&name_sid);
+) -> Result<(), Box<dyn Error>> {
+    // Create a map from template name to SID
+    let name_sid: HashMap<_, _> = vec_certtemplates
+        .iter()
+        .map(|certtemplate| (
+            certtemplate.properties().name().to_string(),
+            certtemplate.object_identifier().to_string(),
+        ))
+        .collect();
 
     for enterprise_ca in vec_enterprisecas {
-        let templates = enterprise_ca.enabled_cert_templates();
         let mut enabled_cert_templates: Vec<Member> = Vec::new();
-        for template in templates {
-            let mut member = Member::new();
-            // println!("{:?}",&template.object_identifier());
-            if let Some(value) = name_sid.keys()
-            .find(|&key| key.contains(&template.object_identifier().to_uppercase()))
-            .and_then(|key| name_sid.get(key))
-            {
-                *member.object_identifier_mut() = value.to_owned();
-                *member.object_type_mut() = template.object_type().to_owned();
+
+        // Replace display name with SID for each template
+        for template in enterprise_ca.enabled_cert_templates() {
+            if let Some(sid) = name_sid.get(template.object_identifier().to_uppercase().as_str()) {
+                let mut member = Member::new();
+                *member.object_identifier_mut() = sid.clone();
+                *member.object_type_mut() = template.object_type().to_string();
                 enabled_cert_templates.push(member);
             }
         }
-        // Fixe values in enterprise CA
+
+        // Update the enabled_cert_templates in the EnterpriseCA
         *enterprise_ca.enabled_cert_templates_mut() = enabled_cert_templates;
     }
+
+    Ok(())
 }
+
+// /// Function to replace displayname by SID in enabled cert templates.
+// pub fn templates_enabled_change_displayname_to_sid(
+//     vec_certtemplates: &mut Vec<CertTemplate>,
+//     vec_enterprisecas: &mut Vec<EnterpriseCA>,
+// ) -> Result<(), Box<dyn Error>> {
+//     let mut name_sid: HashMap<String, String> = HashMap::new();
+//     for certtemplate in vec_certtemplates {
+//         name_sid.insert(
+//             certtemplate.properties().name().to_owned(),
+//             certtemplate.object_identifier().to_owned(),
+//          );
+//     }
+//     // println!("{:?}",&name_sid);
+
+//     for enterprise_ca in vec_enterprisecas {
+//         let templates = enterprise_ca.enabled_cert_templates();
+//         let mut enabled_cert_templates: Vec<Member> = Vec::new();
+//         for template in templates {
+//             let mut member = Member::new();
+//             // println!("{:?}",&template.object_identifier());
+//             if let Some(value) = name_sid.keys()
+//             .find(|&key| key.contains(&template.object_identifier().to_uppercase()))
+//             .and_then(|key| name_sid.get(key))
+//             {
+//                 *member.object_identifier_mut() = value.to_owned();
+//                 *member.object_type_mut() = template.object_type().to_owned();
+//                 enabled_cert_templates.push(member);
+//             }
+//         }
+//         // Fixe values in enterprise CA
+//         *enterprise_ca.enabled_cert_templates_mut() = enabled_cert_templates;
+//     }
+//     Ok(())
+// }

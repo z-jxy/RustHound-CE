@@ -122,7 +122,7 @@ impl EnterpriseCA {
                     }
                 }
                 "whenCreated" => {
-                    let epoch = string_to_epoch(&value[0]);
+                    let epoch = string_to_epoch(&value[0])?;
                     if epoch.is_positive() {
                         self.properties.whencreated = epoch;
                     }
@@ -317,9 +317,21 @@ impl LdapObject for EnterpriseCA {
         &false
     }
     
+    // Get mutable values
+    fn get_aces_mut(&mut self) -> &mut Vec<AceTemplate> {
+        &mut self.aces
+    }
+    fn get_spntargets_mut(&mut self) -> &mut Vec<SPNTarget> {
+        panic!("Not used by current object.");
+    }
+    fn get_allowed_to_delegate_mut(&mut self) -> &mut Vec<Member> {
+        panic!("Not used by current object.");
+    }
+    
     // Edit values
     fn set_is_acl_protected(&mut self, is_acl_protected: bool) {
         self.is_acl_protected = is_acl_protected;
+        self.properties.isaclprotected = is_acl_protected;
     }
     fn set_aces(&mut self, aces: Vec<AceTemplate>) {
         self.aces = aces;
@@ -349,6 +361,7 @@ pub struct EnterpriseCAProperties {
    name: String,
    distinguishedname: String,
    domainsid: String,
+   isaclprotected: bool,
    description: Option<String>,
    whencreated: i64,
    flags: String,
@@ -359,9 +372,11 @@ pub struct EnterpriseCAProperties {
    certchain: Vec<String>,
    hasbasicconstraints: bool,
    basicconstraintpathlength: u32,
+   unresolvedpublishedtemplates: Vec<String>,
    casecuritycollected: bool,
    enrollmentagentrestrictionscollected: bool,
    isuserspecifiessanenabledcollected: bool,
+   roleseparationenabledcollected: bool,
 }
 
 impl Default for EnterpriseCAProperties {
@@ -371,6 +386,7 @@ impl Default for EnterpriseCAProperties {
             name: String::from(""),
             distinguishedname: String::from(""),
             domainsid: String::from(""),
+            isaclprotected: false,
             description: None,
             whencreated: -1,
             flags: String::from(""),
@@ -381,9 +397,11 @@ impl Default for EnterpriseCAProperties {
             certchain: Vec::new(),
             hasbasicconstraints: false,
             basicconstraintpathlength: 0,
+            unresolvedpublishedtemplates: Vec::new(),
             casecuritycollected: false,
             enrollmentagentrestrictionscollected: false,
             isuserspecifiessanenabledcollected: false,
+            roleseparationenabledcollected: false,
        }
     }
  }
@@ -397,6 +415,8 @@ pub struct CARegistryData {
     enrollment_agent_restrictions: EnrollmentAgentRestrictions,
     #[serde(rename = "IsUserSpecifiesSanEnabled")]
     is_user_specifies_san_enabled: IsUserSpecifiesSanEnabled,
+    #[serde(rename = "RoleSeparationEnabled")]
+    role_separation_enabled: RoleSeparationEnabled,
 }
 
 impl CARegistryData {
@@ -467,6 +487,27 @@ pub struct IsUserSpecifiesSanEnabled {
 impl Default for IsUserSpecifiesSanEnabled {
     fn default() -> IsUserSpecifiesSanEnabled {
         IsUserSpecifiesSanEnabled {
+            value: false,
+            collected: true,
+            failure_reason: None,
+       }
+    }
+}
+
+// RoleSeparationEnabled properties structure
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct RoleSeparationEnabled {
+    #[serde(rename = "Value")]
+    value: bool,
+    #[serde(rename = "Collected")]
+    collected: bool,
+    #[serde(rename = "FailureReason")]
+    failure_reason: Option<String>,
+}
+
+impl Default for RoleSeparationEnabled {
+    fn default() -> RoleSeparationEnabled {
+        RoleSeparationEnabled {
             value: false,
             collected: true,
             failure_reason: None,

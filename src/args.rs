@@ -37,7 +37,7 @@ pub enum CollectionMethod {
 #[cfg(not(feature = "noargs"))]
 fn cli() -> Command {
     let cmd = Command::new("rusthound-ce")
-        .version("2.1.5")
+        .version("2.2.0")
         .about("Active Directory data collector for BloodHound Community Edition.\ng0h4n <https://twitter.com/g0h4n_0>")
         .arg(Arg::new("v")
             .short('v')

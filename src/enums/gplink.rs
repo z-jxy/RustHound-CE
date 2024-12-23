@@ -1,9 +1,9 @@
+use std::error::Error;
 use regex::Regex;
 use crate::objects::common::Link;
 
 /// Function to parse gplink and push it in json format
-pub fn parse_gplink(all_link: String) -> Vec<Link>
-{
+pub fn parse_gplink(all_link: String) -> Result<Vec<Link>, Box<dyn Error>> {
    let mut gplinks: Vec<Link> = Vec::new();
 
    let re = Regex::new(r"[a-zA-Z0-9-]{36}").unwrap();
@@ -32,5 +32,5 @@ pub fn parse_gplink(all_link: String) -> Vec<Link>
       gplinks.push(gplink);
    }
 
-   return gplinks
+   Ok(gplinks)
 }

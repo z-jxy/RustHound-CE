@@ -143,7 +143,7 @@ impl CertTemplate {
                     self.properties.schemaversion = value[0].parse::<i64>().unwrap_or(0);
                 }
                 "whenCreated" => {
-                    let epoch = string_to_epoch(&value[0]);
+                    let epoch = string_to_epoch(&value[0])?;
                     if epoch.is_positive() {
                         self.properties.whencreated = epoch;
                     }
@@ -178,10 +178,10 @@ impl CertTemplate {
                     self.aces = relations_ace;
                 }
                 "pKIExpirationPeriod" => {
-                    self.properties.validityperiod = span_to_string(filetime_to_span(value[0].to_owned()));
+                    self.properties.validityperiod = span_to_string(filetime_to_span(value[0].to_owned())?);
                 }
                 "pKIOverlapPeriod" => {
-                    self.properties.renewalperiod = span_to_string(filetime_to_span(value[0].to_owned()));
+                    self.properties.renewalperiod = span_to_string(filetime_to_span(value[0].to_owned())?);
                 }
                 _ => {}
             }
@@ -277,9 +277,21 @@ impl LdapObject for CertTemplate {
         &false
     }
     
+    // Get mutable values
+    fn get_aces_mut(&mut self) -> &mut Vec<AceTemplate> {
+        &mut self.aces
+    }
+    fn get_spntargets_mut(&mut self) -> &mut Vec<SPNTarget> {
+        panic!("Not used by current object.");
+    }
+    fn get_allowed_to_delegate_mut(&mut self) -> &mut Vec<Member> {
+        panic!("Not used by current object.");
+    }
+    
     // Edit values
     fn set_is_acl_protected(&mut self, is_acl_protected: bool) {
         self.is_acl_protected = is_acl_protected;
+        self.properties.isaclprotected = is_acl_protected;
     }
     fn set_aces(&mut self, aces: Vec<AceTemplate>) {
         self.aces = aces;
@@ -309,6 +321,7 @@ pub struct CertTemplateProperties {
    name: String,
    distinguishedname: String,
    domainsid: String,
+   isaclprotected: bool,
    description: Option<String>,
    whencreated: i64,
    validityperiod: String,
@@ -338,6 +351,7 @@ impl Default for CertTemplateProperties {
             name: String::from(""),
             distinguishedname: String::from(""),
             domainsid: String::from(""),
+            isaclprotected: false,
             description: None,
             whencreated: -1,
             validityperiod: String::from(""),

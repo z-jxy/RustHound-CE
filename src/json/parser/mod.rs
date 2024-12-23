@@ -76,6 +76,7 @@ pub fn parse_result_type(
                     domain,
                     dn_sid,
                     sid_type,
+                    &domain_sid
                 )?;
                 vec_users.push(user);
             }
@@ -99,6 +100,7 @@ pub fn parse_result_type(
                     sid_type,
                     fqdn_sid,
                     fqdn_ip,
+                    &domain_sid
                 )?;
                 vec_computers.push(computer);
             }

@@ -23,6 +23,11 @@ pub trait LdapObject {
    // Only for computer objects
    fn get_haslaps(&self) -> &bool;
 
+   // Get mutable value
+   fn get_aces_mut(&mut self) -> &mut Vec<AceTemplate>;
+   fn get_spntargets_mut(&mut self) -> &mut Vec<SPNTarget>;
+   fn get_allowed_to_delegate_mut(&mut self) -> &mut Vec<Member>;
+
    // Edit values
    fn set_is_acl_protected(&mut self, is_acl_protected: bool);
    fn set_aces(&mut self, aces: Vec<AceTemplate>);
@@ -329,6 +334,8 @@ pub struct AceTemplate {
    right_name: String,
    #[serde(rename = "IsInherited")]
    is_inherited: bool,
+   #[serde(rename = "InheritanceHash")]
+   inheritance_hash: String,
 }
 
 impl AceTemplate {
@@ -337,9 +344,10 @@ impl AceTemplate {
       principal_sid: String,
       principal_type: String,
       right_name: String,
-      is_inherited: bool
+      is_inherited: bool,
+      inheritance_hash: String,
    ) -> Self { 
-      Self { principal_sid, principal_type , right_name, is_inherited} 
+      Self { principal_sid, principal_type , right_name, is_inherited, inheritance_hash} 
    }
 
    // Immutable access.
@@ -355,6 +363,9 @@ impl AceTemplate {
    pub fn is_inherited(&self) -> &bool {
       &self.is_inherited
    }
+   pub fn inheritance_hash(&self) -> &String {
+      &self.inheritance_hash
+   }
 
    // Mutable access.
    pub fn principal_sid_mut(&mut self) -> &mut String {
@@ -368,6 +379,9 @@ impl AceTemplate {
    }
    pub fn is_inherited_mut(&mut self) -> &mut bool {
       &mut self.is_inherited
+   }
+   pub fn inheritance_hash_mut(&mut self) -> &mut String {
+      &mut self.inheritance_hash
    }
 }
 

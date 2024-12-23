@@ -67,6 +67,13 @@ pub struct Computer {
     #[serde(rename = "DCRegistryData")]
     dcregistry_data: DCRegistryData,
 
+    #[serde(rename = "IsDC")]
+    is_dc: bool,
+    #[serde(rename = "UnconstrainedDelegation")]
+    unconstrained_delegation: bool,
+    #[serde(rename = "DomainSID")]
+    domain_sid: String,
+
     #[serde(rename = "Status")]
     status: Option<String>,
 }
@@ -103,6 +110,7 @@ impl Computer {
         sid_type: &mut HashMap<String, String>,
         fqdn_sid: &mut HashMap<String, String>,
         fqdn_ip: &mut HashMap<String, String>,
+        domain_sid: &String
     ) -> Result<(), Box<dyn Error>> {
         let result_dn: String = result.dn.to_uppercase();
         let result_attrs: HashMap<String, Vec<String>> = result.attrs;
@@ -125,6 +133,7 @@ impl Computer {
         self.properties.domain = domain.to_uppercase();
         self.properties.distinguishedname = result_dn;
         self.properties.enabled = true;
+        self.domain_sid = domain_sid.to_string();
 
         let mut sid: String = "".to_owned();
         let mut group_id: String = "".to_owned();
@@ -187,7 +196,7 @@ impl Computer {
                     }
                 }
                 "whenCreated" => {
-                    let epoch = string_to_epoch(&value[0]);
+                    let epoch = string_to_epoch(&value[0])?;
                     if epoch.is_positive() {
                         self.properties.whencreated = epoch;
                     }
@@ -213,6 +222,7 @@ impl Computer {
                         // KUD (Kerberos Unconstrained Delegation)
                         if flag.contains("TrustedForDelegation") {
                             self.properties.unconstraineddelegation = true;
+                            self.unconstrained_delegation = true;
                         };
                         //if flag.contains("PasswordExpired") { let password_expired = true; computer_json["Properties"]["pwdneverexpires"] = password_expired.into(); };
                         if flag.contains("TrustedToAuthForDelegation") {
@@ -220,6 +230,7 @@ impl Computer {
                         };
                         if flag.contains("ServerTrustAccount") {
                             self.properties.is_dc = true;
+                            self.is_dc = true;
                         }
                     }
                 }
@@ -423,10 +434,22 @@ impl LdapObject for Computer {
     fn get_haslaps(&self) -> &bool {
         &self.properties.haslaps
     }
-
+    
+    // Get mutable values
+    fn get_aces_mut(&mut self) -> &mut Vec<AceTemplate> {
+        &mut self.aces
+    }
+    fn get_spntargets_mut(&mut self) -> &mut Vec<SPNTarget> {
+        panic!("Not used by current object.");
+    }
+    fn get_allowed_to_delegate_mut(&mut self) -> &mut Vec<Member> {
+        &mut self.allowed_to_delegate
+    }
+  
     // Edit values
     fn set_is_acl_protected(&mut self, is_acl_protected: bool) {
         self.is_acl_protected = is_acl_protected;
+        self.properties.isaclprotected = is_acl_protected;
     }
     fn set_aces(&mut self, aces: Vec<AceTemplate>) {
         self.aces = aces;
@@ -455,6 +478,7 @@ pub struct ComputerProperties {
     name: String,
     distinguishedname: String,
     domainsid: String,
+    isaclprotected: bool,
     highvalue: bool,
     samaccountname: String,
     haslaps: bool,

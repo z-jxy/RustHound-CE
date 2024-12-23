@@ -1,11 +1,12 @@
-use crate::enums::secdesc::LdapSid;
-use log::{trace,error};
+use std::error::Error;
 use regex::Regex;
+use log::{trace,error};
+use crate::enums::secdesc::LdapSid;
 
 /// Function to check if string is SID
-pub fn is_sid(input: &String) -> bool {
-    let regex = Regex::new(".*S-1-5.*").unwrap();
-    regex.is_match(input)
+pub fn is_sid(input: &String) -> Result<bool, Box<dyn Error>> {
+    let regex = Regex::new(".*S-1-5.*")?;
+    Ok(regex.is_match(input))
 }
 
 /// Function to make SID String from ldap_sid struct

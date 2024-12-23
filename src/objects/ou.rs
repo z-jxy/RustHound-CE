@@ -80,11 +80,11 @@ impl Ou {
         debug!("Parse OU: {}", result_dn);
         // Trace all result attributes
         for (key, value) in &result_attrs {
-            trace!("  {:?}:{:?}", key, value);
+             trace!("  {:?}:{:?}", key, value);
         }
         // Trace all bin result attributes
         for (key, value) in &result_bin {
-            trace!("  {:?}:{:?}", key, value);
+             trace!("  {:?}:{:?}", key, value);
         }
         
         // Change all values...
@@ -94,68 +94,68 @@ impl Ou {
         
         // Check and replace value
         for (key, value) in &result_attrs {
-            match key.as_str() {
-                "name" => {
-                    let name = &value[0];
-                    let email = format!("{}@{}", name.to_owned(), domain);
-                    self.properties.name = email.to_uppercase();
-                }
-                "description" => {
-                    self.properties.description = value.get(0).map(|s| s.clone());
-                }
-                "whenCreated" => {
-                    let epoch = string_to_epoch(&value[0]);
-                    if epoch.is_positive() {
-                        self.properties.whencreated = epoch;
-                    }
-                }
-                "gPLink" => {
-                    self.links = parse_gplink(value[0].to_string());
-                }
-                "gPOtions" => {
-                    self.properties.blocksinheritance = value[0].parse::<i64>().unwrap_or(0) == 1;
-                }
-                "IsDeleted" => {
-                    self.is_deleted = true;
-                }
-                _ => {}
-            }
+             match key.as_str() {
+                 "name" => {
+                     let name = &value[0];
+                     let email = format!("{}@{}", name.to_owned(), domain);
+                     self.properties.name = email.to_uppercase();
+                 }
+                 "description" => {
+                     self.properties.description = value.get(0).map(|s| s.clone());
+                 }
+                 "whenCreated" => {
+                     let epoch = string_to_epoch(&value[0])?;
+                     if epoch.is_positive() {
+                          self.properties.whencreated = epoch;
+                     }
+                 }
+                 "gPLink" => {
+                     self.links = parse_gplink(value[0].to_string())?;
+                 }
+                 "gPOtions" => {
+                     self.properties.blocksinheritance = value[0].parse::<i64>().unwrap_or(0) == 1;
+                 }
+                 "IsDeleted" => {
+                     self.is_deleted = true;
+                 }
+                 _ => {}
+             }
         }
         
-         // For all, bins attributes
+          // For all, bins attributes
         for (key, value) in &result_bin {
-            match key.as_str() {
-                "objectGUID" => {
-                    // objectGUID raw to string
-                    self.object_identifier = decode_guid_le(&value[0]).to_owned();
-                }
-                "nTSecurityDescriptor" => {
-                    // trace!("nTSecurityDescriptor ACES ACLS ?");
-                    // Needed with acl
-                    let entry_type = "OU".to_string();
-                    // nTSecurityDescriptor raw to string
-                    let relations_ace = parse_ntsecuritydescriptor(
-                        self,
-                        &value[0],
-                        entry_type,
-                        &result_attrs,
-                        &result_bin,
-                        &domain,
-                    );
-                    self.aces = relations_ace;
-                }
-                _ => {}
-            }
+             match key.as_str() {
+                 "objectGUID" => {
+                     // objectGUID raw to string
+                     self.object_identifier = decode_guid_le(&value[0]).to_owned();
+                 }
+                 "nTSecurityDescriptor" => {
+                     // trace!("nTSecurityDescriptor ACES ACLS ?");
+                     // Needed with acl
+                     let entry_type = "OU".to_string();
+                     // nTSecurityDescriptor raw to string
+                     let relations_ace = parse_ntsecuritydescriptor(
+                          self,
+                          &value[0],
+                          entry_type,
+                          &result_attrs,
+                          &result_bin,
+                          &domain,
+                     );
+                     self.aces = relations_ace;
+                 }
+                 _ => {}
+             }
         }
         // Push DN and SID in HashMap
         dn_sid.insert(
-            self.properties.distinguishedname.to_string(),
-            self.object_identifier.to_string(),
+             self.properties.distinguishedname.to_string(),
+             self.object_identifier.to_string(),
         );
         // Push DN and Type
         sid_type.insert(
-           self.object_identifier.to_string(),
-            "OU".to_string(),
+            self.object_identifier.to_string(),
+             "OU".to_string(),
         );
         
         // Trace and return Ou struct
@@ -199,9 +199,21 @@ impl LdapObject for Ou {
         &false
     }
     
+    // Get mutable values
+    fn get_aces_mut(&mut self) -> &mut Vec<AceTemplate> {
+        &mut self.aces
+    }
+    fn get_spntargets_mut(&mut self) -> &mut Vec<SPNTarget> {
+        panic!("Not used by current object.");
+    }
+    fn get_allowed_to_delegate_mut(&mut self) -> &mut Vec<Member> {
+        panic!("Not used by current object.");
+    }
+    
     // Edit values
     fn set_is_acl_protected(&mut self, is_acl_protected: bool) {
         self.is_acl_protected = is_acl_protected;
+        self.properties.isaclprotected = is_acl_protected;
     }
     fn set_aces(&mut self, aces: Vec<AceTemplate>) {
         self.aces = aces;
@@ -226,22 +238,28 @@ impl LdapObject for Ou {
 // Ou properties structure
 #[derive(Debug, Clone, Deserialize, Serialize, Default)]
 pub struct OuProperties {
-   domain: String,
-   name: String,
-   distinguishedname: String,
-   domainsid: String,
-   highvalue: bool,
-   description: Option<String>,
-   whencreated: i64,
-   blocksinheritance: bool
+    domain: String,
+    name: String,
+    distinguishedname: String,
+    domainsid: String,
+    isaclprotected: bool,
+    highvalue: bool,
+    description: Option<String>,
+    whencreated: i64,
+    blocksinheritance: bool
 }
 
 impl OuProperties {
-   // Immutable access.
-   pub fn name(&self) -> &String {
-      &self.name
-   }
-   pub fn distinguishedname(&self) -> &String {
-      &self.distinguishedname
-   }
+    // Immutable access.
+    pub fn name(&self) -> &String {
+        &self.name
+    }
+    pub fn distinguishedname(&self) -> &String {
+        &self.distinguishedname
+    }
+
+
+    pub fn isaclprotected_mut(&mut self) -> &mut bool {
+        &mut self.isaclprotected
+    }
 }
