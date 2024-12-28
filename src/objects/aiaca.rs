@@ -44,7 +44,7 @@ impl AIACA {
         Self { ..Default::default() } 
     }
 
-    /// Function to parse and replace value in json template for ForeignSecurityPrincipal object.
+    /// Function to parse and replace value in json template for AIACA object.
     pub fn parse(
         &mut self,
         result: SearchEntry,
