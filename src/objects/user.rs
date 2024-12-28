@@ -18,6 +18,7 @@ use std::error::Error;
 
 use crate::enums::acl::{parse_ntsecuritydescriptor, parse_gmsa};
 use crate::utils::date::{convert_timestamp, string_to_epoch};
+use crate::utils::crypto::convert_encryption_types;
 use crate::enums::secdesc::LdapSid;
 use crate::enums::sid::sid_maker;
 use crate::enums::spntasks::check_spn;
@@ -158,6 +159,7 @@ impl User {
             }
             "userAccountControl" => {
                   let uac = &value[0].parse::<u32>().unwrap_or(0);
+                  self.properties.useraccountcontrol = *uac;
                   let uac_flags = get_flag(*uac);
                   //trace!("UAC : {:?}",uac_flags);
                   for flag in uac_flags {
@@ -269,6 +271,9 @@ impl User {
                   // https://ldapwiki.com/wiki/IsDeleted
                   //trace!("isDeleted: {:?}",&value[0]);
                   self.is_deleted = true;
+            }
+            "msDS-SupportedEncryptionTypes" => {
+               self.properties.supportedencryptiontypes = convert_encryption_types(value[0].parse::<i32>().unwrap_or(0));
             }
             _ => {}
          }
@@ -391,7 +396,7 @@ impl LdapObject for User {
       &self.spn_targets
    }
    fn get_allowed_to_delegate(&self) -> &Vec<Member> {
-      panic!("Not used by current object.");
+      &self.allowed_to_delegate
    }
    fn get_links(&self) -> &Vec<Link> {
       panic!("Not used by current object.");
@@ -414,7 +419,7 @@ impl LdapObject for User {
       &mut self.spn_targets
    }
    fn get_allowed_to_delegate_mut(&mut self) -> &mut Vec<Member> {
-      panic!("Not used by current object.");
+      &mut self.allowed_to_delegate
    }
 
    // Edit values
@@ -428,8 +433,8 @@ impl LdapObject for User {
    fn set_spntargets(&mut self, spn_targets: Vec<SPNTarget>) {
       self.spn_targets = spn_targets;
    }
-   fn set_allowed_to_delegate(&mut self, _allowed_to_delegate: Vec<Member>) {
-      // Not used by current object.
+   fn set_allowed_to_delegate(&mut self, allowed_to_delegate: Vec<Member>) {
+      self.allowed_to_delegate = allowed_to_delegate;
    }
    fn set_links(&mut self, _links: Vec<Link>) {
       // Not used by current object.
@@ -470,12 +475,14 @@ pub struct UserProperties {
    title: String,
    homedirectory: String,
    logonscript: String,
+   useraccountcontrol: u32,
    samaccountname: String,
    userpassword: String,
    unixpassword: String,
    unicodepassword: String,
    sfupassword: String,
    admincount: bool,
+   supportedencryptiontypes: Vec<String>,
    sidhistory: Vec<String>,
    allowedtodelegate: Vec<String>
 }
