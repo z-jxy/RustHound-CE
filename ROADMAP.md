@@ -159,7 +159,7 @@
         - [x] `Properties`:`useraccountcontrol` :red_circle:
         - [ ] `Properties`:`profilepath` :red_circle:
         - [x] `Properties`:`admincount` :white_check_mark:
-        - [x] `Properties`:`supportedencryptiontypes` :red_circle:
+        - [x] `Properties`:`supportedencryptiontypes` :white_check_mark:
         - [ ] `Properties`:`sidhistory` :red_circle:
         - [x] `PrimaryGroupSID` :white_check_mark:
         - [x] `AllowedToDelegate` :white_check_mark:
