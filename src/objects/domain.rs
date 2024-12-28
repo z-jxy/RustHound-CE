@@ -18,7 +18,7 @@ use regex::Regex;
 use std::collections::HashMap;
 use std::error::Error;
 
-use crate::utils::date::string_to_epoch;
+use crate::utils::date::{span_to_string, string_to_epoch};
 use crate::enums::acl::parse_ntsecuritydescriptor;
 use crate::enums::forestlevel::get_forest_level;
 use crate::enums::gplink::parse_gplink;
@@ -143,6 +143,33 @@ impl Domain {
                 }
                 "IsDeleted" => {
                     self.is_deleted = true;
+                }
+                "msDS-ExpirePasswordsOnSmartCardOnlyAccounts" => {
+                    self.properties.expirepasswordsonsmartcardonlyaccounts = true;
+                }
+                "minPwdLength" => {
+                    self.properties.minpwdlength = value[0].parse::<i32>().unwrap_or(0);
+                }
+                "pwdProperties" => {
+                    self.properties.pwdproperties = value[0].parse::<i32>().unwrap_or(0);
+                }
+                "pwdHistoryLength" => {
+                    self.properties.pwdhistorylength = value[0].parse::<i32>().unwrap_or(0);
+                }
+                "lockoutThreshold" => {
+                    self.properties.lockoutthreshold = value[0].parse::<i32>().unwrap_or(0);
+                }
+                "minPwdAge" => {
+                    self.properties.minpwdage = span_to_string(value[0].parse::<i64>().unwrap_or(0));
+                }
+                "maxPwdAge" => {
+                    self.properties.maxpwdage = span_to_string(value[0].parse::<i64>().unwrap_or(0));
+                }
+                "lockoutDuration" => {
+                    self.properties.lockoutduration = span_to_string(value[0].parse::<i64>().unwrap_or(0));
+                }
+                "lockOutObservationWindow" => {
+                    self.properties.lockoutobservationwindow = value[0].parse::<i64>().unwrap_or(0);
                 }
                 _ => {}
             }
@@ -283,6 +310,15 @@ pub struct DomainProperties {
     description: Option<String>,
     whencreated: i64,
     machineaccountquota: i32,
+    expirepasswordsonsmartcardonlyaccounts: bool,
+    minpwdlength: i32,
+    pwdproperties: i32,
+    pwdhistorylength: i32,
+    lockoutthreshold: i32,
+    minpwdage: String,
+    maxpwdage: String,
+    lockoutduration: String,
+    lockoutobservationwindow: i64,
     functionallevel: String,
     collected: bool
 }
