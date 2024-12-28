@@ -556,7 +556,8 @@ pub struct Meta {
    #[serde(rename = "type")]
    mtype: String,
    count: i32,
-   version: i8
+   version: i8,
+   collectorversion: String
 }
 
 impl Meta {
@@ -565,13 +566,15 @@ impl Meta {
       methods: i32,
       mtype: String,
       count: i32,
-      version: i8
+      version: i8,
+      collectorversion: String
    ) -> Self { 
       Self { 
          methods,
          mtype,
          count,
-         version
+         version,
+         collectorversion
       } 
    }
    
