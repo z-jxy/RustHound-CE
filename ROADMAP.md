@@ -24,7 +24,7 @@
   - [x] rootcas.json :white_check_mark:
   - [x] enterprisecas.json :white_check_mark:
   - [x] certtemplates.json :white_check_mark:
-  - [ ] issuancepolicies.json :red_circle:
+  - [x] issuancepolicies.json :white_check_mark:
   - [x] ntauthstores.json :white_check_mark:
   - [x] all.zip :white_check_mark:
 
@@ -50,16 +50,16 @@
         - [x] `Properties`:`highvalue` :white_check_mark:
         - [x] `Properties`:`description` :white_check_mark:
         - [x] `Properties`:`whencreated` :white_check_mark:
-        - [ ] `Properties`:`expirepasswordsonsmartcardonlyaccounts` :red_circle:
+        - [x] `Properties`:`expirepasswordsonsmartcardonlyaccounts` :white_check_mark:
         - [x] `Properties`:`machineaccountquota` :white_check_mark:
-        - [ ] `Properties`:`minpwdlength` :red_circle:
-        - [ ] `Properties`:`pwdproperties` :red_circle:
-        - [ ] `Properties`:`pwdhistorylength` :red_circle:
-        - [ ] `Properties`:`lockoutthreshold` :red_circle:
-        - [ ] `Properties`:`minpwdage` :red_circle:
-        - [ ] `Properties`:`maxpwdage` :red_circle:
-        - [ ] `Properties`:`lockoutduration` :red_circle:
-        - [ ] `Properties`:`lockoutobservationwindow` :red_circle:
+        - [x] `Properties`:`minpwdlength` :white_check_mark:
+        - [x] `Properties`:`pwdproperties` :white_check_mark:
+        - [x] `Properties`:`pwdhistorylength` :white_check_mark:
+        - [x] `Properties`:`lockoutthreshold` :white_check_mark:
+        - [x] `Properties`:`minpwdage` :white_check_mark:
+        - [x] `Properties`:`maxpwdage` :white_check_mark:
+        - [x] `Properties`:`lockoutduration` :white_check_mark:
+        - [x] `Properties`:`lockoutobservationwindow` :white_check_mark:
         - [x] `Properties`:`functionallevel` :white_check_mark:
         - [ ] `Properties`:`dsheuristics` :red_circle:
         - [x] `Properties`:`collected` :white_check_mark:
@@ -156,10 +156,10 @@
         - [x] `Properties`:`unicodepassword` :white_check_mark:
         - [ ] `Properties`:`sfupassword` :red_circle:
         - [x] `Properties`:`logonscript` :white_check_mark:
-        - [ ] `Properties`:`useraccountcontrol` :red_circle:
+        - [x] `Properties`:`useraccountcontrol` :red_circle:
         - [ ] `Properties`:`profilepath` :red_circle:
         - [x] `Properties`:`admincount` :white_check_mark:
-        - [ ] `Properties`:`supportedencryptiontypes` :red_circle:
+        - [x] `Properties`:`supportedencryptiontypes` :red_circle:
         - [ ] `Properties`:`sidhistory` :red_circle:
         - [x] `PrimaryGroupSID` :white_check_mark:
         - [x] `AllowedToDelegate` :white_check_mark:
@@ -241,21 +241,21 @@
         - [x] `IsACLProtected` :white_check_mark:
         - [x] `ContainedBy` :white_check_mark:
 
-    - [ ] **IssuancePolicies** [SharpHound/src/Runtime/ObjectProcessors.cs#IssuancePolicy](https://github.com/SpecterOps/SharpHound/blob/64ef0e56661734566b8bd0fc58d59c44c645c7fa/src/Runtime/ObjectProcessors.cs#L691)
-        - [ ] `Properties`:`domain` :red_circle:
-        - [ ] `Properties`:`name` :red_circle:
-        - [ ] `Properties`:`distinguishedname` :red_circle:
-        - [ ] `Properties`:`domainsid` :red_circle:
-        - [ ] `Properties`:`description` :red_circle:
-        - [ ] `Properties`:`isaclprotected` :red_circle:
-        - [ ] `Properties`:`whencreated` :red_circle:
-        - [ ] `Properties`:`displayname` :red_circle:
-        - [ ] `Properties`:`certtemplateoid` :red_circle:
+    - [x] **IssuancePolicies** [SharpHound/src/Runtime/ObjectProcessors.cs#IssuancePolicy](https://github.com/SpecterOps/SharpHound/blob/64ef0e56661734566b8bd0fc58d59c44c645c7fa/src/Runtime/ObjectProcessors.cs#L691)
+        - [x] `Properties`:`domain` :white_check_mark:
+        - [x] `Properties`:`name` :white_check_mark:
+        - [x] `Properties`:`distinguishedname` :white_check_mark:
+        - [x] `Properties`:`domainsid` :white_check_mark:
+        - [x] `Properties`:`description` :white_check_mark:
+        - [x] `Properties`:`isaclprotected` :white_check_mark:
+        - [x] `Properties`:`whencreated` :white_check_mark:
+        - [x] `Properties`:`displayname` :white_check_mark:
+        - [x] `Properties`:`certtemplateoid` :white_check_mark:
         - [ ] `GroupLink` :red_circle:
-        - [ ] `Aces` :red_circle:
-        - [ ] `ObjectIdentifier` :red_circle:
-        - [ ] `IsDeleted` :red_circle:
-        - [ ] `IsACLProtected` :red_circle:
+        - [x] `Aces` :white_check_mark:
+        - [x] `ObjectIdentifier` :white_check_mark:
+        - [x] `IsDeleted` :white_check_mark:
+        - [x] `IsACLProtected` :white_check_mark:
         - [ ] `ContainedBy` :red_circle:
 
     - [x] **NtAuthStore**
