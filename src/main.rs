@@ -41,6 +41,7 @@ use objects::{
     rootca::RootCA,
     enterpriseca::EnterpriseCA,
     certtemplate::CertTemplate,
+    inssuancepolicie::IssuancePolicie,
 };
 
 /// Main of RustHound
@@ -78,20 +79,21 @@ async fn main() -> Result<(), Box<dyn Error>> {
     ).await?;
 
     // Vector for content all
-    let mut vec_users:              Vec<User>           = Vec::new();
-    let mut vec_groups:             Vec<Group>          = Vec::new();
-    let mut vec_computers:          Vec<Computer>       = Vec::new();
-    let mut vec_ous:                Vec<Ou>             = Vec::new();
-    let mut vec_domains:            Vec<Domain>         = Vec::new();
-    let mut vec_gpos:               Vec<Gpo>            = Vec::new();
-    let mut vec_fsps:               Vec<Fsp>            = Vec::new();
-    let mut vec_containers:         Vec<Container>      = Vec::new();
-    let mut vec_trusts:             Vec<Trust>          = Vec::new();
-    let mut vec_ntauthstores:       Vec<NtAuthStore>    = Vec::new();
-    let mut vec_aiacas:             Vec<AIACA>          = Vec::new();
-    let mut vec_rootcas:            Vec<RootCA>         = Vec::new();
-    let mut vec_enterprisecas:      Vec<EnterpriseCA>   = Vec::new();
-    let mut vec_certtemplates:      Vec<CertTemplate>   = Vec::new();
+    let mut vec_users:              Vec<User>            = Vec::new();
+    let mut vec_groups:             Vec<Group>           = Vec::new();
+    let mut vec_computers:          Vec<Computer>        = Vec::new();
+    let mut vec_ous:                Vec<Ou>              = Vec::new();
+    let mut vec_domains:            Vec<Domain>          = Vec::new();
+    let mut vec_gpos:               Vec<Gpo>             = Vec::new();
+    let mut vec_fsps:               Vec<Fsp>             = Vec::new();
+    let mut vec_containers:         Vec<Container>       = Vec::new();
+    let mut vec_trusts:             Vec<Trust>           = Vec::new();
+    let mut vec_ntauthstores:       Vec<NtAuthStore>     = Vec::new();
+    let mut vec_aiacas:             Vec<AIACA>           = Vec::new();
+    let mut vec_rootcas:            Vec<RootCA>          = Vec::new();
+    let mut vec_enterprisecas:      Vec<EnterpriseCA>    = Vec::new();
+    let mut vec_certtemplates:      Vec<CertTemplate>    = Vec::new();
+    let mut vec_issuancepolicies:   Vec<IssuancePolicie> = Vec::new();
 
     // Hashmap to link DN to SID
     let mut dn_sid: HashMap<String, String> = HashMap::new();
@@ -121,6 +123,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         &mut vec_rootcas,
         &mut vec_enterprisecas,
         &mut vec_certtemplates,
+        &mut vec_issuancepolicies,
         &mut dn_sid,
         &mut sid_type,
         &mut fqdn_sid,
@@ -144,6 +147,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         &mut vec_rootcas,
         &mut vec_enterprisecas,
         &mut vec_certtemplates,
+        &mut vec_issuancepolicies,
         &mut dn_sid,
         &mut sid_type,
         &mut fqdn_sid,
@@ -172,6 +176,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         vec_rootcas,
         vec_enterprisecas,
         vec_certtemplates,
+        vec_issuancepolicies,
     ) {
         Ok(_res) => trace!("Making json/zip files finished!"),
         Err(err) => error!("Error. Reason: {err}")
