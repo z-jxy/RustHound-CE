@@ -804,6 +804,14 @@ pub fn replace_fqdn_by_sid<T: LdapObject>(
                         .unwrap_or_else(|| target.computer_sid());
                     *target.computer_sid_mut() = sid.to_string();
                 }
+
+                // Process AllowedToDelegate
+                for target in obj.get_allowed_to_delegate_mut().iter_mut() {
+                    let sid = fqdn_sid
+                        .get(target.object_identifier())
+                        .unwrap_or_else(|| target.object_identifier());
+                    *target.object_identifier_mut() = sid.to_string();
+                }
             }
         }
         Type::Computer => {

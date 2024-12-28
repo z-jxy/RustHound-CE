@@ -19,6 +19,7 @@ use crate::objects::{
     rootca::RootCA,
     enterpriseca::EnterpriseCA,
     certtemplate::CertTemplate,
+    inssuancepolicie::IssuancePolicie,
 };
 pub mod common;
 
@@ -39,6 +40,7 @@ pub fn check_all_result(
     vec_rootcas:             &mut Vec<RootCA>,
     vec_enterprisecas:       &mut Vec<EnterpriseCA>,
     vec_certtemplates:       &mut Vec<CertTemplate>,
+    vec_issuancepolicies:    &mut Vec<IssuancePolicie>,
     dn_sid:                  &mut HashMap<String, String>,
     sid_type:                &mut HashMap<String, String>,
     fqdn_sid:                &mut HashMap<String, String>,
@@ -71,6 +73,7 @@ pub fn check_all_result(
     common::add_type_for_ace(vec_rootcas, &sid_type)?;
     common::add_type_for_ace(vec_enterprisecas, &sid_type)?;
     common::add_type_for_ace(vec_certtemplates, &sid_type)?;
+    common::add_type_for_ace(vec_issuancepolicies, &sid_type)?;
 
     common::add_type_for_allowtedtoact(vec_computers, &sid_type)?;
     debug!("PrincipalType for ACEs added!");
@@ -93,6 +96,7 @@ pub fn check_all_result(
     common::add_contained_by_for(vec_rootcas, &dn_sid, &sid_type)?;
     common::add_contained_by_for(vec_enterprisecas, &dn_sid, &sid_type)?;
     common::add_contained_by_for(vec_certtemplates, &dn_sid, &sid_type)?;
+    common::add_contained_by_for(vec_issuancepolicies, &dn_sid, &sid_type)?;
 
     debug!("ContainedBy value added!");
 
