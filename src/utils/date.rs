@@ -12,6 +12,7 @@ pub fn convert_timestamp(timestamp: i64) -> i64
     return epoch
 }
 
+/// Function to change string to epoch format.
 pub fn string_to_epoch(date: &str) -> Result<i64, Box<dyn Error>> {
     // Extract the portion before the dot
     // yyyyMMddHHmmss.0z to epoch format
@@ -41,50 +42,59 @@ pub fn return_current_fulldate() -> String
     return Local::now().format("%Y%m%d%H%M%S").to_string()
 }
 
-/// Function to convert pKIExpirationPeriod Vec<u8> format to u64.
-pub fn filetime_to_span(filetime: Vec<u8>) -> Result<u64, Box<dyn Error>> {
-    if filetime.len() > 0 {
-        let mut span = i64::from_ne_bytes(filetime[0..8].try_into()?) as f64;
-        span *= -0.0000001;
-        return Ok(span as u64)
+/// Function to convert pKIExpirationPeriod Vec<u8> format to i64 Windows format (nanoseconds).
+pub fn filetime_to_span(filetime: Vec<u8>) -> Result<i64, Box<dyn Error>> {
+    if filetime.len() >= 8 {
+        // Convert the first 8 bytes into an i64 using native endianness
+        let span = i64::from_ne_bytes(filetime[0..8].try_into()?);
+        return Ok(span);
     }
     Ok(0)
 }
 
-/// Function to change span format to String output date.
-/// Thanks to ly4k works: <https://github.com/ly4k/Certipy/blob/main/certipy/commands/find.py#L48>
-pub fn span_to_string(span: u64) -> String {
-    if (span % 31536000 == 0) && ((span / 31536000) >= 1) {
-        if (span / 31536000) == 1 {
-            return "1 year".to_string()
+/// Function to change Windows span format (nanoseconds) to String output date.
+pub fn span_to_string(span: i64) -> String {
+    // Convert span from 100-nanosecond units to seconds
+    let span_in_seconds = span / 10_000_000; // 1 second = 10^7 100-nanosecond units
+    let span_abs = span_in_seconds.abs();
+
+    if span_abs % 31536000 == 0 && span_abs / 31536000 >= 1 {
+        if span_abs / 31536000 == 1 {
+            "1 year".to_string()
         } else {
-            return format!("{} years",(span / 31536000))
+            format!("{} years", span_abs / 31536000)
         }
-    } else if (span % 2592000 == 0) && ((span / 2592000) >= 1) {
-        if (span / 2592000) == 1 {
-            return "1 month".to_string()
+    } else if span_abs % 2592000 == 0 && span_abs / 2592000 >= 1 {
+        if span_abs / 2592000 == 1 {
+            "1 month".to_string()
         } else {
-            return format!("{} months",(span / 2592000))
+            format!("{} months", span_abs / 2592000)
         }
-    } else if (span % 604800 == 0) && ((span / 604800) >= 1) {
-        if (span / 604800) == 1 {
-            return "1 week".to_string()
+    } else if span_abs % 604800 == 0 && span_abs / 604800 >= 1 {
+        if span_abs / 604800 == 1 {
+            "1 week".to_string()
         } else {
-            return format!("{} weeks",(span / 604800))
+            format!("{} weeks", span_abs / 604800)
         }
-    } else if (span % 86400 == 0) && ((span / 86400) >= 1) {
-        if (span / 86400) == 1 {
-            return "1 day".to_string()
+    } else if span_abs % 86400 == 0 && span_abs / 86400 >= 1 {
+        if span_abs / 86400 == 1 {
+            "1 day".to_string()
         } else {
-            return format!("{} days",(span / 86400))
+            format!("{} days", span_abs / 86400)
         }
-    } else if (span % 3600 == 0) && ((span / 3600) >= 1) {
-        if (span / 3600) == 1 {
-            return "1 hour".to_string()
+    } else if span_abs % 3600 == 0 && span_abs / 3600 >= 1 {
+        if span_abs / 3600 == 1 {
+            "1 hour".to_string()
         } else {
-            return format!("{} hours",(span / 3600))
+            format!("{} hours", span_abs / 3600)
+        }
+    } else if span_abs % 60 == 0 && span_abs / 60 >= 1 {
+        if span_abs / 60 == 1 {
+            "1 minute".to_string()
+        } else {
+            format!("{} minutes", span_abs / 60)
         }
     } else {
-        return "".to_string()
+        "less than a minute".to_string()
     }
 }
