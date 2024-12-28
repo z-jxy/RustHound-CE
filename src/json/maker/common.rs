@@ -11,7 +11,7 @@ use zip::result::ZipResult;
 use zip::write::{SimpleFileOptions,ZipWriter};
 
 extern crate zip;
-use crate::args::Options;
+use crate::args::{Options, RUSTHOUND_VERSION};
 use crate::objects::common::{FinalJson,Meta,LdapObject};
 
 /// Current Bloodhound version 4.3+
@@ -45,7 +45,8 @@ pub fn add_file<T: LdapObject>(
           000000 as i32,
           name.to_owned(),
           count as i32,
-          BLOODHOUND_VERSION_4
+          BLOODHOUND_VERSION_4,
+          format!("RustHound-CE v{}",RUSTHOUND_VERSION.to_owned())
         )
     );
   

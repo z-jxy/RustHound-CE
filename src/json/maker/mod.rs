@@ -17,6 +17,7 @@ use crate::objects::{
    rootca::RootCA,
    enterpriseca::EnterpriseCA,
    certtemplate::CertTemplate,
+   inssuancepolicie::IssuancePolicie,
 };
 pub mod common;
 
@@ -35,6 +36,7 @@ pub fn make_result(
    vec_rootcas:            Vec<RootCA>,
    vec_enterprisecas:      Vec<EnterpriseCA>,
    vec_certtemplates:      Vec<CertTemplate>,
+   vec_issuancepolicies:   Vec<IssuancePolicie>,
 ) -> Result<(), Box<dyn Error>> {
    // Format domain name
    let filename = common_args.domain.replace(".", "-").to_lowercase();
@@ -140,6 +142,14 @@ pub fn make_result(
       "certtemplates".to_string(),
 		&filename,
       vec_certtemplates,
+      &mut json_result,
+      common_args,
+   )?;
+   common::add_file(
+      &datetime,
+      "issuancepolicies".to_string(),
+		&filename,
+      vec_issuancepolicies,
       &mut json_result,
       common_args,
    )?;
