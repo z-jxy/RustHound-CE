@@ -332,7 +332,16 @@ fn ace_maker<T: LdapObject>(
                         "".to_string())
                     );
                 }
-
+                if entry_type == "OU" && can_write_property(&ace, WRITE_GPLINK)
+                {
+                    relations.push(AceTemplate::new(
+                        sid.to_owned(),
+                        "".to_string(),
+                        "WriteGPLink".to_string(),
+                        is_inherited,
+                        "".to_string())
+                    );
+                }
                 // Since BloodHound 4.1
                 // AddKeyCredentialLink write access
                 if ((entry_type == "User") || (entry_type == "Computer"))
@@ -347,7 +356,7 @@ fn ace_maker<T: LdapObject>(
                         "".to_string())
                     );
                 }
-                if (entry_type == "User")
+                if ((entry_type == "User") || (entry_type == "Computer"))
                 && (&flags & ACE_OBJECT_TYPE_PRESENT == ACE_OBJECT_TYPE_PRESENT) 
                 && (&ace_guid == OBJECTTYPE_GUID_HASHMAP.get("service-principal-name").unwrap_or(&String::from("GUID-NOT-FOUND")))
                 {

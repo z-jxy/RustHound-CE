@@ -1,5 +1,14 @@
 # Changelog
 
+## v2.3.1
+
+### Date
+`2025/01/05`
+
+### Summary
+
+This version fixes the issue of the lack of [WriteGPLink](https://support.bloodhoundenterprise.io/hc/en-us/articles/29117665141915-WriteGPLink) for Organization Units and [WriteSPN](https://support.bloodhoundenterprise.io/hc/en-us/articles/17222775975195-WriteSPN) for Computers.
+
 ## v2.3.0
 
 ### Date
@@ -7,7 +16,7 @@
 
 ### Summary
 
-The latest update introduces enhanced functionality and optimizations for handling Active Directory objects. It includes support for `IssuancePolicies`. Fixing unconstrained delegation issues where FQDNs were replaced with SIDs to ensure compatibility with BloodHound CE. GUIDs are now properly parsed in the Windows Active Directory format, adhering to the little-endian structure, this allow to fixe all issues related to ACEs permissions. Password policy attributes from Active Directory are retrieved and associated with the domain object in domain.json. Additionally, Kerberos service ticket encryption algorithms are now extracted via the `msDS-SupportedEncryptionTypes` attribute. Finally, the code has been optimized to improve object type verification and streamline offline value replacements in `src/json/checker/common.rs`, enhancing performance and maintainability.
+The latest update introduces enhanced functionality and optimizations for handling Active Directory objects. It includes support for [IssuancePolicies](https://support.bloodhoundenterprise.io/hc/en-us/articles/26194070577691-IssuancePolicy). Fixing unconstrained delegation issues where FQDNs were replaced with SIDs to ensure compatibility with BloodHound CE. GUIDs are now properly parsed in the Windows Active Directory format, adhering to the little-endian structure, this allow to fixe all issues related to ACEs permissions. Password policy attributes from Active Directory are retrieved and associated with the domain object in domain.json. Additionally, Kerberos service ticket encryption algorithms are now extracted via the `msDS-SupportedEncryptionTypes` attribute. Finally, the code has been optimized to improve object type verification and streamline offline value replacements in `src/json/checker/common.rs`, enhancing performance and maintainability.
 
 ### Examples
 
