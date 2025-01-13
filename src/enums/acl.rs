@@ -498,6 +498,7 @@ fn ace_maker<T: LdapObject>(
         // https://github.com/fox-it/BloodHound.py/blob/645082e3462c93f31b571db945cde1fd7b837fb9/bloodhound/enumeration/acls.py#L162
         if ace.ace_type == 0x00 {
             trace!("TYPE: 0x00");
+
             let is_inherited = ace.ace_flags & INHERITED_ACE == INHERITED_ACE;
 
             let mask = match AceFormat::get_mask(ace.data.to_owned()) {
@@ -574,17 +575,30 @@ fn ace_maker<T: LdapObject>(
             }
             // Self add, also possible ad ACCESS_ALLOWED_ACE
             // Thanks to bh-py: <https://github.com/dirkjanm/BloodHound.py/blob/d47e765fd3d0356e2e4b48d0d9a0841525194c64/bloodhound/enumeration/acls.py#L221C1-L225C97>
-            if (MaskFlags::ADS_RIGHT_DS_SELF.bits() | mask) == mask
-            && sid != "S-1-5-32-544" && sid.ends_with("-512") && sid.ends_with("-519") 
-            {
-                relations.push(AceTemplate::new(
-                    sid.to_owned(),
-                    "".to_string(),
-                    "AddSelf".to_string(),
-                    is_inherited,
-                    "".to_string())
-                );
+            if (MaskFlags::ADS_RIGHT_DS_SELF.bits() & mask) == mask 
+                && sid != "S-1-5-32-544"
+                && !sid.ends_with("-512")
+                && !sid.ends_with("-519") {
+                
+                if entry_type == "Group" {
+                    relations.push(AceTemplate::new(
+                        sid.to_owned(),
+                        "".to_string(),
+                        "AddSelf".to_string(),
+                        is_inherited,
+                        "".to_string()
+                    ));
+                } else {
+                    relations.push(AceTemplate::new(
+                        sid.to_owned(),
+                        "".to_string(),
+                        "Self".to_string(),
+                        is_inherited,
+                        "".to_string()
+                    ));
+                }
             }
+    
             if vec!["EnterpriseCA","RootCA"].contains(&entry_type.as_str())
             && (MaskFlags::MANAGE_CA.bits() | mask) == mask
             {
