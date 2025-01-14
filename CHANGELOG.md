@@ -1,5 +1,14 @@
 # Changelog
 
+## v2.3.2
+
+### Date
+`2025/01/14`
+
+### Summary
+
+The issue where a group had `ActiveDirectoryRights:Self` with a SID mapped to it, theoretically allowing a user to add themselves to the group, has been fixed. Thanks to @shyam0904a for identifying and fixing this issue! https://github.com/g0h4n/RustHound-CE/pull/4
+
 ## v2.3.1
 
 ### Date
