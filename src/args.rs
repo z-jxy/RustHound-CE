@@ -26,6 +26,7 @@ pub struct Options {
     pub kerberos: bool,
     pub zip: bool,
     pub verbose: log::LevelFilter,
+    pub ldap_filter: String,
 }
 
 #[derive(Clone, Debug)]
@@ -153,7 +154,14 @@ fn cli() -> Command {
             .required(false)
             .action(ArgAction::SetTrue)
             .global(false)
-        );
+        )
+        .arg(Arg::new("ldap-filter")
+             .long("ldap-filter")
+             .help("Use custom ldap-filter default is : (objectClass=*)")
+             .required(false)
+             .value_parser(value_parser!(String))
+             .default_missing_value("(objectClass=*)")
+         );
         // Return Command args
         cmd
 }
@@ -197,6 +205,7 @@ pub fn extract_args() -> Options {
         "DCOnly"    => CollectionMethod::DCOnly,
          _          => CollectionMethod::All,
     };
+    let ldap_filter = matches.get_one::<String>("ldap-filter").map(|s| s.as_str()).unwrap_or("(objectClass=*)");
 
     // Return all
     Options {
@@ -215,6 +224,7 @@ pub fn extract_args() -> Options {
         kerberos: kerberos,
         zip: z,
         verbose: v,
+        ldap_filter: ldap_filter.to_string(),
     }
 }
 
@@ -273,5 +283,6 @@ pub fn auto_args() -> Options {
         kerberos: true,
         zip: true,
         verbose: log::LevelFilter::Info,
+        ldap_filter: "(objectClass=*)".to_string()
     }
 }
