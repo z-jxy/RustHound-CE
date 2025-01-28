@@ -35,6 +35,7 @@ pub async fn ldap_search(
     username: &String,
     password: &String,
     kerberos: bool,
+    ldapfilter: &String,
 ) -> Result<Vec<SearchEntry>, Box<dyn Error>> {
     // Construct LDAP args
     let ldap_args = ldap_constructor(ldaps, ip, port, domain, ldapfqdn, username, password, kerberos)?;
@@ -109,7 +110,10 @@ pub async fn ldap_search(
             // } else {
             //     _s_filter = "(objectClass=*)";
             // }
-            let _s_filter = "(objectClass=*)";
+            //let _s_filter = "(objectClass=*)";
+            //let _s_filter = "(objectGuid=*)";
+            info!("Ldap filter : {}", ldapfilter.bold().green());
+            let _s_filter = ldapfilter;
     
             // Every 999 max value in ldap response (err 4 ldap)
             let adapters: Vec<Box<dyn Adapter<_,_>>> = vec![

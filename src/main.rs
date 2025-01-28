@@ -76,6 +76,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         &common_args.username,
         &common_args.password,
         common_args.kerberos,
+        &common_args.ldap_filter
     ).await?;
 
     // Vector for content all
