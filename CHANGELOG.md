@@ -1,5 +1,14 @@
 # Changelog
 
+## v2.3.3
+
+### Date
+`2025/01/28`
+
+### Summary
+
+Merge pull request #6 to add argument `--ldap-filter` to change the ldap-filter to use instead of the default `(objectClass=*)`. Thanks [Mayfly277](https://github.com/Mayfly277)
+
 ## v2.3.2
 
 ### Date

@@ -36,7 +36,7 @@ pub enum CollectionMethod {
 }
 
 // Current RustHound version
-pub const RUSTHOUND_VERSION: &str = "2.3.2";
+pub const RUSTHOUND_VERSION: &str = "2.3.3";
 
 #[cfg(not(feature = "noargs"))]
 fn cli() -> Command {
@@ -117,6 +117,13 @@ fn cli() -> Command {
             .num_args(0..=1)
             .default_missing_value("All")
         )
+        .arg(Arg::new("ldap-filter")
+            .long("ldap-filter")
+            .help("Use custom ldap-filter default is : (objectClass=*)")
+            .required(false)
+            .value_parser(value_parser!(String))
+            .default_missing_value("(objectClass=*)")
+        )
         .arg(Arg::new("ldaps")
             .long("ldaps")
             .help("Force LDAPS using for request like: ldaps://DOMAIN.LOCAL/")
@@ -154,14 +161,7 @@ fn cli() -> Command {
             .required(false)
             .action(ArgAction::SetTrue)
             .global(false)
-        )
-        .arg(Arg::new("ldap-filter")
-             .long("ldap-filter")
-             .help("Use custom ldap-filter default is : (objectClass=*)")
-             .required(false)
-             .value_parser(value_parser!(String))
-             .default_missing_value("(objectClass=*)")
-         );
+        );
         // Return Command args
         cmd
 }
