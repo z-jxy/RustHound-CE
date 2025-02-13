@@ -1,5 +1,14 @@
 # Changelog
 
+## v2.3.4
+
+### Date
+`2025/02/13`
+
+### Summary
+
+Merge pull request #[8](https://github.com/g0h4n/RustHound-CE/pull/8) to add a couple more computer node attributes. Thanks [spyr0](https://github.com/spyr0-sec)
+
 ## v2.3.3
 
 ### Date
@@ -7,7 +16,7 @@
 
 ### Summary
 
-Merge pull request #6 to add argument `--ldap-filter` to change the ldap-filter to use instead of the default `(objectClass=*)`. Thanks [Mayfly277](https://github.com/Mayfly277)
+Merge pull request #[6](https://github.com/g0h4n/RustHound-CE/pull/6) to add argument `--ldap-filter` to change the ldap-filter to use instead of the default `(objectClass=*)`. Thanks [Mayfly277](https://github.com/Mayfly277)
 
 ## v2.3.2
 

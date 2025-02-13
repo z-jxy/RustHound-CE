@@ -36,7 +36,7 @@ pub enum CollectionMethod {
 }
 
 // Current RustHound version
-pub const RUSTHOUND_VERSION: &str = "2.3.3";
+pub const RUSTHOUND_VERSION: &str = "2.3.4";
 
 #[cfg(not(feature = "noargs"))]
 fn cli() -> Command {
