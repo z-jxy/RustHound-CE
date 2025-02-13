@@ -20,6 +20,7 @@ use std::collections::HashMap;
 use std::error::Error;
 
 use crate::utils::date::{convert_timestamp,string_to_epoch};
+use crate::utils::crypto::convert_encryption_types;
 use crate::enums::acl::parse_ntsecuritydescriptor;
 use crate::enums::secdesc::LdapSid;
 use crate::enums::sid::sid_maker;
@@ -224,9 +225,14 @@ impl Computer {
                             self.properties.unconstraineddelegation = true;
                             self.unconstrained_delegation = true;
                         };
-                        //if flag.contains("PasswordExpired") { let password_expired = true; computer_json["Properties"]["pwdneverexpires"] = password_expired.into(); };
                         if flag.contains("TrustedToAuthForDelegation") {
                             self.properties.trustedtoauth = true;
+                        };
+                        if flag.contains("PasswordNotRequired") {
+                            self.properties.passwordnotreqd = true;
+                        };
+                         if flag.contains("DontExpirePassword") {
+                            self.properties.pwdneverexpires = true;
                         };
                         if flag.contains("ServerTrustAccount") {
                             self.properties.is_dc = true;
@@ -299,6 +305,9 @@ impl Computer {
                 "IsDeleted" => {
                     self.is_deleted = true;
                 }
+                "msDS-SupportedEncryptionTypes" => {
+                    self.properties.supportedencryptiontypes = convert_encryption_types(value[0].parse::<i32>().unwrap_or(0));
+                 }                
                 _ => {}
             }
         }
@@ -490,9 +499,12 @@ pub struct ComputerProperties {
     lastlogon: i64,
     lastlogontimestamp: i64,
     pwdlastset: i64,
+    passwordnotreqd: bool,
+    pwdneverexpires: bool,
     serviceprincipalnames: Vec<String>,
     operatingsystem: String,
     sidhistory: Vec<String>,
+    supportedencryptiontypes: Vec<String>,
     #[serde(skip_serializing)]
     is_dc: bool
 }
