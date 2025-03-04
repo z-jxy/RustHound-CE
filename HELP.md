@@ -199,6 +199,8 @@ cd RustHound-CE
 cargo doc --open --no-deps
 ```
 
+</details>
+
 # Usage
 
 ```bash
