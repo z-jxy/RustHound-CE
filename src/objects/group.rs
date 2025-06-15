@@ -1,13 +1,7 @@
-use serde_json::value::Value;
 use serde::{Deserialize, Serialize};
+use serde_json::value::Value;
 
-use crate::objects::common::{
-    LdapObject,
-    AceTemplate,
-    SPNTarget,
-    Link,
-    Member
-};
+use crate::objects::common::{AceTemplate, LdapObject, Link, Member, SPNTarget};
 
 use ldap3::SearchEntry;
 use log::{debug, trace};
@@ -41,8 +35,10 @@ pub struct Group {
 
 impl Group {
     // New group.
-    pub fn new() -> Self { 
-        Self { ..Default::default() } 
+    pub fn new() -> Self {
+        Self {
+            ..Default::default()
+        }
     }
 
     // Immutable access.
@@ -74,7 +70,7 @@ impl Group {
         let result_dn: String = result.dn.to_uppercase();
         let result_attrs: HashMap<String, Vec<String>> = result.attrs;
         let result_bin: HashMap<String, Vec<Vec<u8>>> = result.bin_attrs;
-        
+
         debug!("Parse group: {}", result_dn);
         // Trace all result attributes
         for (key, value) in &result_attrs {
@@ -84,22 +80,22 @@ impl Group {
         for (key, value) in &result_bin {
             trace!("  {:?}:{:?}", key, value);
         }
-        
+
         // Some needed vectors.
         let mut vec_members: Vec<Member> = Vec::new();
         let mut member_template = Member::new();
-        
+
         // Change all values...
         self.properties.domain = domain.to_uppercase();
         self.properties.distinguishedname = result_dn;
         self.properties.domainsid = domain_sid.to_string();
-        
+
         // With a check
         for (key, value) in &result_attrs {
             match key.as_str() {
                 "name" => {
                     let name = &value[0];
-                    let email = format!("{}@{}",name.to_owned(),domain);
+                    let email = format!("{}@{}", name.to_owned(), domain);
                     self.properties.name = email.to_uppercase();
                 }
                 "description" => {
@@ -117,9 +113,10 @@ impl Group {
                     self.properties.samaccountname = value[0].to_owned();
                 }
                 "member" => {
-                    if value.len() > 0 {
+                    if !value.is_empty() {
                         for member in value {
-                            *member_template.object_identifier_mut() = member.to_owned().to_uppercase();
+                            *member_template.object_identifier_mut() =
+                                member.to_owned().to_uppercase();
                             if member_template.object_identifier() != "SID" {
                                 vec_members.push(member_template.to_owned());
                             }
@@ -132,32 +129,27 @@ impl Group {
                     let vec_sid = objectsid_to_vec8(&value[0]);
                     let sid = sid_maker(LdapSid::parse(&vec_sid).unwrap().1, domain);
                     self.object_identifier = sid.to_owned();
-        
+
                     /*let re = Regex::new(r"^S-[0-9]{1}-[0-9]{1}-[0-9]{1,}-[0-9]{1,}-[0-9]{1,}-[0-9]{1,}").unwrap();
-                    for domain_sid in re.captures_iter(&sid) 
+                    for domain_sid in re.captures_iter(&sid)
                     {
                         group_json["Properties"]["domainsid"] = domain_sid[0].to_owned().to_string().into();
                     }*/
-        
+
                     // highvalue
-                    if sid.ends_with("-512") 
-                    || sid.ends_with("-516") 
-                    || sid.ends_with("-519") 
-                    || sid.ends_with("-520") 
+                    if sid.ends_with("-512")
+                        || sid.ends_with("-516")
+                        || sid.ends_with("-519")
+                        || sid.ends_with("-520")
                     {
                         self.properties.highvalue = true;
-                    }
-                    else if sid.ends_with("S-1-5-32-544") 
-                    || sid.ends_with("S-1-5-32-548") 
-                    || sid.ends_with("S-1-5-32-549")
-                    || sid.ends_with("S-1-5-32-550") 
-                    || sid.ends_with("S-1-5-32-551") 
-                    {
-                        self.properties.highvalue = true;
-                    }
-                    else {
-                        self.properties.highvalue = false;
-                    }
+                    } else {
+                        self.properties.highvalue = sid.ends_with("S-1-5-32-544")
+                            || sid.ends_with("S-1-5-32-548")
+                            || sid.ends_with("S-1-5-32-549")
+                            || sid.ends_with("S-1-5-32-550")
+                            || sid.ends_with("S-1-5-32-551");
+                    };
                 }
                 "whenCreated" => {
                     let epoch = string_to_epoch(&value[0])?;
@@ -166,12 +158,14 @@ impl Group {
                     }
                 }
                 "IsDeleted" => {
-                    self.is_deleted =true;
+                    self.is_deleted = true;
                 }
                 _ => {}
             }
         }
-        
+
+        let re = Regex::new(r"^S-[0-9]{1}-[0-9]{1}-[0-9]{1,}-[0-9]{1,}-[0-9]{1,}-[0-9]{1,}")?;
+
         // For all, bins attributs
         for (key, value) in &result_bin {
             match key.as_str() {
@@ -179,32 +173,25 @@ impl Group {
                     // objectSid raw to string
                     let sid = sid_maker(LdapSid::parse(&value[0]).unwrap().1, domain);
                     self.object_identifier = sid.to_owned();
-        
-                    let re = Regex::new(r"^S-[0-9]{1}-[0-9]{1}-[0-9]{1,}-[0-9]{1,}-[0-9]{1,}-[0-9]{1,}")?;
-                    for domain_sid in re.captures_iter(&sid) 
-                    {
+
+                    for domain_sid in re.captures_iter(&sid) {
                         self.properties.domainsid = domain_sid[0].to_owned().to_string();
                     }
-                    
+
                     // highvalue
-                    if sid.ends_with("-512") 
-                    || sid.ends_with("-516") 
-                    || sid.ends_with("-519") 
-                    || sid.ends_with("-520") 
+                    if sid.ends_with("-512")
+                        || sid.ends_with("-516")
+                        || sid.ends_with("-519")
+                        || sid.ends_with("-520")
                     {
                         self.properties.highvalue = true;
-                    }
-                    else if sid.ends_with("S-1-5-32-544") 
-                    || sid.ends_with("S-1-5-32-548") 
-                    || sid.ends_with("S-1-5-32-549")
-                    || sid.ends_with("S-1-5-32-550") 
-                    || sid.ends_with("S-1-5-32-551") 
-                    {
-                        self.properties.highvalue = true;
-                    }
-                    else {
-                        self.properties.highvalue = false;
-                    }
+                    } else {
+                        self.properties.highvalue = sid.ends_with("S-1-5-32-544")
+                            || sid.ends_with("S-1-5-32-548")
+                            || sid.ends_with("S-1-5-32-549")
+                            || sid.ends_with("S-1-5-32-550")
+                            || sid.ends_with("S-1-5-32-551")
+                    };
                 }
                 "nTSecurityDescriptor" => {
                     // Needed with acl
@@ -223,18 +210,15 @@ impl Group {
                 _ => {}
             }
         }
-        
+
         // Push DN and SID in HashMap
         dn_sid.insert(
             self.properties.distinguishedname.to_string(),
             self.object_identifier.to_string(),
         );
         // Push DN and Type
-        sid_type.insert(
-            self.object_identifier.to_string(),
-            "Group".to_string(),
-        );
-        
+        sid_type.insert(self.object_identifier.to_string(), "Group".to_string());
+
         // Trace and return Group struct
         // trace!("JSON OUTPUT: {:?}",serde_json::to_string(&self).unwrap());
         Ok(())
@@ -275,7 +259,7 @@ impl LdapObject for Group {
     fn get_haslaps(&self) -> &bool {
         &false
     }
-    
+
     // Get mutable values
     fn get_aces_mut(&mut self) -> &mut Vec<AceTemplate> {
         &mut self.aces
@@ -286,7 +270,7 @@ impl LdapObject for Group {
     fn get_allowed_to_delegate_mut(&mut self) -> &mut Vec<Member> {
         panic!("Not used by current object.");
     }
-    
+
     // Edit values
     fn set_is_acl_protected(&mut self, is_acl_protected: bool) {
         self.is_acl_protected = is_acl_protected;
@@ -328,11 +312,11 @@ pub struct GroupProperties {
 }
 
 impl GroupProperties {
-   // Mutable access.
-   pub fn name_mut(&mut self) -> &mut String {
-      &mut self.name
-   }
-   pub fn highvalue_mut(&mut self) -> &mut bool {
-      &mut self.highvalue
-   }
+    // Mutable access.
+    pub fn name_mut(&mut self) -> &mut String {
+        &mut self.name
+    }
+    pub fn highvalue_mut(&mut self) -> &mut bool {
+        &mut self.highvalue
+    }
 }
