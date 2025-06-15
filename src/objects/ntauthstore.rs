@@ -79,7 +79,7 @@ impl NtAuthStore {
                     self.properties.name = name.to_uppercase();
                 }
                 "description" => {
-                    self.properties.description = value.get(0).map(|s| s.to_owned());
+                    self.properties.description = value.first().map(|s| s.to_owned());
                 }
                 "whenCreated" => {
                     let epoch = string_to_epoch(&value[0])?;
@@ -88,7 +88,7 @@ impl NtAuthStore {
                     }
                 }
                 "IsDeleted" => {
-                    self.is_deleted = true.into();
+                    self.is_deleted = true;
                 }
                 _ => {}
             }
@@ -99,7 +99,7 @@ impl NtAuthStore {
             match key.as_str() {
                 "objectGUID" => {
                     // objectGUID raw to string
-                    self.object_identifier = decode_guid_le(&value[0]).to_owned().into();
+                    self.object_identifier = decode_guid_le(&value[0]).to_owned();
                 }
                 "nTSecurityDescriptor" => {
                     // Needed with acl
@@ -111,7 +111,7 @@ impl NtAuthStore {
                         entry_type,
                         &result_attrs,
                         &result_bin,
-                        &domain,
+                        domain,
                     );
                     self.aces = relations_ace;
                 }
@@ -124,7 +124,7 @@ impl NtAuthStore {
         }
   
         // Push DN and SID in HashMap
-        if self.object_identifier.to_string() != "SID" {
+        if self.object_identifier != "SID" {
             dn_sid.insert(
                 self.properties.distinguishedname.to_string(),
                 self.object_identifier.to_string()
@@ -145,7 +145,7 @@ impl NtAuthStore {
 impl LdapObject for NtAuthStore {
     // To JSON
     fn to_json(&self) -> Value {
-        serde_json::to_value(&self).unwrap()
+        serde_json::to_value(self).unwrap()
     }
 
     // Get values

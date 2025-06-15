@@ -91,14 +91,14 @@ impl CertTemplate {
                     self.properties.displayname = value[0].to_owned();
                 }
                 "msPKI-Certificate-Name-Flag" => {
-                    if value.len() != 0 {
+                    if !value.is_empty() {
                         self.properties.certificatenameflag = get_pki_cert_name_flags(value[0].parse::<i64>().unwrap_or(0) as u64);
                         self.properties.enrolleesuppliessubject = self.properties.certificatenameflag.contains("ENROLLEE_SUPPLIES_SUBJECT");
                         self.properties.subjectaltrequireupn = self.properties.certificatenameflag.contains("SUBJECT_ALT_REQUIRE_UPN");
                     }
                 }
                 "msPKI-Enrollment-Flag" => {
-                    if value.len() != 0 {
+                    if !value.is_empty() {
                         self.properties.enrollmentflag = get_pki_enrollment_flags(value[0].parse::<i64>().unwrap_or(0) as u64);
                         self.properties.requiresmanagerapproval = self.properties.enrollmentflag.contains("PEND_ALL_REQUESTS");
                         self.properties.nosecurityextension = self.properties.enrollmentflag.contains("NO_SECURITY_EXTENSION");
@@ -110,32 +110,32 @@ impl CertTemplate {
                     // }
                 }
                 "msPKI-RA-Signature" => {
-                    if value.len() != 0 {
-                        self.properties.authorizedsignatures = value.get(0).unwrap_or(&"0".to_string()).parse::<i64>().unwrap_or(0);
+                    if !value.is_empty() {
+                        self.properties.authorizedsignatures = value.first().unwrap_or(&"0".to_string()).parse::<i64>().unwrap_or(0);
                     }
                 }
                 "msPKI-RA-Application-Policies" => {
-                    if value.len() != 0 {
+                    if !value.is_empty() {
                         self.properties.applicationpolicies = value.to_owned();
                     }
                 }
                 "msPKI-Certificate-Application-Policy" => {
-                    if value.len() != 0 {
+                    if !value.is_empty() {
                         self.properties.certificateapplicationpolicy = value.to_owned();
                     }
                 }
                 "msPKI-RA-Policies" => {
-                    if value.len() != 0 {
+                    if !value.is_empty() {
                         self.properties.issuancepolicies = value.to_owned();
                     }
                 }
                 "msPKI-Cert-Template-OID" => {
-                    if value.len() != 0 {
+                    if !value.is_empty() {
                         self.properties.oid = value[0].to_owned();
                     }
                 }
                 "pKIExtendedKeyUsage" => {
-                    if value.len() != 0 {
+                    if !value.is_empty() {
                         self.properties.ekus = value.to_owned();
                     }
                 }
@@ -149,7 +149,7 @@ impl CertTemplate {
                     }
                 }
                 "IsDeleted" => {
-                    self.is_deleted = true.into();
+                    self.is_deleted = true;
                 }
                 _ => {}
             }
@@ -161,7 +161,7 @@ impl CertTemplate {
                 "objectGUID" => {
                     // objectGUID raw to string
                     let guid = decode_guid_le(&value[0]);
-                    self.object_identifier = guid.to_owned().into();
+                    self.object_identifier = guid.to_owned();
                 }
                 "nTSecurityDescriptor" => {
                     // Needed with acl
@@ -173,7 +173,7 @@ impl CertTemplate {
                         entry_type,
                         &result_attrs,
                         &result_bin,
-                        &domain,
+                        domain,
                     );
                     self.aces = relations_ace;
                 }
@@ -198,7 +198,7 @@ impl CertTemplate {
         self.properties.authenticationenabled = Self::authentication_is_enabled(self);
 
         // Push DN and SID in HashMap
-        if self.object_identifier.to_string() != "SID" {
+        if self.object_identifier != "SID" {
             dn_sid.insert(
                 self.properties.distinguishedname.to_string(),
                 self.object_identifier.to_string()
@@ -221,10 +221,10 @@ impl CertTemplate {
         ekus: &Vec<String>,
         certificateapplicationpolicy: &Vec<String>,
     ) -> Vec<String> {
-        if schema_version == &1 && ekus.len() > 0 {
-            return ekus.to_vec()
+        if schema_version == &1 && !ekus.is_empty() {
+            ekus.to_vec()
         } else {
-            return certificateapplicationpolicy.to_vec();
+            certificateapplicationpolicy.to_vec()
         }
     }
 
@@ -245,7 +245,7 @@ impl CertTemplate {
 impl LdapObject for CertTemplate {
     // To JSON
     fn to_json(&self) -> Value {
-        serde_json::to_value(&self).unwrap()
+        serde_json::to_value(self).unwrap()
     }
 
     // Get values

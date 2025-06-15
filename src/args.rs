@@ -40,7 +40,9 @@ pub const RUSTHOUND_VERSION: &str = "2.3.4";
 
 #[cfg(not(feature = "noargs"))]
 fn cli() -> Command {
-    let cmd = Command::new("rusthound-ce")
+    
+        // Return Command args
+        Command::new("rusthound-ce")
         .version(RUSTHOUND_VERSION)
         .about("Active Directory data collector for BloodHound Community Edition.\ng0h4n <https://twitter.com/g0h4n_0>")
         .arg(Arg::new("v")
@@ -161,9 +163,7 @@ fn cli() -> Command {
             .required(false)
             .action(ArgAction::SetTrue)
             .global(false)
-        );
-        // Return Command args
-        cmd
+        )
 }
 
 #[cfg(not(feature = "noargs"))]
@@ -178,13 +178,10 @@ pub fn extract_args() -> Options {
     let u = matches.get_one::<String>("ldapusername").map(|s| s.as_str()).unwrap_or("not set");
     let p = matches.get_one::<String>("ldappassword").map(|s| s.as_str()).unwrap_or("not set");
     let f = matches.get_one::<String>("ldapfqdn").map(|s| s.as_str()).unwrap_or("not set");
-    let ip = matches.get_one::<String>("ldapip").map(|s| s.clone());
+    let ip = matches.get_one::<String>("ldapip").cloned();
     let port = match matches.get_one::<String>("ldapport") {
         Some(val) => {
-            match val.parse::<u16>() {
-                Ok(x) => Some(x),
-                Err(_) => None,
-            }
+            val.parse::<u16>().ok()
         },
         None => None
     };
@@ -213,15 +210,15 @@ pub fn extract_args() -> Options {
         username: u.to_string(),
         password: p.to_string(),
         ldapfqdn: f.to_string(),
-        ip: ip,
-        port: port,
+        ip,
+        port,
         name_server: n.to_string(),
         path: path.to_string(),
-        collection_method: collection_method,
-        ldaps: ldaps,
-        dns_tcp: dns_tcp,
-        fqdn_resolver: fqdn_resolver,
-        kerberos: kerberos,
+        collection_method,
+        ldaps,
+        dns_tcp,
+        fqdn_resolver,
+        kerberos,
         zip: z,
         verbose: v,
         ldap_filter: ldap_filter.to_string(),

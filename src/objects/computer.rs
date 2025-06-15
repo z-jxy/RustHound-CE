@@ -336,7 +336,7 @@ impl Computer {
                         entry_type,
                         &result_attrs,
                         &result_bin,
-                        &domain,
+                        domain,
                     );
                     self.aces = relations_ace;
                 }
@@ -351,14 +351,14 @@ impl Computer {
                         entry_type,
                         &result_attrs,
                         &result_bin,
-                        &domain,
+                        domain,
                     );
                     let mut vec_members_allowtoact: Vec<Member> = Vec::new();
                     let mut allowed_to_act = Member::new();
                     for delegated in relations_ace {
                         //trace!("msDS-AllowedToActOnBehalfOfOtherIdentity => ACE: {:?}",delegated);
                         // delegated["RightName"] == "Owner" => continue
-                        if delegated.right_name().to_string() == "GenericAll" {
+                        if *delegated.right_name() == "GenericAll" {
                             *allowed_to_act.object_identifier_mut() = delegated.principal_sid().to_string();
                             vec_members_allowtoact.push(allowed_to_act.to_owned()); 
                             continue
@@ -412,7 +412,7 @@ impl Computer {
 impl LdapObject for Computer {
     // To JSON
     fn to_json(&self) -> Value {
-        serde_json::to_value(&self).unwrap()
+        serde_json::to_value(self).unwrap()
     }
 
     // Get values

@@ -42,5 +42,5 @@ pub fn progress_bar(
 		.unwrap()
         .tick_chars("⠁⠂⠄⡀⢀⠠⠐⠈ "));
 	pb.inc(count);
-	pb.with_message(format!("{}: {}{}",message,count,end_message));
+	pb.with_message(format!("{message}: {count}{end_message}"));
 }

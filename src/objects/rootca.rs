@@ -1,18 +1,12 @@
-use serde_json::value::Value;
 use serde::{Deserialize, Serialize};
+use serde_json::value::Value;
 use x509_parser::oid_registry::asn1_rs::oid;
 use x509_parser::prelude::*;
 
 use crate::enums::{decode_guid_le, parse_ntsecuritydescriptor};
-use crate::utils::date::string_to_epoch;
-use crate::objects::common::{
-    LdapObject,
-    AceTemplate,
-    SPNTarget,
-    Link,
-    Member
-};
+use crate::objects::common::{AceTemplate, LdapObject, Link, Member, SPNTarget};
 use crate::utils::crypto::calculate_sha1;
+use crate::utils::date::string_to_epoch;
 
 use ldap3::SearchEntry;
 use log::{debug, error, trace};
@@ -40,8 +34,10 @@ pub struct RootCA {
 
 impl RootCA {
     // New RootCA
-    pub fn new() -> Self { 
-        Self { ..Default::default() } 
+    pub fn new() -> Self {
+        Self {
+            ..Default::default()
+        }
     }
 
     /// Function to parse and replace value in json template for ROOT CA object.
@@ -51,12 +47,12 @@ impl RootCA {
         domain: &String,
         dn_sid: &mut HashMap<String, String>,
         sid_type: &mut HashMap<String, String>,
-        domain_sid: &String
+        domain_sid: &String,
     ) -> Result<(), Box<dyn Error>> {
         let result_dn: String = result.dn.to_uppercase();
         let result_attrs: HashMap<String, Vec<String>> = result.attrs;
         let result_bin: HashMap<String, Vec<Vec<u8>>> = result.bin_attrs;
-        
+
         // Debug for current object
         debug!("Parse RootCA: {}", result_dn);
         // Trace all result attributes
@@ -67,13 +63,13 @@ impl RootCA {
         for (key, value) in &result_bin {
             trace!("  {:?}:{:?}", key, value);
         }
-        
+
         // Change all values...
         self.properties.domain = domain.to_uppercase();
-        self.properties.distinguishedname = result_dn;    
+        self.properties.distinguishedname = result_dn;
         self.properties.domainsid = domain_sid.to_string();
         self.domain_sid = domain_sid.to_string();
-        
+
         // With a check
         for (key, value) in &result_attrs {
             match key.as_str() {
@@ -82,7 +78,7 @@ impl RootCA {
                     self.properties.name = name.to_uppercase();
                 }
                 "description" => {
-                    self.properties.description = value.get(0).map(|s| s.clone());
+                    self.properties.description = value.first().cloned();
                 }
                 "whenCreated" => {
                     let epoch = string_to_epoch(&value[0])?;
@@ -91,18 +87,18 @@ impl RootCA {
                     }
                 }
                 "IsDeleted" => {
-                    self.is_deleted = true.into();
+                    self.is_deleted = true;
                 }
                 _ => {}
             }
         }
-        
+
         // For all, bins attributs
         for (key, value) in &result_bin {
             match key.as_str() {
                 "objectGUID" => {
                     // objectGUID raw to string
-                    self.object_identifier = decode_guid_le(&value[0]).to_owned().into();
+                    self.object_identifier = decode_guid_le(&value[0]).to_owned();
                 }
                 "nTSecurityDescriptor" => {
                     // Needed with acl
@@ -114,7 +110,7 @@ impl RootCA {
                         entry_type,
                         &result_attrs,
                         &result_bin,
-                        &domain,
+                        domain,
                     );
                     self.aces = relations_ace;
                 }
@@ -124,7 +120,7 @@ impl RootCA {
                     self.properties.certthumbprint = certsha1.to_string();
                     self.properties.certname = certsha1.to_string();
                     self.properties.certchain = vec![certsha1.to_string()];
-        
+
                     // Parsing certificate.
                     let res = X509Certificate::from_der(&value[0]);
                     match res {
@@ -132,51 +128,53 @@ impl RootCA {
                             // println!("Basic Constraints Extensions:");
                             for ext in cert.extensions() {
                                 // println!("{:?} : {:?}",&ext.oid, ext);
-                                if &ext.oid == &oid!(2.5.29.19) {
+                                if ext.oid == oid!(2.5.29 .19) {
                                     // <https://docs.rs/x509-parser/latest/x509_parser/extensions/struct.BasicConstraints.html>
-                                    if let ParsedExtension::BasicConstraints(basic_constraints) = &ext.parsed_extension() {
+                                    if let ParsedExtension::BasicConstraints(basic_constraints) =
+                                        &ext.parsed_extension()
+                                    {
                                         let _ca = &basic_constraints.ca;
-                                        let _path_len_constraint = &basic_constraints.path_len_constraint;
+                                        let _path_len_constraint =
+                                            &basic_constraints.path_len_constraint;
                                         // println!("ca: {:?}", _ca);
                                         // println!("path_len_constraint: {:?}", _path_len_constraint);
                                         match _path_len_constraint {
                                             Some(_path_len_constraint) => {
                                                 if _path_len_constraint > &0 {
                                                     self.properties.hasbasicconstraints = true;
-                                                    self.properties.basicconstraintpathlength = _path_len_constraint.to_owned();
-        
+                                                    self.properties.basicconstraintpathlength =
+                                                        _path_len_constraint.to_owned();
                                                 } else {
                                                     self.properties.hasbasicconstraints = false;
-                                                    self.properties.basicconstraintpathlength = 0 as u32;
+                                                    self.properties.basicconstraintpathlength =
+                                                        0_u32;
                                                 }
-                                            },
+                                            }
                                             None => {
                                                 self.properties.hasbasicconstraints = false;
-                                                self.properties.basicconstraintpathlength = 0 as u32;
+                                                self.properties.basicconstraintpathlength =
+                                                    0_u32;
                                             }
                                         }
                                     }
                                 }
                             }
-                        },
+                        }
                         _ => error!("CA x509 certificate parsing failed: {:?}", res),
                     }
                 }
                 _ => {}
             }
         }
-        
+
         // Push DN and SID in HashMap
-        if self.object_identifier.to_string() != "SID" {
+        if self.object_identifier != "SID" {
             dn_sid.insert(
                 self.properties.distinguishedname.to_string(),
-                self.object_identifier.to_string()
+                self.object_identifier.to_string(),
             );
             // Push DN and Type
-            sid_type.insert(
-                self.object_identifier.to_string(),
-                "RootCA".to_string()
-            );
+            sid_type.insert(self.object_identifier.to_string(), "RootCA".to_string());
         }
 
         // Trace and return RootCA struct
@@ -188,7 +186,7 @@ impl RootCA {
 impl LdapObject for RootCA {
     // To JSON
     fn to_json(&self) -> Value {
-        serde_json::to_value(&self).unwrap()
+        serde_json::to_value(self).unwrap()
     }
 
     // Get values
@@ -219,7 +217,7 @@ impl LdapObject for RootCA {
     fn get_haslaps(&self) -> &bool {
         &false
     }
-    
+
     // Get mutable values
     fn get_aces_mut(&mut self) -> &mut Vec<AceTemplate> {
         &mut self.aces
@@ -230,7 +228,7 @@ impl LdapObject for RootCA {
     fn get_allowed_to_delegate_mut(&mut self) -> &mut Vec<Member> {
         panic!("Not used by current object.");
     }
-    
+
     // Edit values
     fn set_is_acl_protected(&mut self, is_acl_protected: bool) {
         self.is_acl_protected = is_acl_protected;
@@ -256,22 +254,21 @@ impl LdapObject for RootCA {
     }
 }
 
-
 // RootCA properties structure
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct RootCAProperties {
-   domain: String,
-   name: String,
-   distinguishedname: String,
-   domainsid: String,
-   isaclprotected: bool,
-   description: Option<String>,
-   whencreated: i64,
-   certthumbprint: String,
-   certname: String,
-   certchain: Vec<String>,
-   hasbasicconstraints: bool,
-   basicconstraintpathlength: u32,
+    domain: String,
+    name: String,
+    distinguishedname: String,
+    domainsid: String,
+    isaclprotected: bool,
+    description: Option<String>,
+    whencreated: i64,
+    certthumbprint: String,
+    certname: String,
+    certchain: Vec<String>,
+    hasbasicconstraints: bool,
+    basicconstraintpathlength: u32,
 }
 
 impl Default for RootCAProperties {
@@ -289,6 +286,6 @@ impl Default for RootCAProperties {
             certchain: Vec::new(),
             hasbasicconstraints: false,
             basicconstraintpathlength: 0,
-       }
+        }
     }
 }

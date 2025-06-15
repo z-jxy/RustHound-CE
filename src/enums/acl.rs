@@ -31,7 +31,7 @@ pub fn parse_ntsecuritydescriptor<T: LdapObject>(
 
     let mut owner_sid: String = "".to_string();
 
-    let secdesc: SecurityDescriptor = SecurityDescriptor::parse(&nt).unwrap().1;
+    let secdesc: SecurityDescriptor = SecurityDescriptor::parse(nt).unwrap().1;
     trace!("SECURITY-DESCRIPTOR: {:?}", secdesc);
 
     // Check for ACL protected for Bloodhound4.1+
@@ -113,7 +113,7 @@ pub fn parse_ntsecuritydescriptor<T: LdapObject>(
         }
         return relations_dacl;
     }
-    return relations_dacl;
+    relations_dacl
 }
 
 /// Parse ace in acl and get correct values (thanks fox-it for bloodhound.py works)

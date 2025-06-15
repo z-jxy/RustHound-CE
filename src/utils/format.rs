@@ -8,7 +8,7 @@ pub fn domain_to_dc(domain: &str) -> String {
         dc.push_str(s);
         
         if i < domain.split('.').count() - 1 {
-            dc.push_str(",");
+            dc.push(',');
         }
     }
     dc

@@ -121,5 +121,5 @@ pub fn get_flag(uac: u32) -> Vec<String>
         uac_flags.push("PartialSecretsAccount");
     }
 
-    return uac_flags.iter().map(|x| x.to_string()).collect::<Vec<String>>();
+    uac_flags.iter().map(|x| x.to_string()).collect::<Vec<String>>()
 }

@@ -246,6 +246,7 @@ impl UserRight {
 
 /// DCRegistryData structure
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Default)]
 pub struct DCRegistryData {
    #[serde(rename = "CertificateMappingMethods")]
    certificate_mapping_methods: Option<RegistryData>,
@@ -253,14 +254,6 @@ pub struct DCRegistryData {
    strong_certificate_binding_enforcement: Option<RegistryData>,
 }
 
-impl Default for DCRegistryData {
-   fn default() -> DCRegistryData {
-      DCRegistryData {
-         certificate_mapping_methods: None,
-         strong_certificate_binding_enforcement: None,
-      }
-   }
-}
 
 /// RegistryData structure
 #[derive(Debug, Clone, Deserialize, Serialize, Default)]
@@ -484,6 +477,12 @@ pub struct SPNTarget {
    service: String,
 }
 
+impl Default for SPNTarget {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SPNTarget {
    // New object.
    pub fn new() -> Self { 
@@ -613,11 +612,11 @@ pub fn parse_unknown(result: SearchEntry, _domain: &String) -> serde_json::value
 
    let _result_dn = result.dn.to_uppercase();
 
-   let _result_attrs: HashMap<String, Vec<String>>;
-   _result_attrs = result.attrs;
+   
+   let _result_attrs: HashMap<String, Vec<String>> = result.attrs;
 
-   let _result_bin: HashMap<String, Vec<Vec<u8>>>;
-   _result_bin = result.bin_attrs;
+   
+   let _result_bin: HashMap<String, Vec<Vec<u8>>> = result.bin_attrs;
 
    let unknown_json = json!({
        "unknown": null,
@@ -633,5 +632,5 @@ pub fn parse_unknown(result: SearchEntry, _domain: &String) -> serde_json::value
    //    println!("  {:?}:{:?}", key, value);
    // }
 
-   return unknown_json
+   unknown_json
 }

@@ -36,13 +36,13 @@ impl SecurityDescriptor {
         let (i, offset_dacl) = le_u32(i)?;
 
         let nt = SecurityDescriptor {
-            revision: revision,
-            sbz1: sbz1,
-            control: control,
-            offset_owner: offset_owner,
-            offset_group: offset_group,
-            offset_sacl: offset_sacl,
-            offset_dacl: offset_dacl,
+            revision,
+            sbz1,
+            control,
+            offset_owner,
+            offset_group,
+            offset_sacl,
+            offset_dacl,
         };
         Ok((i, nt))
     }
@@ -86,9 +86,9 @@ impl LdapSid {
         let (i, sub_authority) = count(le_u32, sub_authority_count as usize)(i)?;
 
         let ldap_sid = LdapSid {
-            revision: revision,
-            sub_authority_count: sub_authority_count,
-            identifier_authority: identifier_authority,
+            revision,
+            sub_authority_count,
+            identifier_authority,
             sub_authority: sub_authority.to_vec(),
         };
         Ok((i, ldap_sid))
@@ -119,12 +119,12 @@ impl Acl {
         let (i, data) = count(Ace::parse, ace_count as usize)(i)?;
 
         let acl = Acl {
-            acl_revision: acl_revision,
-            sbz1: sbz1,
-            acl_size: acl_size,
-            ace_count: ace_count,
-            sbz2: sbz2,
-            data: data,
+            acl_revision,
+            sbz1,
+            acl_size,
+            ace_count,
+            sbz2,
+            data,
         };
         Ok((i, acl))
     }
@@ -150,9 +150,9 @@ impl Ace {
         let (_j,ace_data_formatted) = AceFormat::parse(data, ace_type)?;
 
         let ace = Ace {
-            ace_type: ace_type,
-            ace_flags: ace_flags,
-            ace_size: ace_size,
+            ace_type,
+            ace_flags,
+            ace_size,
             data: ace_data_formatted,
         };
         Ok((i, ace))
@@ -170,19 +170,19 @@ pub enum AceFormat {
 impl AceFormat {
     pub fn parse(i: &[u8], ace_type: u8) -> IResult<&[u8], AceFormat>
     {
-        if &ace_type == &ACCESS_ALLOWED_ACE_TYPE {
+        if ace_type == ACCESS_ALLOWED_ACE_TYPE {
             let data = AceFormat::AceAllowed(AccessAllowedAce::parse(i)?.1);
             Ok((i, data))
         }
-        else if &ace_type == &ACCESS_DENIED_ACE_TYPE { 
+        else if ace_type == ACCESS_DENIED_ACE_TYPE { 
             let data = AceFormat::AceAllowed(AccessAllowedAce::parse(i)?.1);
             Ok((i, data))
         }
-        else if &ace_type == &ACCESS_ALLOWED_OBJECT_ACE_TYPE {
+        else if ace_type == ACCESS_ALLOWED_OBJECT_ACE_TYPE {
             let data = AceFormat::AceObjectAllowed(AccessAllowedObjectAce::parse(i)?.1);
             Ok((i, data))
         }
-        else if &ace_type == &ACCESS_DENIED_OBJECT_ACE_TYPE { 
+        else if ace_type == ACCESS_DENIED_OBJECT_ACE_TYPE { 
             let data = AceFormat::AceObjectAllowed(AccessAllowedObjectAce::parse(i)?.1);
             Ok((i, data))
         }
@@ -252,8 +252,8 @@ impl AccessAllowedAce {
         let (i, sid) = LdapSid::parse(i)?;
 
         let access_allowed_ace = AccessAllowedAce {
-            mask: mask,
-            sid: sid,
+            mask,
+            sid,
         };
         Ok((i, access_allowed_ace))
     }
@@ -280,11 +280,11 @@ impl AccessAllowedObjectAce {
         let (i, sid) = LdapSid::parse(i)?;
 
         let access_allowed_object_ace = AccessAllowedObjectAce {
-            mask: mask,
-            flags: flags,
-            object_type: object_type,
-            inherited_object_type: inherited_object_type,
-            sid: sid,
+            mask,
+            flags,
+            object_type,
+            inherited_object_type,
+            sid,
         };
         Ok((i, access_allowed_object_ace))
     }
@@ -369,7 +369,7 @@ mod tests {
     
         let result          = Ace::parse(&original_ace).unwrap().1;
         assert_eq!(result.ace_type, 0);
-        println!("ACE_ALLOWED: {:?}",result);
+        println!("ACE_ALLOWED: {result:?}");
     
     
         let original_ace_object = vec![
@@ -393,7 +393,7 @@ mod tests {
     
         let result          = Ace::parse(&original_ace_object).unwrap().1;
         assert_eq!(result.ace_type, 5);
-        println!("ACE_ALLOWED_OBJECT: {:?}",result);
+        println!("ACE_ALLOWED_OBJECT: {result:?}");
     }
     
     #[test]
@@ -417,7 +417,7 @@ mod tests {
         println!("ACL: {:?}",&acl.data);
         let mut count = 1;
         for ace in &acl.data {
-            println!("[{}: ACE] {:?}\n",count,ace);
+            println!("[{count}: ACE] {ace:?}\n");
             println!("[{} ACE.DATA] {:?}\n", count, &ace.data);
             count +=1;
         }

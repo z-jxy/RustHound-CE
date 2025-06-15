@@ -1,18 +1,12 @@
-use serde_json::value::Value;
 use serde::{Deserialize, Serialize};
+use serde_json::value::Value;
 use x509_parser::oid_registry::asn1_rs::oid;
 use x509_parser::prelude::*;
 
 use crate::enums::{decode_guid_le, parse_ntsecuritydescriptor};
-use crate::utils::date::string_to_epoch;
-use crate::objects::common::{
-    LdapObject,
-    AceTemplate,
-    SPNTarget,
-    Link,
-    Member
-};
+use crate::objects::common::{AceTemplate, LdapObject, Link, Member, SPNTarget};
 use crate::utils::crypto::calculate_sha1;
+use crate::utils::date::string_to_epoch;
 
 use ldap3::SearchEntry;
 use log::{debug, error, trace};
@@ -40,8 +34,10 @@ pub struct AIACA {
 
 impl AIACA {
     // New AIACA
-    pub fn new() -> Self { 
-        Self { ..Default::default() } 
+    pub fn new() -> Self {
+        Self {
+            ..Default::default()
+        }
     }
 
     /// Function to parse and replace value in json template for AIACA object.
@@ -51,7 +47,7 @@ impl AIACA {
         domain: &String,
         dn_sid: &mut HashMap<String, String>,
         sid_type: &mut HashMap<String, String>,
-        domain_sid: &String
+        domain_sid: &String,
     ) -> Result<(), Box<dyn Error>> {
         let result_dn: String = result.dn.to_uppercase();
         let result_attrs: HashMap<String, Vec<String>> = result.attrs;
@@ -70,7 +66,7 @@ impl AIACA {
 
         // Change all values...
         self.properties.domain = domain.to_uppercase();
-        self.properties.distinguishedname = result_dn;    
+        self.properties.distinguishedname = result_dn;
         self.properties.domainsid = domain_sid.to_string();
         self.domain_sid = domain_sid.to_string();
 
@@ -78,7 +74,7 @@ impl AIACA {
         for (key, value) in &result_attrs {
             match key.as_str() {
                 "name" => {
-                    let name = format!("{}@{}",&value[0],domain);
+                    let name = format!("{}@{}", &value[0], domain);
                     self.properties.name = name.to_uppercase();
                 }
                 "description" => {
@@ -91,7 +87,7 @@ impl AIACA {
                     }
                 }
                 "IsDeleted" => {
-                    self.is_deleted = true.into();
+                    self.is_deleted = true;
                 }
                 "crossCertificatePair" => {
                     self.properties.hascrosscertificatepair = true;
@@ -107,7 +103,7 @@ impl AIACA {
                 "objectGUID" => {
                     // objectGUID raw to string
                     let guid = decode_guid_le(&value[0]);
-                    self.object_identifier = guid.to_owned().into();
+                    self.object_identifier = guid.to_owned();
                 }
                 "nTSecurityDescriptor" => {
                     // Needed with acl
@@ -119,7 +115,7 @@ impl AIACA {
                         entry_type,
                         &result_attrs,
                         &result_bin,
-                        &domain,
+                        domain,
                     );
                     self.aces = relations_ace;
                 }
@@ -137,24 +133,27 @@ impl AIACA {
                             // println!("Basic Constraints Extensions:");
                             for ext in cert.extensions() {
                                 // println!("{:?} : {:?}",&ext.oid, ext);
-                                if &ext.oid == &oid!(2.5.29.19) {
+                                if ext.oid == oid!(2.5.29 .19) {
                                     // <https://docs.rs/x509-parser/latest/x509_parser/extensions/struct.BasicConstraints.html>
-                                    if let ParsedExtension::BasicConstraints(basic_constraints) = &ext.parsed_extension() {
+                                    if let ParsedExtension::BasicConstraints(basic_constraints) =
+                                        &ext.parsed_extension()
+                                    {
                                         let _ca = &basic_constraints.ca;
-                                        let _path_len_constraint = &basic_constraints.path_len_constraint;
+                                        let _path_len_constraint =
+                                            &basic_constraints.path_len_constraint;
                                         // println!("ca: {:?}", _ca);
                                         // println!("path_len_constraint: {:?}", _path_len_constraint);
                                         match _path_len_constraint {
                                             Some(_path_len_constraint) => {
                                                 if _path_len_constraint > &0 {
                                                     self.properties.hasbasicconstraints = true;
-                                                    self.properties.basicconstraintpathlength = _path_len_constraint.to_owned();
-
+                                                    self.properties.basicconstraintpathlength =
+                                                        _path_len_constraint.to_owned();
                                                 } else {
                                                     self.properties.hasbasicconstraints = false;
                                                     self.properties.basicconstraintpathlength = 0;
                                                 }
-                                            },
+                                            }
                                             None => {
                                                 self.properties.hasbasicconstraints = false;
                                                 self.properties.basicconstraintpathlength = 0;
@@ -163,7 +162,7 @@ impl AIACA {
                                     }
                                 }
                             }
-                        },
+                        }
                         _ => error!("CA x509 certificate parsing failed: {:?}", res),
                     }
                 }
@@ -172,16 +171,13 @@ impl AIACA {
         }
 
         // Push DN and SID in HashMap
-        if self.object_identifier.to_string() != "SID" {
+        if self.object_identifier != "SID" {
             dn_sid.insert(
                 self.properties.distinguishedname.to_owned(),
-                self.object_identifier.to_owned()
+                self.object_identifier.to_owned(),
             );
             // Push DN and Type
-            sid_type.insert(
-                self.object_identifier.to_owned(),
-                "AIACA".to_string()
-            );
+            sid_type.insert(self.object_identifier.to_owned(), "AIACA".to_string());
         }
 
         // Trace and return AIACA struct
@@ -193,7 +189,7 @@ impl AIACA {
 impl LdapObject for AIACA {
     // To JSON
     fn to_json(&self) -> Value {
-        serde_json::to_value(&self).unwrap()
+        serde_json::to_value(self).unwrap()
     }
 
     // Get values
@@ -224,7 +220,7 @@ impl LdapObject for AIACA {
     fn get_haslaps(&self) -> &bool {
         &false
     }
-    
+
     // Get mutable values
     fn get_aces_mut(&mut self) -> &mut Vec<AceTemplate> {
         &mut self.aces
@@ -235,7 +231,7 @@ impl LdapObject for AIACA {
     fn get_allowed_to_delegate_mut(&mut self) -> &mut Vec<Member> {
         panic!("Not used by current object.");
     }
-    
+
     // Edit values
     fn set_is_acl_protected(&mut self, is_acl_protected: bool) {
         self.is_acl_protected = is_acl_protected;
@@ -261,24 +257,23 @@ impl LdapObject for AIACA {
     }
 }
 
-
 // AIACA properties structure
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct AIACAProperties {
-   domain: String,
-   name: String,
-   distinguishedname: String,
-   domainsid: String,
-   isaclprotected: bool,
-   description: Option<String>,
-   whencreated: i64,
-   crosscertificatepair: Vec<String>,
-   hascrosscertificatepair: bool,
-   certthumbprint: String,
-   certname: String,
-   certchain: Vec<String>,
-   hasbasicconstraints: bool,
-   basicconstraintpathlength: u32,
+    domain: String,
+    name: String,
+    distinguishedname: String,
+    domainsid: String,
+    isaclprotected: bool,
+    description: Option<String>,
+    whencreated: i64,
+    crosscertificatepair: Vec<String>,
+    hascrosscertificatepair: bool,
+    certthumbprint: String,
+    certname: String,
+    certchain: Vec<String>,
+    hasbasicconstraints: bool,
+    basicconstraintpathlength: u32,
 }
 
 impl Default for AIACAProperties {
@@ -298,6 +293,6 @@ impl Default for AIACAProperties {
             certchain: Vec::new(),
             hasbasicconstraints: false,
             basicconstraintpathlength: 0,
-       }
+        }
     }
 }

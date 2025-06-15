@@ -101,12 +101,9 @@ impl Trust {
       }
       // For all, bins attributs
       for (key, value) in &result_bin {
-         match key.as_str() {
-            "securityIdentifier" => {
-                  let sid = sid_maker(LdapSid::parse(&value[0]).unwrap().1, domain);
-                  self.target_domain_sid = sid.to_owned();
-            }
-            _ => {}
+         if key.as_str() == "securityIdentifier" {
+               let sid = sid_maker(LdapSid::parse(&value[0]).unwrap().1, domain);
+               self.target_domain_sid = sid.to_owned();
          }
       }
       

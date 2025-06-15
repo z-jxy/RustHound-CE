@@ -134,7 +134,7 @@ impl EnterpriseCA {
                     }
                 }
                 "IsDeleted" => {
-                    self.is_deleted = true.into();
+                    self.is_deleted = true;
                 }
                 _ => {}
             }
@@ -146,7 +146,7 @@ impl EnterpriseCA {
                 "objectGUID" => {
                     // objectGUID raw to string
                     let guid = decode_guid_le(&value[0]);
-                    self.object_identifier = guid.to_owned().into();
+                    self.object_identifier = guid.to_owned();
                 }
                 "nTSecurityDescriptor" => {
                     // Needed with acl
@@ -158,16 +158,16 @@ impl EnterpriseCA {
                         entry_type,
                         &result_attrs,
                         &result_bin,
-                        &domain,
+                        domain,
                     );
                     // Aces
                     self.aces = relations_ace;
                     // HostingComputer
-                    self.hosting_computer = Self::get_hosting_computer(&value[0], &domain);
+                    self.hosting_computer = Self::get_hosting_computer(&value[0], domain);
                     // CASecurity
                     let ca_security_data =
-                        parse_ca_security(&value[0], &self.hosting_computer, &domain);
-                    if ca_security_data.len() != 0 {
+                        parse_ca_security(&value[0], &self.hosting_computer, domain);
+                    if !ca_security_data.is_empty() {
                         let ca_security = CASecurity {
                             data: ca_security_data,
                             collected: true,
@@ -201,7 +201,7 @@ impl EnterpriseCA {
                             // println!("Basic Constraints Extensions:");
                             for ext in cert.extensions() {
                                 // println!("{:?} : {:?}",&ext.oid, ext);
-                                if &ext.oid == &oid!(2.5.29 .19) {
+                                if ext.oid == oid!(2.5.29 .19) {
                                     // <https://docs.rs/x509-parser/latest/x509_parser/extensions/struct.BasicConstraints.html>
                                     if let ParsedExtension::BasicConstraints(basic_constraints) =
                                         &ext.parsed_extension()
@@ -239,7 +239,7 @@ impl EnterpriseCA {
         }
 
         // Push DN and SID in HashMap
-        if self.object_identifier.to_string() != "SID" {
+        if self.object_identifier != "SID" {
             dn_sid.insert(
                 self.properties.distinguishedname.to_string(),
                 self.object_identifier.to_string(),
@@ -257,7 +257,7 @@ impl EnterpriseCA {
     }
 
     /// Function to get HostingComputer from ACL if ACE get ManageCertificates and is not Group.
-    fn get_hosting_computer(nt: &Vec<u8>, domain: &String) -> String {
+    fn get_hosting_computer(nt: &[u8], domain: &String) -> String {
         let mut hosting_computer = String::from("Not found");
         let blacklist_sid = [
             // <https://learn.microsoft.com/fr-fr/windows-server/identity/ad-ds/manage/understand-security-identifiers>
@@ -302,7 +302,7 @@ impl EnterpriseCA {
 impl LdapObject for EnterpriseCA {
     // To JSON
     fn to_json(&self) -> Value {
-        serde_json::to_value(&self).unwrap()
+        serde_json::to_value(self).unwrap()
     }
 
     // Get values

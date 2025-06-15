@@ -19,7 +19,7 @@ pub async fn run_modules(
          common_args.dns_tcp,
          &common_args.name_server,
          fqdn_ip,
-         &vec_computers
+         vec_computers
       ).await;
    }
    // Other modules need to be add here...

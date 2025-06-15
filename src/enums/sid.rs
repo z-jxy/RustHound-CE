@@ -30,13 +30,13 @@ pub fn sid_maker(sid: LdapSid, domain: &String) -> String {
         error!("SID contains null bytes!\n[INPUT: {:?}]\n[OUTPUT: {}]", &sid, final_sid);
     }
 
-    return final_sid;
+    final_sid
 }
 
 /// Change SID value to correct format.
 pub fn objectsid_to_vec8(sid: &String) -> Vec<u8>
 {
-    sid.as_bytes().iter().map(|x| *x).collect::<Vec<u8>>()
+    sid.as_bytes().to_vec()
 }
 
 /// Function to decode objectGUID binary to string value. 
@@ -46,8 +46,8 @@ pub fn _decode_guid(raw_guid: &Vec<u8>) -> String
 {
     // A byte-based String representation in the form of \[0]\[1]\[2]\[3]\[4]\[5]\[6]\[7]\[8]\[9]\[10]\[11]\[12]\[13]\[14]\[15]
     // A string representing the decoded value in the form of [3][2][1][0]-[5][4]-[7][6]-[8][9]-[10][11][12][13][14][15].
-    let raw_guid = raw_guid.iter().map(|x| x & 0xFF).collect::<Vec<u8>>();
-    let rev = | x: &[u8] | -> Vec<u8> { x.iter().map(|i| *i).rev().collect::<Vec<u8>>()};
+    let raw_guid = raw_guid.to_vec();
+    let rev = | x: &[u8] | -> Vec<u8> { x.iter().copied().rev().collect::<Vec<u8>>()};
 
     // Note slice syntax means up to the second number, but not including, so [0..4] is [0, 1, 2, 3] for example.
     let str_guid = format!(
@@ -66,7 +66,7 @@ pub fn _decode_guid(raw_guid: &Vec<u8>) -> String
 /// Thanks to: <https://newbedev.com/how-do-i-convert-a-string-to-hex-in-rust>
 pub fn hex_push(blob: &[u8]) -> String {
     // For each char in blob, get the capitalised hexadecimal representation (:X) and collect that into a String
-    blob.iter().map(|x| format!("{:X}", x)).collect::<String>()
+    blob.iter().map(|x| format!("{x:X}")).collect::<String>()
 }
 
 /// Function to get uuid from bin to string format
@@ -77,8 +77,8 @@ pub fn bin_to_string(raw_guid: &Vec<u8>) -> String
     // after: bf 96 7a ba - 0d e6 - 11 d0 - a2 85 - 00 aa 00 30 49 e2
     //        12 13 14 15   10 11   8  9    7  6    5  4  3  2  1  0 
 
-    let raw_guid = raw_guid.iter().map(|x| x & 0xFF).collect::<Vec<u8>>();
-    let rev = | x: &[u8] | -> Vec<u8> { x.iter().map(|i| *i).collect::<Vec<u8>>()};
+    let raw_guid = raw_guid.to_vec();
+    let rev = | x: &[u8] | -> Vec<u8> { x.to_vec()};
 
     let str_guid = format!(
         "{}-{}-{}-{}-{}",
@@ -89,7 +89,7 @@ pub fn bin_to_string(raw_guid: &Vec<u8>) -> String
         &hex_push(&rev(&raw_guid[0..6]))
     );
 
-    return str_guid  
+    str_guid  
 }
 /// Function to decode GUID from binary to string format with correct little-endian handling
 pub fn decode_guid_le(raw_guid: &Vec<u8>) -> String {

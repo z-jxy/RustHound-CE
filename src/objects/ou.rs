@@ -101,7 +101,7 @@ impl Ou {
                      self.properties.name = email.to_uppercase();
                  }
                  "description" => {
-                     self.properties.description = value.get(0).map(|s| s.clone());
+                     self.properties.description = value.first().cloned();
                  }
                  "whenCreated" => {
                      let epoch = string_to_epoch(&value[0])?;
@@ -140,7 +140,7 @@ impl Ou {
                           entry_type,
                           &result_attrs,
                           &result_bin,
-                          &domain,
+                          domain,
                      );
                      self.aces = relations_ace;
                  }
@@ -167,7 +167,7 @@ impl Ou {
 impl LdapObject for Ou {
     // To JSON
     fn to_json(&self) -> Value {
-        serde_json::to_value(&self).unwrap()
+        serde_json::to_value(self).unwrap()
     }
     
     // Get values

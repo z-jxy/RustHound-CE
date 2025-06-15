@@ -107,7 +107,7 @@ impl Group {
                     if isadmin == "1" {
                         admincount = true;
                     }
-                    self.properties.admincount = admincount.into();
+                    self.properties.admincount = admincount;
                 }
                 "sAMAccountName" => {
                     self.properties.samaccountname = value[0].to_owned();
@@ -203,7 +203,7 @@ impl Group {
                         entry_type,
                         &result_attrs,
                         &result_bin,
-                        &domain,
+                        domain,
                     );
                     self.aces = relations_ace;
                 }
@@ -228,7 +228,7 @@ impl Group {
 impl LdapObject for Group {
     // To JSON
     fn to_json(&self) -> Value {
-        serde_json::to_value(&self).unwrap()
+        serde_json::to_value(self).unwrap()
     }
 
     // Get values

@@ -28,14 +28,14 @@ use std::process;
 /// Function to request all AD values.
 pub async fn ldap_search(
     ldaps: bool,
-    ip: &Option<String>,
-    port: &Option<u16>,
-    domain: &String,
-    ldapfqdn: &String,
-    username: &String,
-    password: &String,
+    ip: Option<&str>,
+    port: Option<u16>,
+    domain: &str,
+    ldapfqdn: &str,
+    username: &str,
+    password: &str,
     kerberos: bool,
-    ldapfilter: &String,
+    ldapfilter: &str,
 ) -> Result<Vec<SearchEntry>, Box<dyn Error>> {
     // Construct LDAP args
     let ldap_args = ldap_constructor(
@@ -184,7 +184,7 @@ pub async fn ldap_search(
     }
 
     // Return the vector with the result
-    return Ok(rs);
+    Ok(rs)
 }
 
 /// Structure containing the LDAP connection arguments.
@@ -199,12 +199,12 @@ struct LdapArgs {
 /// Function to prepare LDAP arguments.
 fn ldap_constructor(
     ldaps: bool,
-    ip: &Option<String>,
-    port: &Option<u16>,
-    domain: &String,
-    ldapfqdn: &String,
-    username: &String,
-    password: &String,
+    ip: Option<&str>,
+    port: Option<u16>,
+    domain: &str,
+    ldapfqdn: &str,
+    username: &str,
+    password: &str,
     kerberos: bool,
 ) -> Result<LdapArgs, Box<dyn Error>> {
     // Prepare ldap url
@@ -238,7 +238,7 @@ fn ldap_constructor(
     let mut s_email: String = "".to_owned();
     if !_s_username.contains("@") {
         s_email.push_str(&_s_username.to_string());
-        s_email.push_str("@");
+        s_email.push('@');
         s_email.push_str(domain);
         _s_username = s_email.to_string();
     } else {
@@ -296,12 +296,7 @@ fn ldap_constructor(
 }
 
 /// Function to prepare LDAP url.
-fn prepare_ldap_url(
-    ldaps: bool,
-    ip: &Option<String>,
-    port: &Option<u16>,
-    domain: &String,
-) -> String {
+fn prepare_ldap_url(ldaps: bool, ip: Option<&str>, port: Option<u16>, domain: &str) -> String {
     let protocol = if ldaps || port.unwrap_or(0) == 636 {
         "ldaps"
     } else {
@@ -324,23 +319,23 @@ fn prepare_ldap_url(
 }
 
 /// Function to prepare LDAP DC from DOMAIN.LOCAL
-pub fn prepare_ldap_dc(domain: &String) -> Vec<String> {
+pub fn prepare_ldap_dc(domain: &str) -> Vec<String> {
     let mut dc: String = "".to_owned();
     let mut naming_context: Vec<String> = Vec::new();
 
     // Format DC
     if !domain.contains(".") {
         dc.push_str("DC=");
-        dc.push_str(&domain);
+        dc.push_str(domain);
         naming_context.push(dc[..].to_string());
     } else {
         naming_context.push(domain_to_dc(domain));
     }
 
     // For ADCS values
-    naming_context.push(format!("{}{}", "CN=Configuration,", dc[..].to_string()));
+    naming_context.push(format!("{}{}", "CN=Configuration,", &dc[..]));
 
-    return naming_context;
+    naming_context
 }
 
 /// Function to make GSSAPI ldap connection.
@@ -407,7 +402,7 @@ pub async fn get_all_naming_contexts(
             for result in rs {
                 let result_attrs: HashMap<String, Vec<String>> = result.attrs;
 
-                for (_key, value) in &result_attrs {
+                for value in result_attrs.values() {
                     for naming_context in value {
                         debug!("namingContext found: {}", &naming_context.bold().green());
                         naming_contexts.push(naming_context.to_string());

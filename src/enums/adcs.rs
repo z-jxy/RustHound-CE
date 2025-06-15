@@ -105,7 +105,7 @@ pub fn get_pki_cert_name_flags(value: u64) -> String
     {
         flags.push("SUBJECT_REQUIRE_DIRECTORY_PATH".to_string());
     }
-    return flags.join(", ")
+    flags.join(", ")
 }
 
 
@@ -228,7 +228,7 @@ pub fn get_pki_enrollment_flags(value: u64) -> String
         flags.push("NO_SECURITY_EXTENSION".to_string());
         // template.no_security_extension = true;
     }
-    return flags.join(", ")
+    flags.join(", ")
 }
 
 bitflags! {
@@ -314,7 +314,7 @@ pub fn get_pki_private_flags(value: u64) -> String
     {
         flags.push("HELLO_LOGON_KEY".to_string());
     }
-    return flags.join(", ")
+    flags.join(", ")
 }
 
 /// Function to replace displayname by SID in enabled cert templates.

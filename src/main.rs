@@ -1,47 +1,32 @@
-pub mod modules;
 pub mod enums;
 pub mod json;
+pub mod modules;
 
 pub mod args;
-pub mod objects;
-pub mod utils;
 pub mod banner;
 pub mod ldap;
+pub mod objects;
+pub mod utils;
 
-use log::{info,trace,error};
 use env_logger::Builder;
+use log::{error, info, trace};
 use std::collections::HashMap;
 use std::error::Error;
 
-#[cfg(not(feature = "noargs"))]
-use args::{Options,extract_args};
 #[cfg(feature = "noargs")]
 use args::auto_args;
+#[cfg(not(feature = "noargs"))]
+use args::{extract_args, Options};
 
-use banner::{print_banner,print_end_banner};
+use banner::{print_banner, print_end_banner};
+use json::{checker::check_all_result, maker::make_result, parser::parse_result_type};
 use ldap::ldap_search;
 use modules::run_modules;
-use json::{
-    parser::parse_result_type,
-    checker::check_all_result,
-    maker::make_result,
-};
 use objects::{
-    user::User,
-    computer::Computer,
-    group::Group,
-    ou::Ou,
-    container::Container,
-    gpo::Gpo,
-    domain::Domain,
-    fsp::Fsp,
-    trust::Trust,
-    ntauthstore::NtAuthStore,
-    aiaca::AIACA,
-    rootca::RootCA,
-    enterpriseca::EnterpriseCA,
-    certtemplate::CertTemplate,
-    inssuancepolicie::IssuancePolicie,
+    aiaca::AIACA, certtemplate::CertTemplate, computer::Computer, container::Container,
+    domain::Domain, enterpriseca::EnterpriseCA, fsp::Fsp, gpo::Gpo, group::Group,
+    inssuancepolicie::IssuancePolicie, ntauthstore::NtAuthStore, ou::Ou, rootca::RootCA,
+    trust::Trust, user::User,
 };
 
 /// Main of RustHound
@@ -69,32 +54,33 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // LDAP request to get all informations in result
     let result = ldap_search(
         common_args.ldaps,
-        &common_args.ip,
-        &common_args.port,
+        common_args.ip.as_deref(),
+        common_args.port,
         &common_args.domain,
         &common_args.ldapfqdn,
         &common_args.username,
         &common_args.password,
         common_args.kerberos,
-        &common_args.ldap_filter
-    ).await?;
+        &common_args.ldap_filter,
+    )
+    .await?;
 
     // Vector for content all
-    let mut vec_users:              Vec<User>            = Vec::new();
-    let mut vec_groups:             Vec<Group>           = Vec::new();
-    let mut vec_computers:          Vec<Computer>        = Vec::new();
-    let mut vec_ous:                Vec<Ou>              = Vec::new();
-    let mut vec_domains:            Vec<Domain>          = Vec::new();
-    let mut vec_gpos:               Vec<Gpo>             = Vec::new();
-    let mut vec_fsps:               Vec<Fsp>             = Vec::new();
-    let mut vec_containers:         Vec<Container>       = Vec::new();
-    let mut vec_trusts:             Vec<Trust>           = Vec::new();
-    let mut vec_ntauthstores:       Vec<NtAuthStore>     = Vec::new();
-    let mut vec_aiacas:             Vec<AIACA>           = Vec::new();
-    let mut vec_rootcas:            Vec<RootCA>          = Vec::new();
-    let mut vec_enterprisecas:      Vec<EnterpriseCA>    = Vec::new();
-    let mut vec_certtemplates:      Vec<CertTemplate>    = Vec::new();
-    let mut vec_issuancepolicies:   Vec<IssuancePolicie> = Vec::new();
+    let mut vec_users: Vec<User> = Vec::new();
+    let mut vec_groups: Vec<Group> = Vec::new();
+    let mut vec_computers: Vec<Computer> = Vec::new();
+    let mut vec_ous: Vec<Ou> = Vec::new();
+    let mut vec_domains: Vec<Domain> = Vec::new();
+    let mut vec_gpos: Vec<Gpo> = Vec::new();
+    let mut vec_fsps: Vec<Fsp> = Vec::new();
+    let mut vec_containers: Vec<Container> = Vec::new();
+    let mut vec_trusts: Vec<Trust> = Vec::new();
+    let mut vec_ntauthstores: Vec<NtAuthStore> = Vec::new();
+    let mut vec_aiacas: Vec<AIACA> = Vec::new();
+    let mut vec_rootcas: Vec<RootCA> = Vec::new();
+    let mut vec_enterprisecas: Vec<EnterpriseCA> = Vec::new();
+    let mut vec_certtemplates: Vec<CertTemplate> = Vec::new();
+    let mut vec_issuancepolicies: Vec<IssuancePolicie> = Vec::new();
 
     // Hashmap to link DN to SID
     let mut dn_sid: HashMap<String, String> = HashMap::new();
@@ -105,7 +91,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // Hashmap to link fqdn to an ip address
     let mut fqdn_ip: HashMap<String, String> = HashMap::new();
 
-    // Analyze object by object 
+    // Analyze object by object
     // Get type and parse it to get values
     parse_result_type(
         &common_args,
@@ -130,7 +116,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         &mut fqdn_sid,
         &mut fqdn_ip,
     )?;
-    
+
     // Functions to replace and add missing values
     check_all_result(
         &common_args,
@@ -156,11 +142,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     )?;
 
     // Running modules
-    run_modules(
-        &common_args,
-        &mut fqdn_ip,
-        &mut vec_computers,
-    ).await?;
+    run_modules(&common_args, &mut fqdn_ip, &mut vec_computers).await?;
 
     // Add all in json files
     match make_result(
@@ -180,7 +162,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         vec_issuancepolicies,
     ) {
         Ok(_res) => trace!("Making json/zip files finished!"),
-        Err(err) => error!("Error. Reason: {err}")
+        Err(err) => error!("Error. Reason: {err}"),
     }
 
     // End banner

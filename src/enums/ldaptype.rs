@@ -1,6 +1,5 @@
 use ldap3::SearchEntry;
 use std::collections::HashMap;
-use std::fmt;
 //use log::trace;
 
 /// Enum to get ldap object type.

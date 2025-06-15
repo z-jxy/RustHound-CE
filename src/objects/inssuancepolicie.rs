@@ -85,7 +85,7 @@ impl IssuancePolicie {
                     }
                 }
                 "IsDeleted" => {
-                    self.is_deleted = true.into();
+                    self.is_deleted = true;
                 }
                 "displayName" => {
                     self.properties.name = format!("{}@{}",&value[0],domain).to_uppercase();
@@ -104,7 +104,7 @@ impl IssuancePolicie {
                 "objectGUID" => {
                     // objectGUID raw to string
                     let guid = decode_guid_le(&value[0]);
-                    self.object_identifier = guid.to_owned().into();
+                    self.object_identifier = guid.to_owned();
                 }
                 "nTSecurityDescriptor" => {
                     // Needed with acl
@@ -116,7 +116,7 @@ impl IssuancePolicie {
                         entry_type,
                          &result_attrs,
                          &result_bin,
-                         &domain,
+                         domain,
                     );
                     self.aces = relations_ace;
                 }
@@ -125,7 +125,7 @@ impl IssuancePolicie {
         }
 
         // Push DN and SID in HashMap
-        if self.object_identifier.to_string() != "SID" {
+        if self.object_identifier != "SID" {
             dn_sid.insert(
                 self.properties.distinguishedname.to_owned(),
                 self.object_identifier.to_owned()
@@ -146,7 +146,7 @@ impl IssuancePolicie {
 impl LdapObject for IssuancePolicie {
     // To JSON
     fn to_json(&self) -> Value {
-        serde_json::to_value(&self).unwrap()
+        serde_json::to_value(self).unwrap()
     }
 
     // Get values

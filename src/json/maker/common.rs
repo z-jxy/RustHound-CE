@@ -27,7 +27,7 @@ pub fn add_file<T: LdapObject>(
    common_args: &Options, 
  ) -> std::io::Result<()>
  {
-  if vec_json.len() != 0 {
+  if !vec_json.is_empty() {
     debug!("Making {}.json",&name);
   
     let path = &common_args.path;
@@ -42,7 +42,7 @@ pub fn add_file<T: LdapObject>(
     let final_json = FinalJson::new(
         result,
         Meta::new(
-          000000 as i32,
+          000000_i32,
           name.to_owned(),
           count as i32,
           BLOODHOUND_VERSION_4,
@@ -58,13 +58,13 @@ pub fn add_file<T: LdapObject>(
     // Create json file if isn't zip
     if ! zip 
     {
-        let final_path = format!("{}/{}_{}_{}.json",path,datetime,domain_format,name);
+        let final_path = format!("{path}/{datetime}_{domain_format}_{name}.json");
         fs::write(&final_path, serde_json::to_string(&final_json)?)?;
         info!("{} created!",final_path.bold());
     }
     else
     {
-        json_result.insert(format!("{}_{}_{}.json",datetime,domain_format,name).to_string(),serde_json::to_string(&final_json)?);
+        json_result.insert(format!("{datetime}_{domain_format}_{name}.json").to_string(),serde_json::to_string(&final_json)?);
     }
   }
   Ok(())
@@ -77,7 +77,7 @@ pub fn add_file<T: LdapObject>(
    path: &String,
    json_result: &HashMap<String, String>
  ){
-   let final_path = format!("{}/{}_{}_rusthound-ce.zip",path,datetime,domain);
+   let final_path = format!("{path}/{datetime}_{domain}_rusthound-ce.zip");
    let mut file = File::create(&final_path).expect("Couldn't create file");
    create_zip_archive(&mut file, json_result).expect("Couldn't create archive");
  

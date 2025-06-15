@@ -1384,9 +1384,9 @@ pub fn get_name_from_full_distinguishedname(dn_object: &String) -> String {
     let vec1 = split1.collect::<Vec<&str>>();
     let split2 = vec1[0].split("=");
     let vec2 = split2.collect::<Vec<&str>>();
-    let name = vec2[1].to_owned();
+    
     // name = G0H4N
-    name
+    vec2[1].to_owned()
 }
 
 /// Function to get CN=name from DN
@@ -1396,21 +1396,21 @@ fn get_cn_object_name_from_full_distinguishedname(dn_object: &String) -> String 
     let name = dn_object.to_owned();
     let split = name.split(",");
     let vec = split.collect::<Vec<&str>>();
-    let name = vec[0].to_owned();
+    
     // name = CN=G0H4N
-    name
+    vec[0].to_owned()
 }
 
 /// Function to get first degree contained by name from DN
 fn get_contained_by_name_from_distinguishedname(cn_name: &String, dn_object: &String) -> String {
     // Example:
     // dn_object = CN=G0H4N,CN=USERS,DC=ESSOS,DC=LOCAL
-    let name = format!("{},",cn_name);
+    let name = format!("{cn_name},");
     let split = dn_object.split(&name);
     let vec = split.collect::<Vec<&str>>();
-    let dn_contained_by = vec[1].to_owned();
+    
     // dn_contained_by = CN=USERS,DC=ESSOS,DC=LOCAL
-    dn_contained_by
+    vec[1].to_owned()
 }
 
 // /// Function to get only SID for one spécifique Type
@@ -1458,8 +1458,8 @@ mod tests {
         // dn_object = CN=G0H4N,CN=USERS,DC=ESSOS,DC=LOCAL
         let dn_object = "CN=G0H4N,CN=USERS,DC=ESSOS,DC=LOCAL".to_string();
         let cn_name =  get_name_from_full_distinguishedname(&dn_object);
-        println!("dn_object: {:?}",dn_object);
-        println!("cn_name: {:?}",cn_name);
+        println!("dn_object: {dn_object:?}");
+        println!("cn_name: {cn_name:?}");
         assert_eq!(cn_name, "G0H4N".to_string());
     }
 
@@ -1470,8 +1470,8 @@ mod tests {
         // dn_object = CN=G0H4N,CN=USERS,DC=ESSOS,DC=LOCAL
         let dn_object = "CN=G0H4N,CN=USERS,DC=ESSOS,DC=LOCAL".to_string();
         let cn_name =  get_cn_object_name_from_full_distinguishedname(&dn_object);
-        println!("dn_object: {:?}",dn_object);
-        println!("cn_name: {:?}",cn_name);
+        println!("dn_object: {dn_object:?}");
+        println!("cn_name: {cn_name:?}");
         assert_eq!(cn_name, "CN=G0H4N".to_string());
     }
     
@@ -1483,8 +1483,8 @@ mod tests {
         let dn_object = "CN=G0H4N,CN=USERS,DC=ESSOS,DC=LOCAL".to_string();
         let cn_name = "CN=G0H4N".to_string();
         let contained_by_dn =  get_contained_by_name_from_distinguishedname(&cn_name, &dn_object);
-        println!("dn_object: {:?}",dn_object);
-        println!("contained_by_dn: {:?}",contained_by_dn);
+        println!("dn_object: {dn_object:?}");
+        println!("contained_by_dn: {contained_by_dn:?}");
         assert_eq!(contained_by_dn, "CN=USERS,DC=ESSOS,DC=LOCAL".to_string());
     }
 }
