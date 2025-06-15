@@ -19,11 +19,11 @@ use indicatif::ProgressBar;
 use ldap3::adapters::{Adapter, EntriesOnly};
 use ldap3::{adapters::PagedResults, controls::RawControl, LdapConnAsync, LdapConnSettings};
 use ldap3::{Scope, SearchEntry};
+use log::{debug, error, info, trace};
 use std::collections::HashMap;
 use std::error::Error;
+use std::io::{self, stdin, Write};
 use std::process;
-use std::io::{self, Write, stdin};
-use log::{info, debug, error, trace};
 
 /// Function to request all AD values.
 pub async fn ldap_search(
@@ -38,7 +38,9 @@ pub async fn ldap_search(
     ldapfilter: &String,
 ) -> Result<Vec<SearchEntry>, Box<dyn Error>> {
     // Construct LDAP args
-    let ldap_args = ldap_constructor(ldaps, ip, port, domain, ldapfqdn, username, password, kerberos)?;
+    let ldap_args = ldap_constructor(
+        ldaps, ip, port, domain, ldapfqdn, username, password, kerberos,
+    )?;
 
     // LDAP connection
     let consettings = LdapConnSettings::new().set_no_tls_verify(true);
@@ -47,30 +49,41 @@ pub async fn ldap_search(
 
     if !kerberos {
         debug!("Trying to connect with simple_bind() function (username:password)");
-        let res = ldap.simple_bind(&ldap_args.s_username, &ldap_args.s_password).await?.success();
+        let res = ldap
+            .simple_bind(&ldap_args.s_username, &ldap_args.s_password)
+            .await?
+            .success();
         match res {
             Ok(_res) => {
-                info!("Connected to {} Active Directory!", domain.to_uppercase().bold().green());
+                info!(
+                    "Connected to {} Active Directory!",
+                    domain.to_uppercase().bold().green()
+                );
                 info!("Starting data collection...");
-            },
+            }
             Err(err) => {
-                error!("Failed to authenticate to {} Active Directory. Reason: {err}\n", domain.to_uppercase().bold().red());
+                error!(
+                    "Failed to authenticate to {} Active Directory. Reason: {err}\n",
+                    domain.to_uppercase().bold().red()
+                );
                 process::exit(0x0100);
             }
         }
-    }
-    else
-    {
+    } else {
         debug!("Trying to connect with sasl_gssapi_bind() function (kerberos session)");
         if !&ldapfqdn.contains("not set") {
             #[cfg(not(feature = "nogssapi"))]
-            gssapi_connection(&mut ldap,&ldapfqdn,&domain).await?;
-            #[cfg(feature = "nogssapi")]{
+            gssapi_connection(&mut ldap, &ldapfqdn, &domain).await?;
+            #[cfg(feature = "nogssapi")]
+            {
                 error!("Kerberos auth and GSSAPI not compatible with current os!");
                 process::exit(0x0100);
             }
         } else {
-            error!("Need Domain Controller FQDN to bind GSSAPI connection. Please use '{}'\n", "-f DC01.DOMAIN.LAB".bold());
+            error!(
+                "Need Domain Controller FQDN to bind GSSAPI connection. Please use '{}'\n",
+                "-f DC01.DOMAIN.LAB".bold()
+            );
             process::exit(0x0100);
         }
     }
@@ -81,9 +94,9 @@ pub async fn ldap_search(
     // Request all namingContexts for current DC
     let res = match get_all_naming_contexts(&mut ldap).await {
         Ok(res) => {
-            trace!("naming_contexts: {:?}",&res);
+            trace!("naming_contexts: {:?}", &res);
             res
-        },
+        }
         Err(err) => {
             error!("No namingContexts found! Reason: {err}\n");
             process::exit(0x0100);
@@ -99,10 +112,10 @@ pub async fn ldap_search(
             let ctrls = RawControl {
                 ctype: String::from("1.2.840.113556.1.4.801"),
                 crit: true,
-                val: Some(vec![48,3,2,1,5]),
+                val: Some(vec![48, 3, 2, 1, 5]),
             };
             ldap.with_controls(ctrls.to_owned());
-    
+
             // Prepare filter
             // let mut _s_filter: &str = "";
             // if cn.contains("Configuration") {
@@ -114,55 +127,62 @@ pub async fn ldap_search(
             //let _s_filter = "(objectGuid=*)";
             info!("Ldap filter : {}", ldapfilter.bold().green());
             let _s_filter = ldapfilter;
-    
+
             // Every 999 max value in ldap response (err 4 ldap)
-            let adapters: Vec<Box<dyn Adapter<_,_>>> = vec![
+            let adapters: Vec<Box<dyn Adapter<_, _>>> = vec![
                 Box::new(EntriesOnly::new()),
                 Box::new(PagedResults::new(999)),
             ];
-    
+
             // Streaming search with adaptaters and filters
-            let mut search = ldap.streaming_search_with(
-                adapters, // Adapter which fetches Search results with a Paged Results control.
-                cn, 
-                Scope::Subtree,
-                _s_filter,
-                vec!["*", "nTSecurityDescriptor"], 
-                // Without the presence of this control, the server returns an SD only when the SD attribute name is explicitly mentioned in the requested attribute list.
-                // https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-adts/932a7a8d-8c93-4448-8093-c79b7d9ba499
-            ).await?;
-    
+            let mut search = ldap
+                .streaming_search_with(
+                    adapters, // Adapter which fetches Search results with a Paged Results control.
+                    cn,
+                    Scope::Subtree,
+                    _s_filter,
+                    vec!["*", "nTSecurityDescriptor"],
+                    // Without the presence of this control, the server returns an SD only when the SD attribute name is explicitly mentioned in the requested attribute list.
+                    // https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-adts/932a7a8d-8c93-4448-8093-c79b7d9ba499
+                )
+                .await?;
+
             // Wait and get next values
             let pb = ProgressBar::new(1);
-            let mut count = 0;	
+            let mut count = 0;
             while let Some(entry) = search.next().await? {
                 let entry = SearchEntry::construct(entry);
                 //trace!("{:?}", &entry);
                 // Manage progress bar
                 count += 1;
-                progress_bar(pb.to_owned(),"LDAP objects retrieved".to_string(),count,"#".to_string());	
+                progress_bar(
+                    pb.to_owned(),
+                    "LDAP objects retrieved".to_string(),
+                    count,
+                    "#".to_string(),
+                );
                 // Push all result in rs vec()
                 rs.push(entry);
             }
             pb.finish_and_clear();
-    
+
             let res = search.finish().await.success();
             match res {
-                Ok(_res) => info!("All data collected for NamingContext {}",&cn.bold()),
+                Ok(_res) => info!("All data collected for NamingContext {}", &cn.bold()),
                 Err(err) => {
-                    error!("No data collected on {}! Reason: {err}",&cn.bold().red());
+                    error!("No data collected on {}! Reason: {err}", &cn.bold().red());
                 }
             }
         }
         // If no result exit program
-        if rs.len() <= 0 {
+        if rs.is_empty() {
             process::exit(0x0100);
         }
-    
+
         // Terminate the connection to the server
         ldap.unbind().await?;
     }
-    
+
     // Return the vector with the result
     return Ok(rs);
 }
@@ -186,7 +206,7 @@ fn ldap_constructor(
     username: &String,
     password: &String,
     kerberos: bool,
-) -> Result<LdapArgs, Box<dyn Error>>  {
+) -> Result<LdapArgs, Box<dyn Error>> {
     // Prepare ldap url
     let s_url = prepare_ldap_url(ldaps, ip, port, domain);
 
@@ -194,17 +214,19 @@ fn ldap_constructor(
     let s_dc = prepare_ldap_dc(domain);
 
     // Username prompt
-    let mut s= String::new();
+    let mut s = String::new();
     let mut _s_username: String;
     if username.contains("not set") && !kerberos {
         print!("Username: ");
         io::stdout().flush()?;
-        stdin().read_line(&mut s).expect("Did not enter a correct username");
+        stdin()
+            .read_line(&mut s)
+            .expect("Did not enter a correct username");
         io::stdout().flush()?;
-        if let Some('\n')=s.chars().next_back() {
+        if let Some('\n') = s.chars().next_back() {
             s.pop();
         }
-        if let Some('\r')=s.chars().next_back() {
+        if let Some('\r') = s.chars().next_back() {
             s.pop();
         }
         _s_username = s.to_owned();
@@ -228,7 +250,8 @@ fn ldap_constructor(
     if !_s_username.contains("not set") && !kerberos {
         if password.contains("not set") {
             // Prompt for user password
-            let rpass: String = rpassword::prompt_password("Password: ").unwrap_or("not set".to_string());
+            let rpass: String =
+                rpassword::prompt_password("Password: ").unwrap_or("not set".to_string());
             _s_password = rpass;
         } else {
             _s_password = password.to_owned();
@@ -238,16 +261,22 @@ fn ldap_constructor(
     }
 
     // Print infos if verbose mod is set
-    debug!("IP: {}", match ip {
-        Some(ip) => ip.to_owned(),
-        None => "not set".to_owned()
-    });
-    debug!("PORT: {}", match port {
-        Some(p) => {
-            p.to_string()
-        },
-        None => "not set".to_owned()
-    });
+    debug!(
+        "IP: {}",
+        match ip {
+            Some(ip) => ip.to_owned(),
+            None => "not set".to_owned(),
+        }
+    );
+    debug!(
+        "PORT: {}",
+        match port {
+            Some(p) => {
+                p.to_string()
+            }
+            None => "not set".to_owned(),
+        }
+    );
     debug!("FQDN: {}", ldapfqdn);
     debug!("Url: {}", s_url);
     debug!("Domain: {}", domain);
@@ -267,7 +296,12 @@ fn ldap_constructor(
 }
 
 /// Function to prepare LDAP url.
-fn prepare_ldap_url(ldaps: bool, ip: &Option<String>, port: &Option<u16>, domain: &String) -> String {
+fn prepare_ldap_url(
+    ldaps: bool,
+    ip: &Option<String>,
+    port: &Option<u16>,
+    domain: &String,
+) -> String {
     let protocol = if ldaps || port.unwrap_or(0) == 636 {
         "ldaps"
     } else {
@@ -276,7 +310,7 @@ fn prepare_ldap_url(ldaps: bool, ip: &Option<String>, port: &Option<u16>, domain
 
     let target = match ip {
         Some(ip) => ip,
-        None => domain
+        None => domain,
     };
 
     match port {
@@ -291,7 +325,6 @@ fn prepare_ldap_url(ldaps: bool, ip: &Option<String>, port: &Option<u16>, domain
 
 /// Function to prepare LDAP DC from DOMAIN.LOCAL
 pub fn prepare_ldap_dc(domain: &String) -> Vec<String> {
-
     let mut dc: String = "".to_owned();
     let mut naming_context: Vec<String> = Vec::new();
 
@@ -300,16 +333,14 @@ pub fn prepare_ldap_dc(domain: &String) -> Vec<String> {
         dc.push_str("DC=");
         dc.push_str(&domain);
         naming_context.push(dc[..].to_string());
-    }
-    else 
-    {
+    } else {
         naming_context.push(domain_to_dc(domain));
     }
 
     // For ADCS values
-    naming_context.push(format!("{}{}","CN=Configuration,",dc[..].to_string())); 
+    naming_context.push(format!("{}{}", "CN=Configuration,", dc[..].to_string()));
 
-    return naming_context
+    return naming_context;
 }
 
 /// Function to make GSSAPI ldap connection.
@@ -322,11 +353,17 @@ async fn gssapi_connection(
     let res = ldap.sasl_gssapi_bind(ldapfqdn).await?.success();
     match res {
         Ok(_res) => {
-            info!("Connected to {} Active Directory!", domain.to_uppercase().bold().green());
+            info!(
+                "Connected to {} Active Directory!",
+                domain.to_uppercase().bold().green()
+            );
             info!("Starting data collection...");
-        },
+        }
         Err(err) => {
-            error!("Failed to authenticate to {} Active Directory. Reason: {err}\n", domain.to_uppercase().bold().red());
+            error!(
+                "Failed to authenticate to {} Active Directory. Reason: {err}\n",
+                domain.to_uppercase().bold().red()
+            );
             process::exit(0x0100);
         }
     }
@@ -335,22 +372,24 @@ async fn gssapi_connection(
 
 /// (Not needed yet) Get all namingContext for DC
 pub async fn get_all_naming_contexts(
-    ldap: &mut ldap3::Ldap
+    ldap: &mut ldap3::Ldap,
 ) -> Result<Vec<String>, Box<dyn Error>> {
     // Every 999 max value in ldap response (err 4 ldap)
-    let adapters: Vec<Box<dyn Adapter<_,_>>> = vec![
+    let adapters: Vec<Box<dyn Adapter<_, _>>> = vec![
         Box::new(EntriesOnly::new()),
         Box::new(PagedResults::new(999)),
     ];
 
     // First LDAP request to get all namingContext
-    let mut search = ldap.streaming_search_with(
-        adapters,
-        "", 
-        Scope::Base,
-        "(objectClass=*)",
-        vec!["namingContexts"],
-    ).await?;
+    let mut search = ldap
+        .streaming_search_with(
+            adapters,
+            "",
+            Scope::Base,
+            "(objectClass=*)",
+            vec!["namingContexts"],
+        )
+        .await?;
 
     // Prepare LDAP result vector
     let mut rs: Vec<SearchEntry> = Vec::new();
@@ -370,13 +409,13 @@ pub async fn get_all_naming_contexts(
 
                 for (_key, value) in &result_attrs {
                     for naming_context in value {
-                        debug!("namingContext found: {}",&naming_context.bold().green());
+                        debug!("namingContext found: {}", &naming_context.bold().green());
                         naming_contexts.push(naming_context.to_string());
                     }
                 }
             }
-            return Ok(naming_contexts)
-        },
+            return Ok(naming_contexts);
+        }
         Err(err) => {
             error!("No namingContexts found! Reason: {err}");
         }
