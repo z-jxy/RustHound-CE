@@ -1,29 +1,22 @@
-use serde_json::value::Value;
 use serde::{Deserialize, Serialize};
+use serde_json::value::Value;
 
-use crate::objects::common::{
-    LdapObject,
-    GPOChange,
-    Link,
-    AceTemplate,
-    SPNTarget,
-    Member
-};
+use crate::objects::common::{AceTemplate, GPOChange, LdapObject, Link, Member, SPNTarget};
 use crate::objects::trust::Trust;
 
 use colored::Colorize;
 use ldap3::SearchEntry;
-use log::{info, debug, trace};
+use log::{debug, info, trace};
 use regex::Regex;
 use std::collections::HashMap;
 use std::error::Error;
 
-use crate::utils::date::{span_to_string, string_to_epoch};
 use crate::enums::acl::parse_ntsecuritydescriptor;
 use crate::enums::forestlevel::get_forest_level;
 use crate::enums::gplink::parse_gplink;
 use crate::enums::secdesc::LdapSid;
 use crate::enums::sid::sid_maker;
+use crate::utils::date::{span_to_string, string_to_epoch};
 
 /// Domain structure
 #[derive(Debug, Clone, Deserialize, Serialize, Default)]
@@ -52,8 +45,10 @@ pub struct Domain {
 
 impl Domain {
     // New domain.
-    pub fn new() -> Self { 
-        Self { ..Default::default() } 
+    pub fn new() -> Self {
+        Self {
+            ..Default::default()
+        }
     }
 
     // Mutable access.
@@ -119,7 +114,7 @@ impl Domain {
                 }
                 "msDS-Behavior-Version" => {
                     let level = get_forest_level(value[0].to_string());
-                    self.properties.functionallevel  = level;
+                    self.properties.functionallevel = level;
                 }
                 "whenCreated" => {
                     let epoch = string_to_epoch(&value[0])?;
@@ -138,7 +133,10 @@ impl Domain {
                     let machine_account_quota = value[0].parse::<i32>().unwrap_or(0);
                     self.properties.machineaccountquota = machine_account_quota;
                     if machine_account_quota > 0 {
-                        info!("MachineAccountQuota: {}", machine_account_quota.to_string().yellow().bold());
+                        info!(
+                            "MachineAccountQuota: {}",
+                            machine_account_quota.to_string().yellow().bold()
+                        );
                     }
                 }
                 "IsDeleted" => {
@@ -160,13 +158,16 @@ impl Domain {
                     self.properties.lockoutthreshold = value[0].parse::<i32>().unwrap_or(0);
                 }
                 "minPwdAge" => {
-                    self.properties.minpwdage = span_to_string(value[0].parse::<i64>().unwrap_or(0));
+                    self.properties.minpwdage =
+                        span_to_string(value[0].parse::<i64>().unwrap_or(0));
                 }
                 "maxPwdAge" => {
-                    self.properties.maxpwdage = span_to_string(value[0].parse::<i64>().unwrap_or(0));
+                    self.properties.maxpwdage =
+                        span_to_string(value[0].parse::<i64>().unwrap_or(0));
                 }
                 "lockoutDuration" => {
-                    self.properties.lockoutduration = span_to_string(value[0].parse::<i64>().unwrap_or(0));
+                    self.properties.lockoutduration =
+                        span_to_string(value[0].parse::<i64>().unwrap_or(0));
                 }
                 "lockOutObservationWindow" => {
                     self.properties.lockoutobservationwindow = value[0].parse::<i64>().unwrap_or(0);
@@ -174,6 +175,9 @@ impl Domain {
                 _ => {}
             }
         }
+
+        let re = Regex::new(r"^S-[0-9]{1}-[0-9]{1}-[0-9]{1,}-[0-9]{1,}-[0-9]{1,}-[0-9]{1,}")?;
+
         // For all, bins attributes
         for (key, value) in &result_bin {
             match key.as_str() {
@@ -182,9 +186,7 @@ impl Domain {
                     sid = sid_maker(LdapSid::parse(&value[0]).unwrap().1, domain_name);
                     self.object_identifier = sid.to_owned();
 
-                    let re = Regex::new(r"^S-[0-9]{1}-[0-9]{1}-[0-9]{1,}-[0-9]{1,}-[0-9]{1,}-[0-9]{1,}")?;
-                    for domain_sid in re.captures_iter(&sid) 
-                    {
+                    for domain_sid in re.captures_iter(&sid) {
                         self.properties.domainsid = domain_sid[0].to_owned().to_string();
                         global_domain_sid = domain_sid[0].to_owned().to_string();
                     }
@@ -202,9 +204,9 @@ impl Domain {
                         entry_type,
                         &result_attrs,
                         &result_bin,
-                        &domain_name,
+                        domain_name,
                     );
-                    self.aces = relations_ace.into();
+                    self.aces = relations_ace;
                 }
                 _ => {}
             }
@@ -212,14 +214,11 @@ impl Domain {
 
         // Push DN and SID in HashMap
         dn_sid.insert(
-        self.properties.distinguishedname.to_string(),
-        self.object_identifier.to_string()
+            self.properties.distinguishedname.to_string(),
+            self.object_identifier.to_string(),
         );
         // Push DN and Type
-        sid_type.insert(
-            self.object_identifier.to_string(),
-            "Domain".to_string(),
-        );
+        sid_type.insert(self.object_identifier.to_string(), "Domain".to_string());
 
         // Trace and return Domain struct
         // trace!("JSON OUTPUT: {:?}",serde_json::to_string(&self).unwrap());
@@ -230,7 +229,7 @@ impl Domain {
 impl LdapObject for Domain {
     // To JSON
     fn to_json(&self) -> Value {
-        serde_json::to_value(&self).unwrap()
+        serde_json::to_value(self).unwrap()
     }
 
     // Get values
@@ -261,7 +260,7 @@ impl LdapObject for Domain {
     fn get_haslaps(&self) -> &bool {
         &false
     }
-    
+
     // Get mutable values
     fn get_aces_mut(&mut self) -> &mut Vec<AceTemplate> {
         &mut self.aces
@@ -272,7 +271,7 @@ impl LdapObject for Domain {
     fn get_allowed_to_delegate_mut(&mut self) -> &mut Vec<Member> {
         panic!("Not used by current object.");
     }
-    
+
     // Edit values
     fn set_is_acl_protected(&mut self, is_acl_protected: bool) {
         self.is_acl_protected = is_acl_protected;
@@ -320,21 +319,21 @@ pub struct DomainProperties {
     lockoutduration: String,
     lockoutobservationwindow: i64,
     functionallevel: String,
-    collected: bool
+    collected: bool,
 }
 
 impl DomainProperties {
     // Mutable access.
     pub fn domain_mut(&mut self) -> &mut String {
-       &mut self.domain
+        &mut self.domain
     }
     pub fn name_mut(&mut self) -> &mut String {
-       &mut self.name
+        &mut self.name
     }
     pub fn highvalue_mut(&mut self) -> &mut bool {
         &mut self.highvalue
-     }
+    }
     pub fn distinguishedname_mut(&mut self) -> &mut String {
         &mut self.distinguishedname
-     }
-} 
+    }
+}
