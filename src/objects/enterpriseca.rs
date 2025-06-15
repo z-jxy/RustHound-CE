@@ -44,9 +44,7 @@ pub struct EnterpriseCA {
 impl EnterpriseCA {
     // New EnterpriseCA
     pub fn new() -> Self {
-        Self {
-            ..Default::default()
-        }
+        Self::default()
     }
 
     // Immutable access.
@@ -73,14 +71,14 @@ impl EnterpriseCA {
         let result_bin: HashMap<String, Vec<Vec<u8>>> = result.bin_attrs;
 
         // Debug for current object
-        debug!("Parse EnterpriseCA: {}", result_dn);
+        debug!("Parse EnterpriseCA: {result_dn}");
         // Trace all result attributes
         for (key, value) in &result_attrs {
-            trace!("  {:?}:{:?}", key, value);
+            trace!("  {key:?}:{value:?}");
         }
         // Trace all bin result attributes
         for (key, value) in &result_bin {
-            trace!("  {:?}:{:?}", key, value);
+            trace!("  {key:?}:{value:?}");
         }
 
         // Change all values...
@@ -261,13 +259,13 @@ impl EnterpriseCA {
     /// Function to get HostingComputer from ACL if ACE get ManageCertificates and is not Group.
     fn get_hosting_computer(nt: &Vec<u8>, domain: &String) -> String {
         let mut hosting_computer = String::from("Not found");
-        let blacklist_sid = vec![
+        let blacklist_sid = [
             // <https://learn.microsoft.com/fr-fr/windows-server/identity/ad-ds/manage/understand-security-identifiers>
             "-544", // Administrators
             "-519", // Enterprise Administrators
             "-512", // Domain Admins
         ];
-        let secdesc: SecurityDescriptor = SecurityDescriptor::parse(&nt).unwrap().1;
+        let secdesc: SecurityDescriptor = SecurityDescriptor::parse(nt).unwrap().1;
         if secdesc.offset_dacl as usize != 0 {
             let res = Acl::parse(&nt[secdesc.offset_dacl as usize..]);
             match res {
