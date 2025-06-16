@@ -23,8 +23,8 @@ pub enum Type {
 }
 
 /// Get object type, like ("user","group","computer","ou", "container", "gpo", "domain" "trust").
-pub fn get_type(result: &mut SearchEntry) -> std::result::Result<Type, Type> {
-    let result_attrs: &mut HashMap<String, Vec<String>> = &mut result.attrs;
+pub fn get_type(result: &SearchEntry) -> std::result::Result<Type, Type> {
+    let result_attrs: &HashMap<String, Vec<String>> = &result.attrs;
 
     let contains = |values: &Vec<String>, to_find: &str| values.iter().any(|elem| elem == to_find);
 

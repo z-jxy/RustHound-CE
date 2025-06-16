@@ -55,9 +55,9 @@ pub fn parse_result_type(
 
     info!("Starting the LDAP objects parsing...");
 
-    for (i, mut entry) in result.into_iter().enumerate() {
+    for (i, entry) in result.into_iter().enumerate() {
         // Start parsing with Type matching
-        let atype = get_type(&mut entry).unwrap_or(Type::Unknown);
+        let atype = get_type(&entry).unwrap_or(Type::Unknown);
         match atype {
             Type::User => {
                 let mut user: User = User::new();
