@@ -22,7 +22,7 @@ use indicatif::ProgressBar;
 /// <https://github.com/fox-it/BloodHound.py/blob/645082e3462c93f31b571db945cde1fd7b837fb9/bloodhound/enumeration/memberships.py#L411>
 pub fn add_default_groups(
     vec_groups: &mut Vec<Group>,
-    vec_computers: &Vec<Computer>,
+    vec_computers: &[Computer],
     domain: String,
 ) -> Result<(), Box<dyn Error>> {
     let mut domain_sid = "".to_owned();
@@ -38,6 +38,8 @@ pub fn add_default_groups(
     name.push_str(&domain.to_uppercase());
 
     let mut vec_members: Vec<Member> = Vec::new();
+    let computer_re = Regex::new(r"^S-[0-9]+-[0-9]+-[0-9]+(?:-[0-9]+)+")?;
+
     for computer in vec_computers {
         if computer.is_dc() {
             // *template_member.object_identifier_mut() = computer.object_identifier().to_string();
@@ -51,8 +53,7 @@ pub fn add_default_groups(
             // domain_sid = sids[0].to_string();
             *template_member.object_identifier_mut() = computer.object_identifier().clone();
             vec_members.push(template_member.clone());
-            let re = Regex::new(r"^S-[0-9]+-[0-9]+-[0-9]+(?:-[0-9]+)+")?;
-            if let Some(capture) = re.captures(computer.object_identifier()) {
+            if let Some(capture) = computer_re.captures(computer.object_identifier()) {
                 domain_sid = capture
                     .get(0)
                     .map(|m| m.as_str().to_string())
