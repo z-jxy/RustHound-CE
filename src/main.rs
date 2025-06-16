@@ -18,7 +18,7 @@ use rusthound_ce::args::auto_args;
 use rusthound_ce::args::{extract_args, Options};
 
 use banner::{print_banner, print_end_banner};
-use json::{checker::check_all_result, maker::make_result, parser::parse_result_type};
+use json::maker::make_result;
 use ldap::ldap_search;
 use modules::run_modules;
 
@@ -69,22 +69,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     .await?;
 
     // Add all in json files
-    match make_result(
-        &common_args,
-        results.users,
-        results.groups,
-        results.computers,
-        results.ous,
-        results.domains,
-        results.gpos,
-        results.containers,
-        results.ntauthstores,
-        results.aiacas,
-        results.rootcas,
-        results.enterprisecas,
-        results.certtemplates,
-        results.issuancepolicies,
-    ) {
+    match rusthound_ce::api::export_results(&common_args, results) {
         Ok(_res) => trace!("Making json/zip files finished!"),
         Err(err) => error!("Error. Reason: {err}"),
     }

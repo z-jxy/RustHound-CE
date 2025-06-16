@@ -36,9 +36,7 @@ pub struct Group {
 impl Group {
     // New group.
     pub fn new() -> Self {
-        Self {
-            ..Default::default()
-        }
+        Self::default()
     }
 
     // Immutable access.

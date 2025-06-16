@@ -21,7 +21,7 @@ use log::info;
 /// Function to get type for object by object
 pub fn parse_result_type(
     common_args: &Options,
-    result: Vec<SearchEntry>,
+    mut result: Vec<SearchEntry>,
     vec_users: &mut Vec<User>,
     vec_groups: &mut Vec<Group>,
     vec_computers: &mut Vec<Computer>,
@@ -54,26 +54,25 @@ pub fn parse_result_type(
     let mut domain_sid: String = "DOMAIN_SID".to_owned();
 
     info!("Starting the LDAP objects parsing...");
-    for entry in result {
+
+    for (i, mut entry) in result.into_iter().enumerate() {
         // Start parsing with Type matching
-        let cloneresult = entry.clone();
-        //println!("{:?}",&entry);
-        let atype = get_type(entry).unwrap_or(Type::Unknown);
+        let atype = get_type(&mut entry).unwrap_or(Type::Unknown);
         match atype {
             Type::User => {
                 let mut user: User = User::new();
-                user.parse(cloneresult, domain, dn_sid, sid_type, &domain_sid)?;
+                user.parse(entry, domain, dn_sid, sid_type, &domain_sid)?;
                 vec_users.push(user);
             }
             Type::Group => {
                 let mut group = Group::new();
-                group.parse(cloneresult, domain, dn_sid, sid_type, &domain_sid)?;
+                group.parse(entry, domain, dn_sid, sid_type, &domain_sid)?;
                 vec_groups.push(group);
             }
             Type::Computer => {
                 let mut computer = Computer::new();
                 computer.parse(
-                    cloneresult,
+                    entry,
                     domain,
                     dn_sid,
                     sid_type,
@@ -85,81 +84,81 @@ pub fn parse_result_type(
             }
             Type::Ou => {
                 let mut ou = Ou::new();
-                ou.parse(cloneresult, domain, dn_sid, sid_type, &domain_sid)?;
+                ou.parse(entry, domain, dn_sid, sid_type, &domain_sid)?;
                 vec_ous.push(ou);
             }
             Type::Domain => {
                 let mut domain_object = Domain::new();
                 let domain_sid_from_domain =
-                    domain_object.parse(cloneresult, domain, dn_sid, sid_type)?;
+                    domain_object.parse(entry, domain, dn_sid, sid_type)?;
                 domain_sid = domain_sid_from_domain;
                 vec_domains.push(domain_object);
             }
             Type::Gpo => {
                 let mut gpo = Gpo::new();
-                gpo.parse(cloneresult, domain, dn_sid, sid_type, &domain_sid)?;
+                gpo.parse(entry, domain, dn_sid, sid_type, &domain_sid)?;
                 vec_gpos.push(gpo);
             }
             Type::ForeignSecurityPrincipal => {
                 let mut security_principal = Fsp::new();
-                security_principal.parse(cloneresult, domain, dn_sid, sid_type)?;
+                security_principal.parse(entry, domain, dn_sid, sid_type)?;
                 vec_fsps.push(security_principal);
             }
             Type::Container => {
                 let re = Regex::new(
                     r"[0-9a-z-A-Z]{1,}-[0-9a-z-A-Z]{1,}-[0-9a-z-A-Z]{1,}-[0-9a-z-A-Z]{1,}",
                 )?;
-                if re.is_match(&cloneresult.dn.to_uppercase()) {
-                    //trace!("Container not to add: {}",&cloneresult.dn.to_uppercase());
+                if re.is_match(&entry.dn.to_uppercase()) {
+                    //trace!("Container not to add: {}",&entry.dn.to_uppercase());
                     continue;
                 }
                 let re = Regex::new(r"CN=DOMAINUPDATES,CN=SYSTEM,")?;
-                if re.is_match(&cloneresult.dn.to_uppercase()) {
-                    //trace!("Container not to add: {}",&cloneresult.dn.to_uppercase());
+                if re.is_match(&entry.dn.to_uppercase()) {
+                    //trace!("Container not to add: {}",&entry.dn.to_uppercase());
                     continue;
                 }
-                //trace!("Container: {}",&cloneresult.dn.to_uppercase());
+                //trace!("Container: {}",&entry.dn.to_uppercase());
                 let mut container = Container::new();
-                container.parse(cloneresult, domain, dn_sid, sid_type, &domain_sid)?;
+                container.parse(entry, domain, dn_sid, sid_type, &domain_sid)?;
                 vec_containers.push(container);
             }
             Type::Trust => {
                 let mut trust = Trust::new();
-                trust.parse(cloneresult, domain)?;
+                trust.parse(entry, domain)?;
                 vec_trusts.push(trust);
             }
             Type::NtAutStore => {
                 let mut nt_auth_store = NtAuthStore::new();
-                nt_auth_store.parse(cloneresult, domain, dn_sid, sid_type, &domain_sid)?;
+                nt_auth_store.parse(entry, domain, dn_sid, sid_type, &domain_sid)?;
                 vec_ntauthstore.push(nt_auth_store);
             }
             Type::AIACA => {
                 let mut aiaca = AIACA::new();
-                aiaca.parse(cloneresult, domain, dn_sid, sid_type, &domain_sid)?;
+                aiaca.parse(entry, domain, dn_sid, sid_type, &domain_sid)?;
                 vec_aiacas.push(aiaca);
             }
             Type::RootCA => {
                 let mut root_ca = RootCA::new();
-                root_ca.parse(cloneresult, domain, dn_sid, sid_type, &domain_sid)?;
+                root_ca.parse(entry, domain, dn_sid, sid_type, &domain_sid)?;
                 vec_rootcas.push(root_ca);
             }
             Type::EnterpriseCA => {
                 let mut enterprise_ca = EnterpriseCA::new();
-                enterprise_ca.parse(cloneresult, domain, dn_sid, sid_type, &domain_sid)?;
+                enterprise_ca.parse(entry, domain, dn_sid, sid_type, &domain_sid)?;
                 vec_enterprisecas.push(enterprise_ca);
             }
             Type::CertTemplate => {
                 let mut cert_template = CertTemplate::new();
-                cert_template.parse(cloneresult, domain, dn_sid, sid_type, &domain_sid)?;
+                cert_template.parse(entry, domain, dn_sid, sid_type, &domain_sid)?;
                 vec_certtemplates.push(cert_template);
             }
             Type::IssuancePolicie => {
                 let mut issuance_policie = IssuancePolicie::new();
-                issuance_policie.parse(cloneresult, domain, dn_sid, sid_type, &domain_sid)?;
+                issuance_policie.parse(entry, domain, dn_sid, sid_type, &domain_sid)?;
                 vec_issuancepolicies.push(issuance_policie);
             }
             Type::Unknown => {
-                let _unknown = parse_unknown(cloneresult, domain);
+                let _unknown = parse_unknown(entry, domain);
             }
         }
         // Manage progress bar

@@ -99,3 +99,25 @@ pub async fn prepare_results(
 
     Ok(results)
 }
+
+pub fn export_results(
+    common_args: &Options,
+    results: Results,
+) -> Result<(), Box<dyn std::error::Error>> {
+    crate::json::maker::make_result(
+        common_args,
+        results.users,
+        results.groups,
+        results.computers,
+        results.ous,
+        results.domains,
+        results.gpos,
+        results.containers,
+        results.ntauthstores,
+        results.aiacas,
+        results.rootcas,
+        results.enterprisecas,
+        results.certtemplates,
+        results.issuancepolicies,
+    )
+}
