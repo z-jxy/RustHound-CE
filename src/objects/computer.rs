@@ -1,30 +1,23 @@
-use serde_json::value::Value;
 use serde::{Deserialize, Serialize};
+use serde_json::value::Value;
 
 use crate::objects::common::{
-    LdapObject,
-    Session,
-    AceTemplate,
-    Member,
-    SPNTarget,
-    LocalGroup,
-    Link,
-    DCRegistryData
+    AceTemplate, DCRegistryData, LdapObject, Link, LocalGroup, Member, SPNTarget, Session,
 };
 
 use colored::Colorize;
 use ldap3::SearchEntry;
-use log::{info, debug, trace};
+use log::{debug, info, trace};
 use regex::Regex;
 use std::collections::HashMap;
 use std::error::Error;
 
-use crate::utils::date::{convert_timestamp,string_to_epoch};
-use crate::utils::crypto::convert_encryption_types;
 use crate::enums::acl::parse_ntsecuritydescriptor;
 use crate::enums::secdesc::LdapSid;
 use crate::enums::sid::sid_maker;
 use crate::enums::uacflags::get_flag;
+use crate::utils::crypto::convert_encryption_types;
+use crate::utils::date::{convert_timestamp, string_to_epoch};
 
 use super::common::UserRight;
 
@@ -54,7 +47,7 @@ pub struct Computer {
     has_sid_history: Vec<String>,
     #[serde(rename = "DumpSMSAPassword")]
     dump_smsa_password: Vec<Member>,
-    
+
     #[serde(rename = "Sessions")]
     sessions: Session,
     #[serde(rename = "PrivilegedSessions")]
@@ -81,8 +74,10 @@ pub struct Computer {
 
 impl Computer {
     // New computer.
-    pub fn new() -> Self { 
-        Self { ..Default::default() } 
+    pub fn new() -> Self {
+        Self {
+            ..Default::default()
+        }
     }
 
     // Immutable access.
@@ -101,6 +96,11 @@ impl Computer {
         &mut self.allowed_to_act
     }
 
+    #[inline]
+    pub fn is_dc(&self) -> bool {
+        self.is_dc
+    }
+
     /// Function to parse and replace value for computer object.
     /// <https://bloodhound.readthedocs.io/en/latest/further-reading/json.html#computers>
     pub fn parse(
@@ -111,7 +111,7 @@ impl Computer {
         sid_type: &mut HashMap<String, String>,
         fqdn_sid: &mut HashMap<String, String>,
         fqdn_ip: &mut HashMap<String, String>,
-        domain_sid: &String
+        domain_sid: &String,
     ) -> Result<(), Box<dyn Error>> {
         let result_dn: String = result.dn.to_uppercase();
         let result_attrs: HashMap<String, Vec<String>> = result.attrs;
@@ -143,7 +143,7 @@ impl Computer {
             match key.as_str() {
                 "name" => {
                     let name = &value[0];
-                    let email = format!("{}.{}",name.to_owned(),domain);
+                    let email = format!("{}.{}", name.to_owned(), domain);
                     self.properties.name = email.to_uppercase();
                 }
                 "sAMAccountName" => {
@@ -231,16 +231,16 @@ impl Computer {
                         if flag.contains("PasswordNotRequired") {
                             self.properties.passwordnotreqd = true;
                         };
-                         if flag.contains("DontExpirePassword") {
+                        if flag.contains("DontExpirePassword") {
                             self.properties.pwdneverexpires = true;
                         };
                         if flag.contains("ServerTrustAccount") {
-                            self.properties.is_dc = true;
+                            // self.properties.is_dc = true;
                             self.is_dc = true;
                         }
                     }
                 }
-                "msDS-AllowedToDelegateTo"  => {
+                "msDS-AllowedToDelegateTo" => {
                     // KCD (Kerberos Constrained Delegation)
                     //trace!(" AllowToDelegateTo: {:?}",&value);
                     // AllowedToDelegate
@@ -251,14 +251,18 @@ impl Computer {
                         let fqdn = split.collect::<Vec<&str>>()[1];
                         let mut checker = false;
                         for member in &vec_members2 {
-                            if member.object_identifier().contains(fqdn.to_uppercase().as_str()) {
+                            if member
+                                .object_identifier()
+                                .contains(fqdn.to_uppercase().as_str())
+                            {
                                 checker = true;
                             }
                         }
                         if !checker {
-                            *member_allowed_to_delegate.object_identifier_mut() = fqdn.to_uppercase().to_owned().to_uppercase();
+                            *member_allowed_to_delegate.object_identifier_mut() =
+                                fqdn.to_uppercase().to_owned().to_uppercase();
                             *member_allowed_to_delegate.object_type_mut() = "Computer".to_owned();
-                            vec_members2.push(member_allowed_to_delegate.to_owned()); 
+                            vec_members2.push(member_allowed_to_delegate.to_owned());
                         }
                     }
                     // *properties.allowedtodelegate = vec_members2.to_owned();
@@ -306,8 +310,9 @@ impl Computer {
                     self.is_deleted = true;
                 }
                 "msDS-SupportedEncryptionTypes" => {
-                    self.properties.supportedencryptiontypes = convert_encryption_types(value[0].parse::<i32>().unwrap_or(0));
-                 }                
+                    self.properties.supportedencryptiontypes =
+                        convert_encryption_types(value[0].parse::<i32>().unwrap_or(0));
+                }
                 _ => {}
             }
         }
@@ -319,12 +324,12 @@ impl Computer {
                     sid = sid_maker(LdapSid::parse(&value[0]).unwrap().1, domain);
                     self.object_identifier = sid.to_owned();
 
-                    let re = Regex::new(r"^S-[0-9]{1}-[0-9]{1}-[0-9]{1,}-[0-9]{1,}-[0-9]{1,}-[0-9]{1,}").unwrap();
-                    for domain_sid in re.captures_iter(&sid) 
-                    {
+                    let re =
+                        Regex::new(r"^S-[0-9]{1}-[0-9]{1}-[0-9]{1,}-[0-9]{1,}-[0-9]{1,}-[0-9]{1,}")
+                            .unwrap();
+                    for domain_sid in re.captures_iter(&sid) {
                         self.properties.domainsid = domain_sid[0].to_owned().to_string();
                     }
-                    
                 }
                 "nTSecurityDescriptor" => {
                     // Needed with acl
@@ -359,9 +364,10 @@ impl Computer {
                         //trace!("msDS-AllowedToActOnBehalfOfOtherIdentity => ACE: {:?}",delegated);
                         // delegated["RightName"] == "Owner" => continue
                         if *delegated.right_name() == "GenericAll" {
-                            *allowed_to_act.object_identifier_mut() = delegated.principal_sid().to_string();
-                            vec_members_allowtoact.push(allowed_to_act.to_owned()); 
-                            continue
+                            *allowed_to_act.object_identifier_mut() =
+                                delegated.principal_sid().to_string();
+                            vec_members_allowtoact.push(allowed_to_act.to_owned());
+                            continue;
                         }
                     }
                     self.allowed_to_act = vec_members_allowtoact;
@@ -385,24 +391,17 @@ impl Computer {
         dn_sid.insert(
             self.properties.distinguishedname.to_string(),
             self.object_identifier.to_string(),
-
         );
         // Push DN and Type
-        sid_type.insert(
-            self.object_identifier.to_string(),
-            "Computer".to_string(),
-        );
+        sid_type.insert(self.object_identifier.to_string(), "Computer".to_string());
 
         fqdn_sid.insert(
             self.properties.name.to_string(),
             self.object_identifier.to_string(),
         );
 
-        fqdn_ip.insert(
-            self.properties.name.to_string(),
-            String::from(""),
-        );
-        
+        fqdn_ip.insert(self.properties.name.to_string(), String::from(""));
+
         // Trace and return Computer struct
         // trace!("JSON OUTPUT: {:?}",serde_json::to_string(&self).unwrap());
         Ok(())
@@ -443,7 +442,7 @@ impl LdapObject for Computer {
     fn get_haslaps(&self) -> &bool {
         &self.properties.haslaps
     }
-    
+
     // Get mutable values
     fn get_aces_mut(&mut self) -> &mut Vec<AceTemplate> {
         &mut self.aces
@@ -454,7 +453,7 @@ impl LdapObject for Computer {
     fn get_allowed_to_delegate_mut(&mut self) -> &mut Vec<Member> {
         &mut self.allowed_to_delegate
     }
-  
+
     // Edit values
     fn set_is_acl_protected(&mut self, is_acl_protected: bool) {
         self.is_acl_protected = is_acl_protected;
@@ -495,7 +494,7 @@ pub struct ComputerProperties {
     whencreated: i64,
     enabled: bool,
     unconstraineddelegation: bool,
-    trustedtoauth: bool,  
+    trustedtoauth: bool,
     lastlogon: i64,
     lastlogontimestamp: i64,
     pwdlastset: i64,
@@ -505,11 +504,9 @@ pub struct ComputerProperties {
     operatingsystem: String,
     sidhistory: Vec<String>,
     supportedencryptiontypes: Vec<String>,
-    #[serde(skip_serializing)]
-    is_dc: bool
 }
 
-impl ComputerProperties {  
+impl ComputerProperties {
     // Immutable access.
     pub fn name(&self) -> &String {
         &self.name
@@ -519,8 +516,5 @@ impl ComputerProperties {
     }
     pub fn enabled(&self) -> &bool {
         &self.enabled
-    }
-    pub fn get_is_dc(&self) -> &bool {
-        &self.is_dc
     }
 }

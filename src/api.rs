@@ -4,6 +4,7 @@ use ldap3::SearchEntry;
 
 use crate::{
     args::Options,
+    io::jsonl_load,
     json::{checker::check_all_result, parser::parse_result_type},
     objects::{
         aiaca::AIACA, certtemplate::CertTemplate, computer::Computer, container::Container,
@@ -52,14 +53,14 @@ pub async fn prepare_results(
     parse_result_type(
         options,
         result,
-        &mut results.users,
-        &mut results.groups,
-        &mut results.computers,
-        &mut results.ous,
+        // &mut results.users,
+        // &mut results.groups,
+        // &mut results.computers,
+        // &mut results.ous,
         &mut results.domains,
-        &mut results.gpos,
+        // &mut results.gpos,
         &mut results.fsps,
-        &mut results.containers,
+        // &mut results.containers,
         &mut results.trusts,
         &mut results.ntauthstores,
         &mut results.aiacas,
@@ -72,6 +73,19 @@ pub async fn prepare_results(
         &mut results.fqdn_sid,
         &mut results.fqdn_ip,
     )?;
+
+    results.users = jsonl_load(format!(".rusthound-cache/{}/users.jsonl", options.domain))?;
+    results.groups = jsonl_load(format!(".rusthound-cache/{}/groups.jsonl", options.domain))?;
+    results.computers = jsonl_load(format!(
+        ".rusthound-cache/{}/computers.jsonl",
+        options.domain
+    ))?;
+    results.ous = jsonl_load(format!(".rusthound-cache/{}/ous.jsonl", options.domain))?;
+    results.gpos = jsonl_load(format!(".rusthound-cache/{}/gpos.jsonl", options.domain))?;
+    results.containers = jsonl_load(format!(
+        ".rusthound-cache/{}/containers.jsonl",
+        options.domain
+    ))?;
 
     // Functions to replace and add missing values
     check_all_result(

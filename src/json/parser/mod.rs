@@ -1,3 +1,4 @@
+use crate::io::ObjectBuffer;
 use crate::objects::common::parse_unknown;
 use crate::objects::{
     aiaca::AIACA, certtemplate::CertTemplate, computer::Computer, container::Container,
@@ -22,14 +23,14 @@ use log::info;
 pub fn parse_result_type(
     common_args: &Options,
     mut result: Vec<SearchEntry>,
-    vec_users: &mut Vec<User>,
-    vec_groups: &mut Vec<Group>,
-    vec_computers: &mut Vec<Computer>,
-    vec_ous: &mut Vec<Ou>,
+    // vec_users: &mut Vec<User>,
+    // vec_groups: &mut Vec<Group>,
+    // vec_computers: &mut Vec<Computer>,
+    // vec_ous: &mut Vec<Ou>,
     vec_domains: &mut Vec<Domain>,
-    vec_gpos: &mut Vec<Gpo>,
+    // vec_gpos: &mut Vec<Gpo>,
     vec_fsps: &mut Vec<Fsp>,
-    vec_containers: &mut Vec<Container>,
+    // vec_containers: &mut Vec<Container>,
     vec_trusts: &mut Vec<Trust>,
     vec_ntauthstore: &mut Vec<NtAuthStore>,
     vec_aiacas: &mut Vec<AIACA>,
@@ -55,6 +56,18 @@ pub fn parse_result_type(
 
     info!("Starting the LDAP objects parsing...");
 
+    let output_dir = format!(".rusthound-cache/{domain}");
+    std::fs::create_dir_all(&output_dir)?;
+
+    let mut user_buffer = ObjectBuffer::<User>::new(&format!("{output_dir}/users.jsonl"))?;
+    let mut group_buffer = ObjectBuffer::<Group>::new(&format!("{output_dir}/groups.jsonl"))?;
+    let mut computer_buffer =
+        ObjectBuffer::<Computer>::new(&format!("{output_dir}/computers.jsonl"))?;
+    let mut ou_buffer = ObjectBuffer::<Ou>::new(&format!("{output_dir}/ous.jsonl"))?;
+    let mut gpo_buffer = ObjectBuffer::<Gpo>::new(&format!("{output_dir}/gpos.jsonl"))?;
+    let mut container_buffer =
+        ObjectBuffer::<Container>::new(&format!("{output_dir}/containers.jsonl"))?;
+
     for (i, entry) in result.into_iter().enumerate() {
         // Start parsing with Type matching
         let atype = get_type(&entry).unwrap_or(Type::Unknown);
@@ -62,12 +75,14 @@ pub fn parse_result_type(
             Type::User => {
                 let mut user: User = User::new();
                 user.parse(entry, domain, dn_sid, sid_type, &domain_sid)?;
-                vec_users.push(user);
+                // vec_users.push(user);
+                user_buffer.add(user)?;
             }
             Type::Group => {
                 let mut group = Group::new();
                 group.parse(entry, domain, dn_sid, sid_type, &domain_sid)?;
-                vec_groups.push(group);
+                // vec_groups.push(group);
+                group_buffer.add(group)?;
             }
             Type::Computer => {
                 let mut computer = Computer::new();
@@ -80,12 +95,14 @@ pub fn parse_result_type(
                     fqdn_ip,
                     &domain_sid,
                 )?;
-                vec_computers.push(computer);
+                // vec_computers.push(computer);
+                computer_buffer.add(computer)?;
             }
             Type::Ou => {
                 let mut ou = Ou::new();
                 ou.parse(entry, domain, dn_sid, sid_type, &domain_sid)?;
-                vec_ous.push(ou);
+                // vec_ous.push(ou);
+                ou_buffer.add(ou)?;
             }
             Type::Domain => {
                 let mut domain_object = Domain::new();
@@ -97,7 +114,8 @@ pub fn parse_result_type(
             Type::Gpo => {
                 let mut gpo = Gpo::new();
                 gpo.parse(entry, domain, dn_sid, sid_type, &domain_sid)?;
-                vec_gpos.push(gpo);
+                // vec_gpos.push(gpo);
+                gpo_buffer.add(gpo)?;
             }
             Type::ForeignSecurityPrincipal => {
                 let mut security_principal = Fsp::new();
@@ -120,7 +138,8 @@ pub fn parse_result_type(
                 //trace!("Container: {}",&entry.dn.to_uppercase());
                 let mut container = Container::new();
                 container.parse(entry, domain, dn_sid, sid_type, &domain_sid)?;
-                vec_containers.push(container);
+                // vec_containers.push(container);
+                container_buffer.add(container)?;
             }
             Type::Trust => {
                 let mut trust = Trust::new();
@@ -172,6 +191,14 @@ pub fn parse_result_type(
             "%".to_string(),
         );
     }
+
+    user_buffer.finish()?;
+    group_buffer.finish()?;
+    computer_buffer.finish()?;
+    ou_buffer.finish()?;
+    gpo_buffer.finish()?;
+    container_buffer.finish()?;
+
     pb.finish_and_clear();
     info!("Parsing LDAP objects finished!");
     Ok(())

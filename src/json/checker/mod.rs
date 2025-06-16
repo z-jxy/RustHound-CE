@@ -1,50 +1,39 @@
 use std::collections::HashMap;
 use std::error::Error;
 
-use log::{info,debug};
 use crate::args::Options;
 use crate::enums::{ldaptype::*, templates_enabled_change_displayname_to_sid};
 use crate::objects::{
-    user::User,
-    computer::Computer,
-    group::Group,
-    ou::Ou,
-    container::Container,
-    gpo::Gpo,
-    domain::Domain,
-    fsp::Fsp,
-    trust::Trust,
-    ntauthstore::NtAuthStore,
-    aiaca::AIACA,
-    rootca::RootCA,
-    enterpriseca::EnterpriseCA,
-    certtemplate::CertTemplate,
-    inssuancepolicie::IssuancePolicie,
+    aiaca::AIACA, certtemplate::CertTemplate, computer::Computer, container::Container,
+    domain::Domain, enterpriseca::EnterpriseCA, fsp::Fsp, gpo::Gpo, group::Group,
+    inssuancepolicie::IssuancePolicie, ntauthstore::NtAuthStore, ou::Ou, rootca::RootCA,
+    trust::Trust, user::User,
 };
+use log::{debug, info};
 pub mod common;
 
 /// Functions to replace and add missing values
 pub fn check_all_result(
-    common_args:             &Options,
-    vec_users:               &mut Vec<User>,
-    vec_groups:              &mut Vec<Group>,
-    vec_computers:           &mut Vec<Computer>,
-    vec_ous:                 &mut Vec<Ou>,
-    vec_domains:             &mut Vec<Domain>,
-    vec_gpos:                &mut Vec<Gpo>,
-    _vec_fsps:               &mut Vec<Fsp>,
-    vec_containers:          &mut Vec<Container>,
-    vec_trusts:              &mut Vec<Trust>,
-    vec_ntauthstores:        &mut Vec<NtAuthStore>,
-    vec_aiacas:              &mut Vec<AIACA>,
-    vec_rootcas:             &mut Vec<RootCA>,
-    vec_enterprisecas:       &mut Vec<EnterpriseCA>,
-    vec_certtemplates:       &mut Vec<CertTemplate>,
-    vec_issuancepolicies:    &mut Vec<IssuancePolicie>,
-    dn_sid:                  &mut HashMap<String, String>,
-    sid_type:                &mut HashMap<String, String>,
-    fqdn_sid:                &mut HashMap<String, String>,
-    _fqdn_ip:                &mut HashMap<String, String>,
+    common_args: &Options,
+    vec_users: &mut Vec<User>,
+    vec_groups: &mut Vec<Group>,
+    vec_computers: &mut Vec<Computer>,
+    vec_ous: &mut Vec<Ou>,
+    vec_domains: &mut Vec<Domain>,
+    vec_gpos: &mut Vec<Gpo>,
+    _vec_fsps: &mut Vec<Fsp>,
+    vec_containers: &mut Vec<Container>,
+    vec_trusts: &mut Vec<Trust>,
+    vec_ntauthstores: &mut Vec<NtAuthStore>,
+    vec_aiacas: &mut Vec<AIACA>,
+    vec_rootcas: &mut Vec<RootCA>,
+    vec_enterprisecas: &mut Vec<EnterpriseCA>,
+    vec_certtemplates: &mut Vec<CertTemplate>,
+    vec_issuancepolicies: &mut Vec<IssuancePolicie>,
+    dn_sid: &mut HashMap<String, String>,
+    sid_type: &mut HashMap<String, String>,
+    fqdn_sid: &mut HashMap<String, String>,
+    _fqdn_ip: &mut HashMap<String, String>,
 ) -> Result<(), Box<dyn Error>> {
     let domain = &common_args.domain;
     info!("Starting checker to replace some values...");
@@ -86,6 +75,7 @@ pub fn check_all_result(
 
     debug!("Adding ContainedBy value started");
     common::add_contained_by_for(vec_users, dn_sid, sid_type)?;
+
     common::add_contained_by_for(vec_groups, dn_sid, sid_type)?;
     common::add_contained_by_for(vec_computers, dn_sid, sid_type)?;
     common::add_contained_by_for(vec_gpos, dn_sid, sid_type)?;

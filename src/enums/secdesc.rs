@@ -174,6 +174,7 @@ impl AceFormat {
             let data = AceFormat::AceAllowed(AccessAllowedAce::parse(i)?.1);
             Ok((i, data))
         }
+        // identical block?
         else if ace_type == ACCESS_DENIED_ACE_TYPE { 
             let data = AceFormat::AceAllowed(AccessAllowedAce::parse(i)?.1);
             Ok((i, data))

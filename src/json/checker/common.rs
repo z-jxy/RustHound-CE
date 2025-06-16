@@ -1,18 +1,18 @@
 use std::collections::HashMap;
 use std::error::Error;
 
-use regex::Regex;
 use crate::enums::ldaptype::*;
 use crate::objects::common::Link;
 use crate::objects::{
-    user::User,
+    common::{GPOChange, LdapObject, Member},
     computer::Computer,
+    domain::Domain,
     group::Group,
     ou::Ou,
-    domain::Domain,
     trust::Trust,
-    common::{Member,GPOChange,LdapObject}
+    user::User,
 };
+use regex::Regex;
 //use log::{info,debug,trace};
 use crate::ldap::prepare_ldap_dc;
 use crate::utils::format::domain_to_dc;
@@ -23,7 +23,7 @@ use indicatif::ProgressBar;
 pub fn add_default_groups(
     vec_groups: &mut Vec<Group>,
     vec_computers: &Vec<Computer>,
-    domain: String
+    domain: String,
 ) -> Result<(), Box<dyn Error>> {
     let mut domain_sid = "".to_owned();
     let mut template_member = Member::new();
@@ -39,8 +39,7 @@ pub fn add_default_groups(
 
     let mut vec_members: Vec<Member> = Vec::new();
     for computer in vec_computers {
-        if computer.properties().get_is_dc().to_owned()
-        {
+        if computer.is_dc() {
             // *template_member.object_identifier_mut() = computer.object_identifier().to_string();
             // vec_members.push(template_member.to_owned());
             // let re = Regex::new(r"^S-[0-9]{1}-[0-9]{1}-[0-9]{1,}-[0-9]{1,}-[0-9]{1,}-[0-9]{1,}")?;
@@ -54,7 +53,10 @@ pub fn add_default_groups(
             vec_members.push(template_member.clone());
             let re = Regex::new(r"^S-[0-9]+-[0-9]+-[0-9]+(?:-[0-9]+)+")?;
             if let Some(capture) = re.captures(computer.object_identifier()) {
-                domain_sid = capture.get(0).map(|m| m.as_str().to_string()).unwrap_or_default();
+                domain_sid = capture
+                    .get(0)
+                    .map(|m| m.as_str().to_string())
+                    .unwrap_or_default();
             }
         }
     }
@@ -70,7 +72,7 @@ pub fn add_default_groups(
     sid.push_str("-S-1-5-32-548");
     let mut name = "ACCOUNT OPERATORS@".to_owned();
     name.push_str(&domain.to_uppercase());
-    
+
     *account_operators_group.object_identifier_mut() = sid;
     *account_operators_group.properties_mut().name_mut() = name;
     *account_operators_group.properties_mut().highvalue_mut() = true;
@@ -154,10 +156,10 @@ pub fn add_default_groups(
     sid.push_str("-S-1-5-32-554");
     let mut name = "PRE-WINDOWS 2000 COMPATIBLE ACCESS@".to_owned();
     name.push_str(&domain.to_uppercase());
-            
+
     *pw2000ca_group.object_identifier_mut() = sid;
     *pw2000ca_group.properties_mut().name_mut() = name;
-    vec_groups.push(pw2000ca_group);    
+    vec_groups.push(pw2000ca_group);
 
     // INTERACTIVE
     let mut interactive_group = Group::new();
@@ -176,11 +178,11 @@ pub fn add_default_groups(
     sid.push_str("-S-1-5-32-550");
     let mut name = "PRINT OPERATORS@".to_owned();
     name.push_str(&domain.to_uppercase());
-            
+
     *print_operators_group.object_identifier_mut() = sid;
     *print_operators_group.properties_mut().name_mut() = name;
     *print_operators_group.properties_mut().highvalue_mut() = true;
-    vec_groups.push(print_operators_group); 
+    vec_groups.push(print_operators_group);
 
     // TERMINAL SERVER LICENSE SERVERS
     let mut tsls_group = Group::new();
@@ -188,10 +190,10 @@ pub fn add_default_groups(
     sid.push_str("-S-1-5-32-561");
     let mut name = "TERMINAL SERVER LICENSE SERVERS@".to_owned();
     name.push_str(&domain.to_uppercase());
-            
+
     *tsls_group.object_identifier_mut() = sid;
     *tsls_group.properties_mut().name_mut() = name;
-    vec_groups.push(tsls_group); 
+    vec_groups.push(tsls_group);
 
     // INCOMING FOREST TRUST BUILDERS
     let mut iftb_group = Group::new();
@@ -199,18 +201,18 @@ pub fn add_default_groups(
     sid.push_str("-S-1-5-32-557");
     let mut name = "INCOMING FOREST TRUST BUILDERS@".to_owned();
     name.push_str(&domain.to_uppercase());
-            
+
     *iftb_group.object_identifier_mut() = sid;
     *iftb_group.properties_mut().name_mut() = name;
-    vec_groups.push(iftb_group); 
- 
-    // THIS ORGANIZATION 
+    vec_groups.push(iftb_group);
+
+    // THIS ORGANIZATION
     let mut this_organization_group = Group::new();
     sid = domain.to_uppercase();
     sid.push_str("-S-1-5-15");
     let mut name = "THIS ORGANIZATION@".to_owned();
     name.push_str(&domain.to_uppercase());
-            
+
     *this_organization_group.object_identifier_mut() = sid;
     *this_organization_group.properties_mut().name_mut() = name;
     vec_groups.push(this_organization_group);
@@ -219,10 +221,7 @@ pub fn add_default_groups(
 
 /// Function to add default user
 /// <https://github.com/fox-it/BloodHound.py/blob/645082e3462c93f31b571db945cde1fd7b837fb9/bloodhound/enumeration/memberships.py#L411>
-pub fn add_default_users(
-    vec_users: &mut Vec<User>,
-    domain: String
-) -> Result<(), Box<dyn Error>> {
+pub fn add_default_users(vec_users: &mut Vec<User>, domain: String) -> Result<(), Box<dyn Error>> {
     // NT AUTHORITY
     let mut ntauthority_user = User::new();
     let mut sid = domain.to_uppercase();
@@ -231,7 +230,8 @@ pub fn add_default_users(
     name.push_str(&domain.to_uppercase());
     *ntauthority_user.properties_mut().name_mut() = name;
     *ntauthority_user.object_identifier_mut() = sid;
-    *ntauthority_user.properties_mut().domainsid_mut() = vec_users[0].properties().domainsid().to_string();
+    *ntauthority_user.properties_mut().domainsid_mut() =
+        vec_users[0].properties().domainsid().to_string();
     vec_users.push(ntauthority_user);
     Ok(())
 }
@@ -275,14 +275,16 @@ pub fn add_childobjects_members<T: LdapObject>(
                 // Check if dn_object is related to the current object's DN
                 if dn_object_upper.contains(dn)
                     && &dn_object_upper != dn
-                    && dn_object_upper.split(',')
+                    && dn_object_upper
+                        .split(',')
                         .nth(1)
                         .and_then(|s| s.split('=').nth(1))
                         == Some(&name)
                 {
                     let mut member = Member::new();
                     *member.object_identifier_mut() = value_sid.clone();
-                    *member.object_type_mut() = sid_type.get(value_sid).unwrap_or(&null).to_string();
+                    *member.object_type_mut() =
+                        sid_type.get(value_sid).unwrap_or(&null).to_string();
                     if !member.object_identifier().is_empty() {
                         return Some(member);
                     }
@@ -309,7 +311,7 @@ pub fn add_childobjects_members<T: LdapObject>(
 //     let pb = ProgressBar::new(1);
 //     let mut count = 0;
 //     let total = vec_replaced.len();
-        
+
 //     //trace!("add_childobjects_members");
 
 //     for object in vec_replaced
@@ -327,7 +329,7 @@ pub fn add_childobjects_members<T: LdapObject>(
 //         let _otype = sid_type.get(&sid).unwrap();
 //         //trace!("SID OBJECT: {:?} : {:?} : {:?}",&dn,&sid,&otype);
 
-//         for value in dn_sid 
+//         for value in dn_sid
 //         {
 //             let dn_object = value.0.to_string().to_uppercase();
 //             //trace!("{:?}", &dn_object);
@@ -358,7 +360,6 @@ pub fn add_childobjects_members<T: LdapObject>(
 //                     }
 //                 }
 //             }
-
 
 //         }
 //         //trace!("direct_members for Object '{}': {:?}",name,direct_members);
@@ -434,7 +435,8 @@ pub fn add_childobjects_members_for_ou(
                     if first.contains(cn) {
                         let mut member = Member::new();
                         *member.object_identifier_mut() = value_sid.clone();
-                        *member.object_type_mut() = sid_type.get(value_sid).unwrap_or(&null).to_string();
+                        *member.object_type_mut() =
+                            sid_type.get(value_sid).unwrap_or(&null).to_string();
                         direct_members.push(member);
                     }
                 }
@@ -457,14 +459,14 @@ pub fn add_childobjects_members_for_ou(
 // /// This function is to push user SID in ChildObjects for Ou
 // pub fn add_childobjects_members_for_ou(
 //     vec_replaced: &mut Vec<Ou>,
-//     dn_sid: &HashMap<String, String>, 
+//     dn_sid: &HashMap<String, String>,
 //     sid_type: &HashMap<String, String>
 // ) {
 //     // Needed for progress bar stats
 //     let pb = ProgressBar::new(1);
 //     let mut count = 0;
 //     let total = vec_replaced.len();
-        
+
 //     //trace!("add_childobjects_members_for_ous");
 
 //     for object in vec_replaced
@@ -491,7 +493,7 @@ pub fn add_childobjects_members_for_ou(
 //             name = vec[0].to_string();
 //         }
 
-//         for value in dn_sid 
+//         for value in dn_sid
 //         {
 //             let dn_object = value.0.to_string().to_uppercase();
 //             //trace!("{:?}", &dn_object);
@@ -520,8 +522,8 @@ pub fn add_childobjects_members_for_ou(
 //                     *object.object_type_mut() = object_type.to_string();
 //                     direct_members.push(object.to_owned());
 
-//                     // if the direct object is one computer add it in affected_computers to push it in OU 
-//                     if object_type.to_string() == "Computer" 
+//                     // if the direct object is one computer add it in affected_computers to push it in OU
+//                     if object_type.to_string() == "Computer"
 //                     {
 //                         affected_computers.push(object.to_owned());
 //                     }
@@ -529,7 +531,7 @@ pub fn add_childobjects_members_for_ou(
 //             }
 //             else
 //             {
-//                 let mut object = Member::new();                 
+//                 let mut object = Member::new();
 //                 let split = name.split(".");
 //                 let vec = split.collect::<Vec<&str>>();
 //                 let cn = vec[0].to_owned();
@@ -543,7 +545,7 @@ pub fn add_childobjects_members_for_ou(
 //             }
 //         }
 //         //trace!("direct_members for Object '{}': {:?}",name,direct_members);
-        
+
 //         *object.child_objects_mut() = direct_members;
 //         if otype == "OU"
 //         {
@@ -620,7 +622,7 @@ pub fn replace_guid_gplink<T: LdapObject>(
 //         if vec_replaced[i].get_links().len() != 0 {
 //             for j in 0..vec_replaced[i].get_links().len()
 //             {
-//                 for value in dn_sid 
+//                 for value in dn_sid
 //                 {
 //                     if value.0.contains(&vec_replaced[i].get_links()[j].guid().to_string())
 //                     {
@@ -630,7 +632,7 @@ pub fn replace_guid_gplink<T: LdapObject>(
 //                     }
 //                 }
 //             }
-//         }   
+//         }
 //     }
 //     pb.finish_and_clear();
 // }
@@ -699,15 +701,13 @@ pub fn add_affected_computers_for_ou(
     let ou_dn_map: HashMap<String, String> = vec_ous
         .iter()
         .filter_map(|ou| {
-            dn_sid
-                .iter()
-                .find_map(|(dn, sid)| {
-                    if *sid == *ou.get_object_identifier() {
-                        Some((ou.get_object_identifier().to_owned(), dn.clone()))
-                    } else {
-                        None
-                    }
-                })
+            dn_sid.iter().find_map(|(dn, sid)| {
+                if *sid == *ou.get_object_identifier() {
+                    Some((ou.get_object_identifier().to_owned(), dn.clone()))
+                } else {
+                    None
+                }
+            })
         })
         .collect();
 
@@ -741,16 +741,15 @@ pub fn add_affected_computers_for_ou(
     Ok(())
 }
 
-
 // /// This function push computer sid in domain GpoChanges
 // pub fn add_affected_computers_for_ou(
 //     vec_ous: &mut Vec<Ou>,
-//     dn_sid: &HashMap<String, String>, 
+//     dn_sid: &HashMap<String, String>,
 //     sid_type: &HashMap<String, String>
 // ) {
 //     // All computers DN:SID
 //     let dn_sid_filtered = return_sid_dn_for_one_specific_type(&"Computer".to_string(), dn_sid, sid_type);
-    
+
 //     // For OU by OU add affected computers
 //     for ou in vec_ous {
 //         let ou_dn: Option<String> = dn_sid.iter().find_map(|(key, value)| {
@@ -770,7 +769,7 @@ pub fn add_affected_computers_for_ou(
 //                     vec_affected_computers.push(member);
 //                 }
 //             }
-            
+
 //             let mut gpo_changes = GPOChange::new();
 //             *gpo_changes.affected_computers_mut() = vec_affected_computers;
 //             *ou.gpo_changes_mut() = gpo_changes;
@@ -856,7 +855,7 @@ pub fn replace_fqdn_by_sid<T: LdapObject>(
 //                 count += 1;
 //                 let pourcentage = 100 * count / total;
 //                 progress_bar(pb.to_owned(),"Replacing FQDN by SID".to_string(),pourcentage.try_into().unwrap(),"%".to_string());
-        
+
 //                 let spn_targets_len = vec_src[i].get_spntargets().len();
 //                 if spn_targets_len.to_owned() != 0 {
 //                     for j in 0..spn_targets_len.to_owned()
@@ -866,7 +865,7 @@ pub fn replace_fqdn_by_sid<T: LdapObject>(
 //                         let mut spn_targets = vec_src[i].get_spntargets().clone();
 //                         *spn_targets[j].computer_sid_mut() = sid.to_owned();
 //                         vec_src[i].set_spntargets(spn_targets);
-        
+
 //                     }
 //                 }
 //             }
@@ -878,7 +877,7 @@ pub fn replace_fqdn_by_sid<T: LdapObject>(
 //                 count += 1;
 //                 let pourcentage = 100 * count / total;
 //                 progress_bar(pb.to_owned(),"Replacing FQDN by SID".to_string(),pourcentage.try_into().unwrap(),"%".to_string());
-        
+
 //                 let allowed_to_delegate_len = vec_src[i].get_allowed_to_delegate().len();
 //                 if allowed_to_delegate_len.to_owned() != 0 {
 //                     for j in 0..allowed_to_delegate_len.to_owned()
@@ -1007,14 +1006,17 @@ fn sid_maker_from_another_domain(
         let ldap_dc = prepare_ldap_dc(trust.target_domain_name());
         if object_identifier.contains(&ldap_dc[0]) {
             let id = get_id_from_objectidentifier(object_identifier)?;
-            return Ok(format!("{}{}", trust.target_domain_name(), id))
+            return Ok(format!("{}{}", trust.target_domain_name(), id));
         }
     }
 
     // Check if object_identifier contains an SID
     if object_identifier.contains("CN=S-") {
-        if let Some(capture) = sid_regex.captures(object_identifier).and_then(|cap| cap.get(0)) {
-            return Ok(capture.as_str().to_owned())
+        if let Some(capture) = sid_regex
+            .captures(object_identifier)
+            .and_then(|cap| cap.get(0))
+        {
+            return Ok(capture.as_str().to_owned());
         }
     }
 
@@ -1040,7 +1042,7 @@ fn sid_maker_from_another_domain(
 //     }
 //     if object_identifier.contains("CN=S-") {
 //         let re = Regex::new(r"S-[0-9]{1}-[0-9]{1}-[0-9]{1,}-[0-9]{1,}-[0-9]{1,}-[0-9]{1,}-[0-9]{1,}").unwrap();
-//         for sid in re.captures_iter(&object_identifier) 
+//         for sid in re.captures_iter(&object_identifier)
 //         {
 //             return sid[0].to_owned().to_string();
 //         }
@@ -1050,10 +1052,7 @@ fn sid_maker_from_another_domain(
 
 // Get id from objectidentifier for all common group (Administrators ...) v2
 // https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/manage/understand-security-identifiers
-fn get_id_from_objectidentifier(
-    object_identifier: &str
-) -> Result<String, Box<dyn Error>> {
-
+fn get_id_from_objectidentifier(object_identifier: &str) -> Result<String, Box<dyn Error>> {
     // Static mapping of group names to RIDs
     const NAME_TO_RID: [(&str, &str); 16] = [
         ("DOMAIN ADMINS", "-512"),
@@ -1077,14 +1076,13 @@ fn get_id_from_objectidentifier(
     // Iterate over the static array to find a match
     for (name, rid) in NAME_TO_RID.iter() {
         if object_identifier.contains(name) {
-            return Ok(rid.to_string())
+            return Ok(rid.to_string());
         }
     }
 
     // Default case if no match is found
     Ok("NULL_ID1".to_string())
 }
-
 
 // // Get id from objectidentifier for all common group (Administrators ...)
 // // https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/manage/understand-security-identifiers
@@ -1122,9 +1120,13 @@ fn get_id_from_objectidentifier(
 /// This function push trust domain values in domain
 pub fn add_trustdomain(
     vec_domains: &mut Vec<Domain>,
-    vec_trusts: &mut Vec<Trust>
+    vec_trusts: &mut Vec<Trust>,
 ) -> Result<(), Box<dyn Error>> {
-    if !&vec_trusts[0].target_domain_sid().to_string().contains("SID") {
+    if !&vec_trusts[0]
+        .target_domain_sid()
+        .to_string()
+        .contains("SID")
+    {
         let mut trusts: Vec<Trust> = Vec::new();
         for trust in vec_trusts {
             trusts.push(trust.to_owned());
@@ -1132,7 +1134,8 @@ pub fn add_trustdomain(
             *new_domain.object_identifier_mut() = trust.target_domain_sid().to_string();
             *new_domain.properties_mut().name_mut() = trust.target_domain_name().to_string();
             *new_domain.properties_mut().domain_mut() = trust.target_domain_name().to_string();
-            *new_domain.properties_mut().distinguishedname_mut() = domain_to_dc(trust.target_domain_name());
+            *new_domain.properties_mut().distinguishedname_mut() =
+                domain_to_dc(trust.target_domain_name());
             *new_domain.properties_mut().highvalue_mut() = true;
             vec_domains.push(new_domain);
         }
@@ -1276,7 +1279,7 @@ pub fn add_type_for_allowtedtoact(
 /// This function pushes user SID into ChildObjects for Ou v2
 pub fn add_contained_by_for<T: LdapObject>(
     vec_replaced: &mut Vec<T>,
-    dn_sid: &HashMap<String, String>, 
+    dn_sid: &HashMap<String, String>,
     sid_type: &HashMap<String, String>,
 ) -> Result<(), Box<dyn Error>> {
     // Progress bar setup
@@ -1294,7 +1297,9 @@ pub fn add_contained_by_for<T: LdapObject>(
 
         // Fetch SID and DN for the current object
         let sid = object.get_object_identifier();
-        let dn = dn_sid.iter().find_map(|(key, value)| if value == sid { Some(key) } else { None });
+        let dn = dn_sid
+            .iter()
+            .find_map(|(key, value)| if value == sid { Some(key) } else { None });
 
         if let Some(dn) = dn {
             let otype = sid_type.get(sid).unwrap_or(&default_type);
@@ -1325,14 +1330,14 @@ pub fn add_contained_by_for<T: LdapObject>(
 // /// This function is to push user SID in ChildObjects for Ou
 // pub fn add_contained_by_for<T: LdapObject>(
 //     vec_replaced: &mut Vec<T>,
-//     dn_sid: &HashMap<String, String>, 
+//     dn_sid: &HashMap<String, String>,
 //     sid_type: &HashMap<String, String>
 // ) {
 //     // Needed for progress bar stats
 //     let pb = ProgressBar::new(1);
 //     let mut count = 0;
 //     let total = vec_replaced.len();
-        
+
 //     for object in vec_replaced
 //     {
 //         // Manage progress bar
@@ -1384,7 +1389,7 @@ pub fn get_name_from_full_distinguishedname(dn_object: &String) -> String {
     let vec1 = split1.collect::<Vec<&str>>();
     let split2 = vec1[0].split("=");
     let vec2 = split2.collect::<Vec<&str>>();
-    
+
     // name = G0H4N
     vec2[1].to_owned()
 }
@@ -1396,7 +1401,7 @@ fn get_cn_object_name_from_full_distinguishedname(dn_object: &String) -> String 
     let name = dn_object.to_owned();
     let split = name.split(",");
     let vec = split.collect::<Vec<&str>>();
-    
+
     // name = CN=G0H4N
     vec[0].to_owned()
 }
@@ -1408,7 +1413,7 @@ fn get_contained_by_name_from_distinguishedname(cn_name: &String, dn_object: &St
     let name = format!("{cn_name},");
     let split = dn_object.split(&name);
     let vec = split.collect::<Vec<&str>>();
-    
+
     // dn_contained_by = CN=USERS,DC=ESSOS,DC=LOCAL
     vec[1].to_owned()
 }
@@ -1444,13 +1449,12 @@ fn get_contained_by_name_from_distinguishedname(cn_name: &String, dn_object: &St
 
 #[cfg(test)]
 mod tests {
-    
+
     use crate::json::checker::common::{
-        get_name_from_full_distinguishedname,
         get_cn_object_name_from_full_distinguishedname,
-        get_contained_by_name_from_distinguishedname
+        get_contained_by_name_from_distinguishedname, get_name_from_full_distinguishedname,
     };
-    
+
     #[test]
     #[rustfmt::skip]
     pub fn test_get_name_from_full_distinguishedname() {
@@ -1474,7 +1478,7 @@ mod tests {
         println!("cn_name: {cn_name:?}");
         assert_eq!(cn_name, "CN=G0H4N".to_string());
     }
-    
+
     #[test]
     #[rustfmt::skip]
     pub fn test_get_contained_by_name_from_name() {

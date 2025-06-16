@@ -9,6 +9,7 @@ use log::{error, info, trace};
 use std::error::Error;
 
 pub use rusthound_ce::args;
+pub use rusthound_ce::io;
 pub use rusthound_ce::ldap;
 pub use rusthound_ce::objects;
 
