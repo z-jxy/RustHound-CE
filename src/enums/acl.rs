@@ -427,17 +427,17 @@ fn ace_maker<T: LdapObject>(
                         "".to_string(),
                     ));
                 }
-                if (entry_type == "Computer")
-                    && (flags & ACE_OBJECT_TYPE_PRESENT != ACE_OBJECT_TYPE_PRESENT)
-                {
-                    relations.push(AceTemplate::new(
-                        sid.to_owned(),
-                        "".to_string(),
-                        "AllExtendedRights".to_string(),
-                        is_inherited,
-                        "".to_string(),
-                    ));
-                }
+                // if (entry_type == "Computer")
+                //     && (flags & ACE_OBJECT_TYPE_PRESENT != ACE_OBJECT_TYPE_PRESENT)
+                // {
+                //     relations.push(AceTemplate::new(
+                //         sid.to_owned(),
+                //         "".to_string(),
+                //         "AllExtendedRights".to_string(),
+                //         is_inherited,
+                //         "".to_string(),
+                //     ));
+                // }
                 if (entry_type == "Domain") && has_extended_right(&ace, GET_CHANGES) {
                     relations.push(AceTemplate::new(
                         sid.to_owned(),
@@ -554,17 +554,17 @@ fn ace_maker<T: LdapObject>(
                 ));
             }
             // For computer
-            if (entry_type == "Computer")
-                && ((MaskFlags::ADS_RIGHT_DS_CONTROL_ACCESS.bits() | mask) == mask)
-            {
-                relations.push(AceTemplate::new(
-                    sid.to_owned(),
-                    "".to_string(),
-                    "AllExtendedRights".to_string(),
-                    is_inherited,
-                    "".to_string(),
-                ));
-            }
+            // if (entry_type == "Computer")
+            //     && ((MaskFlags::ADS_RIGHT_DS_CONTROL_ACCESS.bits() | mask) == mask)
+            // {
+            //     relations.push(AceTemplate::new(
+            //         sid.to_owned(),
+            //         "".to_string(),
+            //         "AllExtendedRights".to_string(),
+            //         is_inherited,
+            //         "".to_string(),
+            //     ));
+            // }
             if (MaskFlags::WRITE_DACL.bits() | mask) == mask {
                 relations.push(AceTemplate::new(
                     sid.to_owned(),
