@@ -1,16 +1,12 @@
-use serde_json::value::Value;
 use serde::{Deserialize, Serialize};
+use serde_json::value::Value;
 
-use crate::enums::{decode_guid_le, get_pki_cert_name_flags, get_pki_enrollment_flags, parse_ntsecuritydescriptor};
-use crate::json::checker::common::get_name_from_full_distinguishedname;
-use crate::utils::date::{filetime_to_span, span_to_string, string_to_epoch};
-use crate::objects::common::{
-    LdapObject,
-    AceTemplate,
-    SPNTarget,
-    Link,
-    Member
+use crate::enums::{
+    decode_guid_le, get_pki_cert_name_flags, get_pki_enrollment_flags, parse_ntsecuritydescriptor,
 };
+use crate::json::checker::common::get_name_from_full_distinguishedname;
+use crate::objects::common::{AceTemplate, LdapObject, Link, Member, SPNTarget};
+use crate::utils::date::{filetime_to_span, span_to_string, string_to_epoch};
 use ldap3::SearchEntry;
 use log::{debug, trace};
 use std::collections::HashMap;
@@ -35,8 +31,10 @@ pub struct CertTemplate {
 
 impl CertTemplate {
     // New CertTemplate
-    pub fn new() -> Self { 
-        Self { ..Default::default() } 
+    pub fn new() -> Self {
+        Self {
+            ..Default::default()
+        }
     }
 
     // Immutable access.
@@ -54,7 +52,7 @@ impl CertTemplate {
         domain: &String,
         dn_sid: &mut HashMap<String, String>,
         sid_type: &mut HashMap<String, String>,
-        domain_sid: &String
+        domain_sid: &String,
     ) -> Result<(), Box<dyn Error>> {
         let result_dn: String = result.dn.to_uppercase();
         let result_attrs: HashMap<String, Vec<String>> = result.attrs;
@@ -73,7 +71,7 @@ impl CertTemplate {
 
         // Change all values...
         self.properties.domain = domain.to_uppercase();
-        self.properties.distinguishedname = result_dn;    
+        self.properties.distinguishedname = result_dn;
         self.properties.domainsid = domain_sid.to_string();
         let _ca_name = get_name_from_full_distinguishedname(&self.properties.distinguishedname);
 
@@ -81,7 +79,7 @@ impl CertTemplate {
         for (key, value) in &result_attrs {
             match key.as_str() {
                 "name" => {
-                    let name = format!("{}@{}",&value[0],domain);
+                    let name = format!("{}@{}", &value[0], domain);
                     self.properties.name = name.to_uppercase();
                 }
                 "description" => {
@@ -92,16 +90,28 @@ impl CertTemplate {
                 }
                 "msPKI-Certificate-Name-Flag" => {
                     if !value.is_empty() {
-                        self.properties.certificatenameflag = get_pki_cert_name_flags(value[0].parse::<i64>().unwrap_or(0) as u64);
-                        self.properties.enrolleesuppliessubject = self.properties.certificatenameflag.contains("ENROLLEE_SUPPLIES_SUBJECT");
-                        self.properties.subjectaltrequireupn = self.properties.certificatenameflag.contains("SUBJECT_ALT_REQUIRE_UPN");
+                        self.properties.certificatenameflag =
+                            get_pki_cert_name_flags(value[0].parse::<i64>().unwrap_or(0) as u64);
+                        self.properties.enrolleesuppliessubject = self
+                            .properties
+                            .certificatenameflag
+                            .contains("ENROLLEE_SUPPLIES_SUBJECT");
+                        self.properties.subjectaltrequireupn = self
+                            .properties
+                            .certificatenameflag
+                            .contains("SUBJECT_ALT_REQUIRE_UPN");
                     }
                 }
                 "msPKI-Enrollment-Flag" => {
                     if !value.is_empty() {
-                        self.properties.enrollmentflag = get_pki_enrollment_flags(value[0].parse::<i64>().unwrap_or(0) as u64);
-                        self.properties.requiresmanagerapproval = self.properties.enrollmentflag.contains("PEND_ALL_REQUESTS");
-                        self.properties.nosecurityextension = self.properties.enrollmentflag.contains("NO_SECURITY_EXTENSION");
+                        self.properties.enrollmentflag =
+                            get_pki_enrollment_flags(value[0].parse::<i64>().unwrap_or(0) as u64);
+                        self.properties.requiresmanagerapproval =
+                            self.properties.enrollmentflag.contains("PEND_ALL_REQUESTS");
+                        self.properties.nosecurityextension = self
+                            .properties
+                            .enrollmentflag
+                            .contains("NO_SECURITY_EXTENSION");
                     }
                 }
                 "msPKI-Private-Key-Flag" => {
@@ -111,7 +121,11 @@ impl CertTemplate {
                 }
                 "msPKI-RA-Signature" => {
                     if !value.is_empty() {
-                        self.properties.authorizedsignatures = value.first().unwrap_or(&"0".to_string()).parse::<i64>().unwrap_or(0);
+                        self.properties.authorizedsignatures = value
+                            .first()
+                            .unwrap_or(&"0".to_string())
+                            .parse::<i64>()
+                            .unwrap_or(0);
                     }
                 }
                 "msPKI-RA-Application-Policies" => {
@@ -167,7 +181,7 @@ impl CertTemplate {
                     // Needed with acl
                     let entry_type = "CertTemplate".to_string();
                     // nTSecurityDescriptor raw to string
-                    let relations_ace =  parse_ntsecuritydescriptor(
+                    let relations_ace = parse_ntsecuritydescriptor(
                         self,
                         &value[0],
                         entry_type,
@@ -178,10 +192,12 @@ impl CertTemplate {
                     self.aces = relations_ace;
                 }
                 "pKIExpirationPeriod" => {
-                    self.properties.validityperiod = span_to_string(filetime_to_span(value[0].to_owned())?);
+                    self.properties.validityperiod =
+                        span_to_string(filetime_to_span(value[0].to_owned())?);
                 }
                 "pKIOverlapPeriod" => {
-                    self.properties.renewalperiod = span_to_string(filetime_to_span(value[0].to_owned())?);
+                    self.properties.renewalperiod =
+                        span_to_string(filetime_to_span(value[0].to_owned())?);
                 }
                 _ => {}
             }
@@ -201,12 +217,12 @@ impl CertTemplate {
         if self.object_identifier != "SID" {
             dn_sid.insert(
                 self.properties.distinguishedname.to_string(),
-                self.object_identifier.to_string()
+                self.object_identifier.to_string(),
             );
             // Push DN and Type
             sid_type.insert(
                 self.object_identifier.to_string(),
-                "CertTemplate".to_string()
+                "CertTemplate".to_string(),
             );
         }
 
@@ -218,8 +234,8 @@ impl CertTemplate {
     /// Function to get effective ekus for one template.
     fn get_effectiveekus(
         schema_version: &i64,
-        ekus: &Vec<String>,
-        certificateapplicationpolicy: &Vec<String>,
+        ekus: &[String],
+        certificateapplicationpolicy: &[String],
     ) -> Vec<String> {
         if schema_version == &1 && !ekus.is_empty() {
             ekus.to_vec()
@@ -230,13 +246,15 @@ impl CertTemplate {
 
     /// Function to check if authentication is enabled or not.
     fn authentication_is_enabled(&mut self) -> bool {
-        let authentication_oids = vec![
-            "1.3.6.1.5.5.7.3.2", // ClientAuthentication,
-            "1.3.6.1.5.2.3.4", // PKINITClientAuthentication
+        let authentication_oids = [
+            "1.3.6.1.5.5.7.3.2",      // ClientAuthentication,
+            "1.3.6.1.5.2.3.4",        // PKINITClientAuthentication
             "1.3.6.1.4.1.311.20.2.2", // SmartcardLogon
-            "2.5.29.37.0", // AnyPurpose
+            "2.5.29.37.0",            // AnyPurpose
         ];
-        self.properties.effectiveekus.iter()
+        self.properties
+            .effectiveekus
+            .iter()
             .any(|eku| authentication_oids.contains(&eku.as_str()))
             || self.properties.effectiveekus.is_empty()
     }
@@ -276,7 +294,7 @@ impl LdapObject for CertTemplate {
     fn get_haslaps(&self) -> &bool {
         &false
     }
-    
+
     // Get mutable values
     fn get_aces_mut(&mut self) -> &mut Vec<AceTemplate> {
         &mut self.aces
@@ -287,7 +305,7 @@ impl LdapObject for CertTemplate {
     fn get_allowed_to_delegate_mut(&mut self) -> &mut Vec<Member> {
         panic!("Not used by current object.");
     }
-    
+
     // Edit values
     fn set_is_acl_protected(&mut self, is_acl_protected: bool) {
         self.is_acl_protected = is_acl_protected;
@@ -313,35 +331,34 @@ impl LdapObject for CertTemplate {
     }
 }
 
-
 // CertTemplate properties structure
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct CertTemplateProperties {
-   domain: String,
-   name: String,
-   distinguishedname: String,
-   domainsid: String,
-   isaclprotected: bool,
-   description: Option<String>,
-   whencreated: i64,
-   validityperiod: String,
-   renewalperiod: String,
-   schemaversion: i64,
-   displayname: String,
-   oid: String,
-   enrollmentflag: String,
-   requiresmanagerapproval: bool,
-   nosecurityextension: bool,
-   certificatenameflag: String,
-   enrolleesuppliessubject: bool,
-   subjectaltrequireupn: bool,
-   ekus: Vec<String>,
-   certificateapplicationpolicy: Vec<String>,
-   authorizedsignatures: i64,
-   applicationpolicies: Vec<String>,
-   issuancepolicies: Vec<String>,
-   effectiveekus: Vec<String>,
-   authenticationenabled: bool,
+    domain: String,
+    name: String,
+    distinguishedname: String,
+    domainsid: String,
+    isaclprotected: bool,
+    description: Option<String>,
+    whencreated: i64,
+    validityperiod: String,
+    renewalperiod: String,
+    schemaversion: i64,
+    displayname: String,
+    oid: String,
+    enrollmentflag: String,
+    requiresmanagerapproval: bool,
+    nosecurityextension: bool,
+    certificatenameflag: String,
+    enrolleesuppliessubject: bool,
+    subjectaltrequireupn: bool,
+    ekus: Vec<String>,
+    certificateapplicationpolicy: Vec<String>,
+    authorizedsignatures: i64,
+    applicationpolicies: Vec<String>,
+    issuancepolicies: Vec<String>,
+    effectiveekus: Vec<String>,
+    authenticationenabled: bool,
 }
 
 impl Default for CertTemplateProperties {
@@ -372,9 +389,9 @@ impl Default for CertTemplateProperties {
             issuancepolicies: Vec::new(),
             effectiveekus: Vec::new(),
             authenticationenabled: false,
-       }
+        }
     }
- }
+}
 
 impl CertTemplateProperties {
     // Immutable access.

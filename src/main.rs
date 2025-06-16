@@ -2,7 +2,6 @@ pub mod enums;
 pub mod json;
 pub mod modules;
 
-pub mod args;
 pub mod banner;
 pub mod ldap;
 pub mod objects;
@@ -13,10 +12,12 @@ use log::{error, info, trace};
 use std::collections::HashMap;
 use std::error::Error;
 
+use rusthound_ce::args;
+
 #[cfg(feature = "noargs")]
-use args::auto_args;
+use rusthound_ce::args::auto_args;
 #[cfg(not(feature = "noargs"))]
-use args::{extract_args, Options};
+use rusthound_ce::args::{extract_args, Options};
 
 use banner::{print_banner, print_end_banner};
 use json::{checker::check_all_result, maker::make_result, parser::parse_result_type};
@@ -91,55 +92,56 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // Hashmap to link fqdn to an ip address
     let mut fqdn_ip: HashMap<String, String> = HashMap::new();
 
-    // Analyze object by object
-    // Get type and parse it to get values
-    parse_result_type(
-        &common_args,
-        result,
-        &mut vec_users,
-        &mut vec_groups,
-        &mut vec_computers,
-        &mut vec_ous,
-        &mut vec_domains,
-        &mut vec_gpos,
-        &mut vec_fsps,
-        &mut vec_containers,
-        &mut vec_trusts,
-        &mut vec_ntauthstores,
-        &mut vec_aiacas,
-        &mut vec_rootcas,
-        &mut vec_enterprisecas,
-        &mut vec_certtemplates,
-        &mut vec_issuancepolicies,
-        &mut dn_sid,
-        &mut sid_type,
-        &mut fqdn_sid,
-        &mut fqdn_ip,
-    )?;
+    // // Analyze object by object
+    // // Get type and parse it to get values
+    // parse_result_type(
+    //     &common_args,
+    //     result,
+    //     &mut vec_users,
+    //     &mut vec_groups,
+    //     &mut vec_computers,
+    //     &mut vec_ous,
+    //     &mut vec_domains,
+    //     &mut vec_gpos,
+    //     &mut vec_fsps,
+    //     &mut vec_containers,
+    //     &mut vec_trusts,
+    //     &mut vec_ntauthstores,
+    //     &mut vec_aiacas,
+    //     &mut vec_rootcas,
+    //     &mut vec_enterprisecas,
+    //     &mut vec_certtemplates,
+    //     &mut vec_issuancepolicies,
+    //     &mut dn_sid,
+    //     &mut sid_type,
+    //     &mut fqdn_sid,
+    //     &mut fqdn_ip,
+    // )?;
 
-    // Functions to replace and add missing values
-    check_all_result(
-        &common_args,
-        &mut vec_users,
-        &mut vec_groups,
-        &mut vec_computers,
-        &mut vec_ous,
-        &mut vec_domains,
-        &mut vec_gpos,
-        &mut vec_fsps,
-        &mut vec_containers,
-        &mut vec_trusts,
-        &mut vec_ntauthstores,
-        &mut vec_aiacas,
-        &mut vec_rootcas,
-        &mut vec_enterprisecas,
-        &mut vec_certtemplates,
-        &mut vec_issuancepolicies,
-        &mut dn_sid,
-        &mut sid_type,
-        &mut fqdn_sid,
-        &mut fqdn_ip,
-    )?;
+    // // Functions to replace and add missing values
+    // check_all_result(
+    //     &common_args,
+    //     &mut vec_users,
+    //     &mut vec_groups,
+    //     &mut vec_computers,
+    //     &mut vec_ous,
+    //     &mut vec_domains,
+    //     &mut vec_gpos,
+    //     &mut vec_fsps,
+    //     &mut vec_containers,
+    //     &mut vec_trusts,
+    //     &mut vec_ntauthstores,
+    //     &mut vec_aiacas,
+    //     &mut vec_rootcas,
+    //     &mut vec_enterprisecas,
+    //     &mut vec_certtemplates,
+    //     &mut vec_issuancepolicies,
+    //     &mut dn_sid,
+    //     &mut sid_type,
+    //     &mut fqdn_sid,
+    //     &mut fqdn_ip,
+    // )?;
+    let mut results = rusthound_ce::prepare_results(result, &common_args).await?;
 
     // Running modules
     run_modules(&common_args, &mut fqdn_ip, &mut vec_computers).await?;

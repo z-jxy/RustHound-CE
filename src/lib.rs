@@ -55,9 +55,9 @@
 //! OPTIONAL MODULES:
 //!       --fqdn-resolver  Use fqdn-resolver module to get computers IP address
 //! ```
-//! 
+//!
 //! Or build your own using the ldap_search() function:
-//! 
+//!
 //! ```ignore
 //! # use rusthound::ldap::ldap_search;
 //! # let ldaps = true;
@@ -79,7 +79,7 @@
 //!     kerberos,
 //! );
 //! ```
-//! 
+//!
 pub mod args;
 pub mod banner;
 pub mod ldap;
@@ -88,6 +88,8 @@ pub mod utils;
 pub mod enums;
 pub mod json;
 pub mod objects;
+
+mod api;
 
 extern crate bitflags;
 extern crate chrono;
@@ -98,3 +100,5 @@ extern crate regex;
 pub use ldap::ldap_search;
 #[doc(inline)]
 pub use ldap3::SearchEntry;
+
+pub use api::prepare_results;

@@ -14,16 +14,15 @@ use std::time::Duration;
 /// <https://github.com/shadowsocks/shadowsocks-rust/blob/master/crates/shadowsocks-service/src/config.rs>
 pub async fn resolving_all_fqdn(
     dns_tcp: bool,
-    name_server: &String,
+    name_server: &str,
     fqdn_ip: &mut HashMap<String, String>,
     vec_computer: &[Computer],
 ) {
     info!("Resolving FQDN to IP address started...");
-    for value in fqdn_ip.to_owned() {
-        for i in 0..vec_computer.len() {
-            if (*vec_computer[i].properties().name() == value.0.to_owned())
-                && (*vec_computer[i].properties().enabled())
-            {
+    let copy = fqdn_ip.to_owned();
+    for value in copy {
+        for computer in vec_computer.iter() {
+            if (*computer.properties().name() == value.0) && (*computer.properties().enabled()) {
                 debug!("Trying to resolve FQDN: {}", value.0.to_string());
                 // Resolve FQDN to IP address
                 let address = resolver(value.0.to_string(), dns_tcp, name_server).await;
@@ -43,7 +42,7 @@ pub async fn resolving_all_fqdn(
 }
 
 /// Asynchronous function to resolve IP address from the ldap FQDN
-pub async fn resolver(fqdn: String, dns_tcp: bool, name_server: &String) -> Option<String> {
+pub async fn resolver(fqdn: String, dns_tcp: bool, name_server: &str) -> Option<String> {
     // Get configuration and options for resolver
     let (c, o) = make_resolver_conf(dns_tcp, name_server);
 
@@ -66,7 +65,7 @@ pub async fn resolver(fqdn: String, dns_tcp: bool, name_server: &String) -> Opti
 }
 
 /// Function to prepare resolver configuration
-pub fn make_resolver_conf(dns_tcp: bool, name_server: &String) -> (ResolverConfig, ResolverOpts) {
+pub fn make_resolver_conf(dns_tcp: bool, name_server: &str) -> (ResolverConfig, ResolverOpts) {
     let mut c = ResolverConfig::new();
     let mut socket = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 53);
     let mut dns_protocol = Protocol::Udp;
