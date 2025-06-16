@@ -15,30 +15,30 @@ use crate::{
 
 #[derive(Default)]
 pub struct Results {
-    users: Vec<User>,
-    groups: Vec<Group>,
-    computers: Vec<Computer>,
-    ous: Vec<Ou>,
-    domains: Vec<Domain>,
-    gpos: Vec<Gpo>,
-    fsps: Vec<Fsp>,
-    containers: Vec<Container>,
-    trusts: Vec<Trust>,
-    ntauthstores: Vec<NtAuthStore>,
-    aiacas: Vec<AIACA>,
-    rootcas: Vec<RootCA>,
-    enterprisecas: Vec<EnterpriseCA>,
-    certtemplates: Vec<CertTemplate>,
-    issuancepolicies: Vec<IssuancePolicie>,
+    pub users: Vec<User>,
+    pub groups: Vec<Group>,
+    pub computers: Vec<Computer>,
+    pub ous: Vec<Ou>,
+    pub domains: Vec<Domain>,
+    pub gpos: Vec<Gpo>,
+    pub fsps: Vec<Fsp>,
+    pub containers: Vec<Container>,
+    pub trusts: Vec<Trust>,
+    pub ntauthstores: Vec<NtAuthStore>,
+    pub aiacas: Vec<AIACA>,
+    pub rootcas: Vec<RootCA>,
+    pub enterprisecas: Vec<EnterpriseCA>,
+    pub certtemplates: Vec<CertTemplate>,
+    pub issuancepolicies: Vec<IssuancePolicie>,
 
     /// DN to SID
-    dn_sid: HashMap<String, String>,
+    pub dn_sid: HashMap<String, String>,
     ///  DN to Type
-    sid_type: HashMap<String, String>,
+    pub sid_type: HashMap<String, String>,
     /// FQDN to SID
-    fqdn_sid: HashMap<String, String>,
+    pub fqdn_sid: HashMap<String, String>,
     /// fqdn to an ip address
-    fqdn_ip: HashMap<String, String>,
+    pub fqdn_ip: HashMap<String, String>,
 }
 
 pub async fn prepare_results(

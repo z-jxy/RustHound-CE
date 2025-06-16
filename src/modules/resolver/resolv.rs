@@ -4,7 +4,7 @@ use log::{debug, info};
 use trust_dns_resolver::config::*;
 use trust_dns_resolver::TokioAsyncResolver;
 
-use crate::objects::computer::Computer;
+use rusthound_ce::objects::computer::Computer;
 use std::collections::HashMap;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::time::Duration;

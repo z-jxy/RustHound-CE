@@ -4,8 +4,8 @@ pub mod resolver;
 use std::collections::HashMap;
 use std::error::Error;
 
-use crate::args::Options;
-use crate::objects::computer::Computer;
+use rusthound_ce::args::Options;
+use rusthound_ce::objects::computer::Computer;
 
 /// Function to run all modules requested
 pub async fn run_modules(

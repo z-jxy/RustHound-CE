@@ -1,18 +1,16 @@
+pub mod banner;
 pub mod enums;
 pub mod json;
 pub mod modules;
-
-pub mod banner;
-pub mod ldap;
-pub mod objects;
 pub mod utils;
 
 use env_logger::Builder;
 use log::{error, info, trace};
-use std::collections::HashMap;
 use std::error::Error;
 
-use rusthound_ce::args;
+pub use rusthound_ce::args;
+pub use rusthound_ce::ldap;
+pub use rusthound_ce::objects;
 
 #[cfg(feature = "noargs")]
 use rusthound_ce::args::auto_args;
@@ -23,12 +21,6 @@ use banner::{print_banner, print_end_banner};
 use json::{checker::check_all_result, maker::make_result, parser::parse_result_type};
 use ldap::ldap_search;
 use modules::run_modules;
-use objects::{
-    aiaca::AIACA, certtemplate::CertTemplate, computer::Computer, container::Container,
-    domain::Domain, enterpriseca::EnterpriseCA, fsp::Fsp, gpo::Gpo, group::Group,
-    inssuancepolicie::IssuancePolicie, ntauthstore::NtAuthStore, ou::Ou, rootca::RootCA,
-    trust::Trust, user::User,
-};
 
 /// Main of RustHound
 #[tokio::main]
@@ -66,102 +58,32 @@ async fn main() -> Result<(), Box<dyn Error>> {
     )
     .await?;
 
-    // Vector for content all
-    let mut vec_users: Vec<User> = Vec::new();
-    let mut vec_groups: Vec<Group> = Vec::new();
-    let mut vec_computers: Vec<Computer> = Vec::new();
-    let mut vec_ous: Vec<Ou> = Vec::new();
-    let mut vec_domains: Vec<Domain> = Vec::new();
-    let mut vec_gpos: Vec<Gpo> = Vec::new();
-    let mut vec_fsps: Vec<Fsp> = Vec::new();
-    let mut vec_containers: Vec<Container> = Vec::new();
-    let mut vec_trusts: Vec<Trust> = Vec::new();
-    let mut vec_ntauthstores: Vec<NtAuthStore> = Vec::new();
-    let mut vec_aiacas: Vec<AIACA> = Vec::new();
-    let mut vec_rootcas: Vec<RootCA> = Vec::new();
-    let mut vec_enterprisecas: Vec<EnterpriseCA> = Vec::new();
-    let mut vec_certtemplates: Vec<CertTemplate> = Vec::new();
-    let mut vec_issuancepolicies: Vec<IssuancePolicie> = Vec::new();
-
-    // Hashmap to link DN to SID
-    let mut dn_sid: HashMap<String, String> = HashMap::new();
-    // Hashmap to link DN to Type
-    let mut sid_type: HashMap<String, String> = HashMap::new();
-    // Hashmap to link FQDN to SID
-    let mut fqdn_sid: HashMap<String, String> = HashMap::new();
-    // Hashmap to link fqdn to an ip address
-    let mut fqdn_ip: HashMap<String, String> = HashMap::new();
-
-    // // Analyze object by object
-    // // Get type and parse it to get values
-    // parse_result_type(
-    //     &common_args,
-    //     result,
-    //     &mut vec_users,
-    //     &mut vec_groups,
-    //     &mut vec_computers,
-    //     &mut vec_ous,
-    //     &mut vec_domains,
-    //     &mut vec_gpos,
-    //     &mut vec_fsps,
-    //     &mut vec_containers,
-    //     &mut vec_trusts,
-    //     &mut vec_ntauthstores,
-    //     &mut vec_aiacas,
-    //     &mut vec_rootcas,
-    //     &mut vec_enterprisecas,
-    //     &mut vec_certtemplates,
-    //     &mut vec_issuancepolicies,
-    //     &mut dn_sid,
-    //     &mut sid_type,
-    //     &mut fqdn_sid,
-    //     &mut fqdn_ip,
-    // )?;
-
-    // // Functions to replace and add missing values
-    // check_all_result(
-    //     &common_args,
-    //     &mut vec_users,
-    //     &mut vec_groups,
-    //     &mut vec_computers,
-    //     &mut vec_ous,
-    //     &mut vec_domains,
-    //     &mut vec_gpos,
-    //     &mut vec_fsps,
-    //     &mut vec_containers,
-    //     &mut vec_trusts,
-    //     &mut vec_ntauthstores,
-    //     &mut vec_aiacas,
-    //     &mut vec_rootcas,
-    //     &mut vec_enterprisecas,
-    //     &mut vec_certtemplates,
-    //     &mut vec_issuancepolicies,
-    //     &mut dn_sid,
-    //     &mut sid_type,
-    //     &mut fqdn_sid,
-    //     &mut fqdn_ip,
-    // )?;
     let mut results = rusthound_ce::prepare_results(result, &common_args).await?;
 
     // Running modules
-    run_modules(&common_args, &mut fqdn_ip, &mut vec_computers).await?;
+    run_modules(
+        &common_args,
+        &mut results.fqdn_ip,
+        results.computers.as_mut_slice(),
+    )
+    .await?;
 
     // Add all in json files
     match make_result(
         &common_args,
-        vec_users,
-        vec_groups,
-        vec_computers,
-        vec_ous,
-        vec_domains,
-        vec_gpos,
-        vec_containers,
-        vec_ntauthstores,
-        vec_aiacas,
-        vec_rootcas,
-        vec_enterprisecas,
-        vec_certtemplates,
-        vec_issuancepolicies,
+        results.users,
+        results.groups,
+        results.computers,
+        results.ous,
+        results.domains,
+        results.gpos,
+        results.containers,
+        results.ntauthstores,
+        results.aiacas,
+        results.rootcas,
+        results.enterprisecas,
+        results.certtemplates,
+        results.issuancepolicies,
     ) {
         Ok(_res) => trace!("Making json/zip files finished!"),
         Err(err) => error!("Error. Reason: {err}"),
