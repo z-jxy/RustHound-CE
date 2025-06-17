@@ -33,6 +33,7 @@ rpassword = "7.2"
 ldap3 = { version = "0.11.5", default-features = false }
 winreg = { version = "0.52", optional = true }
 sha1 = "0.10"
+bincode = "2.0.1"
 
 [features]
 noargs = ["winreg"] # Only available for Windows

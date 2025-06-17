@@ -4,10 +4,12 @@ pub mod json;
 pub mod modules;
 pub mod utils;
 
+use bincode::Encode;
 use env_logger::Builder;
 use log::{error, info, trace};
 use rusthound_ce::ldap::LdapSearchEntry;
 use std::error::Error;
+use std::io::BufReader;
 
 pub use rusthound_ce::args;
 pub use rusthound_ce::io;
@@ -52,19 +54,51 @@ async fn main() -> Result<(), Box<dyn Error>> {
     info!("Verbosity level: {:?}", common_args.verbose);
     info!("Collection method: {:?}", common_args.collection_method);
 
-    // LDAP request to get all informations in result
-    let result = ldap_search(
-        common_args.ldaps,
-        common_args.ip.as_deref(),
-        common_args.port,
-        &common_args.domain,
-        &common_args.ldapfqdn,
-        &common_args.username,
-        &common_args.password,
-        common_args.kerberos,
-        &common_args.ldap_filter,
-    )
-    .await?;
+    let ldap_cache_path =
+        std::path::PathBuf::from(format!(".rusthound-cache/{}", common_args.domain))
+            .join("searched_objects.bin");
+
+    let result: Vec<ldap3::SearchEntry> = match common_args.resume {
+        true => {
+            info!("Resuming from cache: {}", ldap_cache_path.display());
+            let data: Vec<LdapSearchEntry> = bincode::decode_from_reader(
+                BufReader::new(std::fs::File::open(&ldap_cache_path)?),
+                bincode::config::standard(),
+            )?;
+            data.into_iter().map(Into::into).collect::<Vec<_>>()
+        }
+        false => {
+            // LDAP request to get all informations in result
+            let result = ldap_search(
+                common_args.ldaps,
+                common_args.ip.as_deref(),
+                common_args.port,
+                &common_args.domain,
+                &common_args.ldapfqdn,
+                &common_args.username,
+                &common_args.password,
+                common_args.kerberos,
+                &common_args.ldap_filter,
+            )
+            .await?;
+            {
+                let data = result
+                    .into_iter()
+                    .map(LdapSearchEntry::from)
+                    .collect::<Vec<LdapSearchEntry>>();
+                let mut file = std::fs::File::create(&ldap_cache_path)?;
+                bincode::encode_into_std_write(data, &mut file, bincode::config::standard())?;
+            }
+            // TODO: handle this better
+            let data: Vec<LdapSearchEntry> = bincode::decode_from_reader(
+                BufReader::new(std::fs::File::open(&ldap_cache_path)?),
+                bincode::config::standard(),
+            )?;
+            data.into_iter().map(Into::into).collect::<Vec<_>>()
+        }
+    };
+
+    println!("Found {} LDAP objects", result.len());
 
     let mut results = rusthound_ce::prepare_results(result, &common_args).await?;
 

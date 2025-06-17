@@ -27,6 +27,7 @@ pub struct Options {
     pub zip: bool,
     pub verbose: log::LevelFilter,
     pub ldap_filter: String,
+    pub resume: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -155,6 +156,12 @@ fn cli() -> Command {
             .action(ArgAction::SetTrue)
             .global(false)
         )
+        .arg(Arg::new("resume")
+            .long("resume")
+            .help("Resume the collection from the last saved state")
+            .required(false)
+            .action(ArgAction::SetTrue)
+        )
         .next_help_heading("OPTIONAL MODULES")
         .arg(Arg::new("fqdn-resolver")
             .long("fqdn-resolver")
@@ -240,6 +247,8 @@ pub fn extract_args() -> Options {
         .map(|s| s.as_str())
         .unwrap_or("(objectClass=*)");
 
+    let resume = matches.get_flag("resume");
+
     // Return all
     Options {
         domain: d.to_string(),
@@ -258,6 +267,7 @@ pub fn extract_args() -> Options {
         zip: z,
         verbose: v,
         ldap_filter: ldap_filter.to_string(),
+        resume,
     }
 }
 

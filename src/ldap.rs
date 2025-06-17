@@ -26,7 +26,7 @@ use std::io::{self, stdin, Write};
 use std::process;
 
 // New type to implement Serialize and Deserialize for SearchEntry
-#[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
+#[derive(serde::Deserialize, serde::Serialize, Debug, Clone, bincode::Encode, bincode::Decode)]
 pub struct LdapSearchEntry {
     /// Entry DN.
     pub dn: String,
@@ -39,6 +39,16 @@ pub struct LdapSearchEntry {
 impl From<SearchEntry> for LdapSearchEntry {
     fn from(entry: SearchEntry) -> Self {
         LdapSearchEntry {
+            dn: entry.dn,
+            attrs: entry.attrs,
+            bin_attrs: entry.bin_attrs,
+        }
+    }
+}
+
+impl From<LdapSearchEntry> for SearchEntry {
+    fn from(entry: LdapSearchEntry) -> Self {
+        SearchEntry {
             dn: entry.dn,
             attrs: entry.attrs,
             bin_attrs: entry.bin_attrs,
