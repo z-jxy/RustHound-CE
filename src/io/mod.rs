@@ -5,6 +5,9 @@ use std::io::{BufRead, BufReader, BufWriter, Write};
 
 const BUFFER_SIZE: usize = 1000;
 
+/// A buffer for writing objects to a JSON Lines file
+///
+/// Flushes to the file when it reaches its capacity or when explicitly flushed.
 pub struct ObjectBuffer<T> {
     buffer: VecDeque<T>,
     writer: BufWriter<std::fs::File>,

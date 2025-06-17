@@ -25,6 +25,27 @@ use std::error::Error;
 use std::io::{self, stdin, Write};
 use std::process;
 
+// New type to implement Serialize and Deserialize for SearchEntry
+// #[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
+// pub struct LdapSearchEntry {
+//     /// Entry DN.
+//     pub dn: String,
+//     /// Attributes.
+//     pub attrs: HashMap<String, Vec<String>>,
+//     /// Binary-valued attributes.
+//     pub bin_attrs: HashMap<String, Vec<Vec<u8>>>,
+// }
+
+// impl From<SearchEntry> for LdapSearchEntry {
+//     fn from(entry: SearchEntry) -> Self {
+//         LdapSearchEntry {
+//             dn: entry.dn,
+//             attrs: entry.attrs,
+//             bin_attrs: entry.bin_attrs,
+//         }
+//     }
+// }
+
 /// Function to request all AD values.
 pub async fn ldap_search(
     ldaps: bool,

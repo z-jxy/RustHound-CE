@@ -30,10 +30,10 @@ pub fn check_all_result(
     vec_enterprisecas: &mut Vec<EnterpriseCA>,
     vec_certtemplates: &mut Vec<CertTemplate>,
     vec_issuancepolicies: &mut Vec<IssuancePolicie>,
-    dn_sid: &mut HashMap<String, String>,
-    sid_type: &mut HashMap<String, String>,
-    fqdn_sid: &mut HashMap<String, String>,
-    _fqdn_ip: &mut HashMap<String, String>,
+    dn_sid: &HashMap<String, String>,
+    sid_type: &HashMap<String, String>,
+    fqdn_sid: &HashMap<String, String>,
+    _fqdn_ip: &HashMap<String, String>,
 ) -> Result<(), Box<dyn Error>> {
     let domain = &common_args.domain;
     info!("Starting checker to replace some values...");

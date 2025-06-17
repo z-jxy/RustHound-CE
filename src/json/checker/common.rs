@@ -1147,7 +1147,7 @@ pub fn add_trustdomain(
 
 /// This function checks PrincipalSID for all ACEs and adds the PrincipalType ("Group", "User", "Computer") v2
 pub fn add_type_for_ace<T: LdapObject>(
-    object: &mut Vec<T>,
+    object: &mut [T],
     sid_type: &HashMap<String, String>,
 ) -> Result<(), Box<dyn Error>> {
     // Progress bar setup
