@@ -239,7 +239,7 @@ pub fn add_default_users(vec_users: &mut Vec<User>, domain: String) -> Result<()
 
 /// This function is to push user SID in ChildObjects v2
 pub fn add_childobjects_members<T: LdapObject>(
-    vec_replaced: &mut Vec<T>,
+    vec_replaced: &mut [T],
     dn_sid: &HashMap<String, String>,
     sid_type: &HashMap<String, String>,
 ) -> Result<(), Box<dyn Error>> {
@@ -371,7 +371,7 @@ pub fn add_childobjects_members<T: LdapObject>(
 
 /// This function is to push user SID in ChildObjects for Ou v2
 pub fn add_childobjects_members_for_ou(
-    vec_replaced: &mut Vec<Ou>,
+    vec_replaced: &mut [Ou],
     dn_sid: &HashMap<String, String>,
     sid_type: &HashMap<String, String>,
 ) -> Result<(), Box<dyn Error>> {
@@ -560,7 +560,7 @@ pub fn add_childobjects_members_for_ou(
 
 /// This function checks GUID for all Gplinks and replaces them with the correct GUIDs
 pub fn replace_guid_gplink<T: LdapObject>(
-    vec_replaced: &mut Vec<T>,
+    vec_replaced: &mut [T],
     dn_sid: &HashMap<String, String>,
 ) -> Result<(), Box<dyn Error>> {
     // Progress bar setup
@@ -640,7 +640,7 @@ pub fn replace_guid_gplink<T: LdapObject>(
 
 /// This function pushes computer SIDs into the domain's GPO changes v2
 pub fn add_affected_computers(
-    vec_domains: &mut Vec<Domain>,
+    vec_domains: &mut [Domain],
     sid_type: &HashMap<String, String>,
 ) -> Result<(), Box<dyn Error>> {
     // Filter only "Computer" SIDs and map them to Member objects
@@ -688,7 +688,7 @@ pub fn add_affected_computers(
 
 /// This function pushes computer SIDs into GPO changes for each OU
 pub fn add_affected_computers_for_ou(
-    vec_ous: &mut Vec<Ou>,
+    vec_ous: &mut [Ou],
     dn_sid: &HashMap<String, String>,
     sid_type: &HashMap<String, String>,
 ) -> Result<(), Box<dyn Error>> {
@@ -900,7 +900,7 @@ pub fn replace_fqdn_by_sid<T: LdapObject>(
 
 /// This function checks and replaces object names by SIDs in group members v2
 pub fn replace_sid_members(
-    vec_groups: &mut Vec<Group>,
+    vec_groups: &mut [Group],
     dn_sid: &HashMap<String, String>,
     sid_type: &HashMap<String, String>,
     vec_trusts: &Vec<Trust>,
@@ -1215,7 +1215,7 @@ pub fn add_type_for_ace<T: LdapObject>(
 
 /// This function checks PrincipalSID for all AllowedToAct objects and adds the PrincipalType ("Group", "User", "Computer") v2
 pub fn add_type_for_allowtedtoact(
-    computer: &mut Vec<Computer>,
+    computer: &mut [Computer],
     sid_type: &HashMap<String, String>,
 ) -> Result<(), Box<dyn Error>> {
     // Progress bar setup
@@ -1279,7 +1279,7 @@ pub fn add_type_for_allowtedtoact(
 
 /// This function pushes user SID into ChildObjects for Ou v2
 pub fn add_contained_by_for<T: LdapObject>(
-    vec_replaced: &mut Vec<T>,
+    vec_replaced: &mut [T],
     dn_sid: &HashMap<String, String>,
     sid_type: &HashMap<String, String>,
 ) -> Result<(), Box<dyn Error>> {
@@ -1383,7 +1383,7 @@ pub fn add_contained_by_for<T: LdapObject>(
 // }
 
 /// Function to get name from DN
-pub fn get_name_from_full_distinguishedname(dn_object: &String) -> String {
+pub fn get_name_from_full_distinguishedname(dn_object: &str) -> String {
     // Example:
     // dn_object = CN=G0H4N,CN=USERS,DC=ESSOS,DC=LOCAL
     let split1 = dn_object.split(",");
@@ -1396,7 +1396,7 @@ pub fn get_name_from_full_distinguishedname(dn_object: &String) -> String {
 }
 
 /// Function to get CN=name from DN
-fn get_cn_object_name_from_full_distinguishedname(dn_object: &String) -> String {
+fn get_cn_object_name_from_full_distinguishedname(dn_object: &str) -> String {
     // Example:
     // dn_object = CN=G0H4N,CN=USERS,DC=ESSOS,DC=LOCAL
     let name = dn_object.to_owned();
@@ -1408,7 +1408,7 @@ fn get_cn_object_name_from_full_distinguishedname(dn_object: &String) -> String 
 }
 
 /// Function to get first degree contained by name from DN
-fn get_contained_by_name_from_distinguishedname(cn_name: &String, dn_object: &String) -> String {
+fn get_contained_by_name_from_distinguishedname(cn_name: &str, dn_object: &str) -> String {
     // Example:
     // dn_object = CN=G0H4N,CN=USERS,DC=ESSOS,DC=LOCAL
     let name = format!("{cn_name},");

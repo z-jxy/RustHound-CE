@@ -130,12 +130,9 @@ fn ace_maker<T: LdapObject>(
 ) {
     // trace!("ACL/ACE FOR ENTRY: {:?}",object.properties().name);
     // Ignore Creator Owner or Local System
-    let ignoresids = [
-        "S-1-3-0".to_string(),
-        "S-1-5-18".to_string(),
-        "S-1-5-10".to_string(),
-    ]; //, "S-1-1-0".to_string(), "S-1-5-10".to_string(), "S-1-5-11".to_string()];
-    if ignoresids.iter().any(|i| !osid.contains(i)) {
+    const IGNORE_SIDS: &[&str] = &["S-1-3-0", "S-1-5-18", "S-1-5-10"];
+    //, "S-1-1-0".to_string(), "S-1-5-10".to_string(), "S-1-5-11".to_string()];
+    if IGNORE_SIDS.iter().any(|i| !osid.contains(i)) {
         relations.push(AceTemplate::new(
             osid.to_owned(),
             "Base".to_string(),
@@ -155,7 +152,7 @@ fn ace_maker<T: LdapObject>(
         trace!("SID for this ACE: {}", &sid);
 
         // Check if sid is in the ignored list
-        if ignoresids.iter().any(|i| sid.contains(i)) {
+        if IGNORE_SIDS.iter().any(|i| sid.contains(i)) {
             continue;
         }
 
@@ -166,12 +163,12 @@ fn ace_maker<T: LdapObject>(
             let inherited_object_type =
                 AceFormat::get_inherited_object_type(ace.data.to_owned()).unwrap_or_default();
             // GUID : object_type
-            let object_type = AceFormat::get_object_type(ace.data.to_owned()).unwrap_or_default();
+            let object_type = AceFormat::get_object_type(&ace.data).unwrap_or_default();
             // Get and check ace.ace_flags object content INHERITED_ACE and return boolean
             let is_inherited = ace.ace_flags & INHERITED_ACE == INHERITED_ACE;
 
             // Get the Flag for the ace.datas
-            let flags = AceFormat::get_flags(ace.data.to_owned()).unwrap().bits();
+            let flags = AceFormat::get_flags(&ace.data).unwrap().bits();
 
             // https://github.com/fox-it/BloodHound.py/blob/645082e3462c93f31b571db945cde1fd7b837fb9/bloodhound/enumeration/acls.py#L77
             if (ace.ace_flags & INHERITED_ACE != INHERITED_ACE)
@@ -646,13 +643,13 @@ fn can_write_property(ace: &Ace, bin_property: &str) -> bool {
     }
 
     // Get the Flag for the ace.datas
-    let flags = AceFormat::get_flags(ace.data.to_owned()).unwrap().bits();
+    let flags = AceFormat::get_flags(&ace.data).unwrap().bits();
 
     if (flags & ACE_OBJECT_TYPE_PRESENT) != ACE_OBJECT_TYPE_PRESENT {
         return true;
     }
 
-    let typea = AceFormat::get_object_type(ace.data.to_owned()).unwrap_or_default();
+    let typea = AceFormat::get_object_type(&ace.data).unwrap_or_default();
 
     trace!(
         "AceFormat::get_object_type {}",
@@ -686,7 +683,7 @@ fn has_extended_right(ace: &Ace, bin_right_guid: &str) -> bool {
         return false;
     }
     // Get the Flag for the ace.datas
-    let flags = AceFormat::get_flags(ace.data.to_owned()).unwrap().bits();
+    let flags = AceFormat::get_flags(&ace.data).unwrap().bits();
 
     if (flags & ACE_OBJECT_TYPE_PRESENT) != ACE_OBJECT_TYPE_PRESENT {
         // if not ace_object.acedata.has_flag(ACCESS_ALLOWED_OBJECT_ACE.ACE_OBJECT_TYPE_PRESENT):
@@ -694,7 +691,7 @@ fn has_extended_right(ace: &Ace, bin_right_guid: &str) -> bool {
         return true;
     }
 
-    let typea = AceFormat::get_object_type(ace.data.to_owned()).unwrap_or_default();
+    let typea = AceFormat::get_object_type(&ace.data).unwrap_or_default();
 
     trace!(
         "AceFormat::get_object_type {}",

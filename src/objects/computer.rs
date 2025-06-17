@@ -106,12 +106,12 @@ impl Computer {
     pub fn parse(
         &mut self,
         result: SearchEntry,
-        domain: &String,
+        domain: &str,
         dn_sid: &mut HashMap<String, String>,
         sid_type: &mut HashMap<String, String>,
         fqdn_sid: &mut HashMap<String, String>,
         fqdn_ip: &mut HashMap<String, String>,
-        domain_sid: &String,
+        domain_sid: &str,
     ) -> Result<(), Box<dyn Error>> {
         let result_dn: String = result.dn.to_uppercase();
         let result_attrs: HashMap<String, Vec<String>> = result.attrs;
@@ -316,6 +316,10 @@ impl Computer {
                 _ => {}
             }
         }
+
+        let domain_sid_re =
+            Regex::new(r"^S-[0-9]{1}-[0-9]{1}-[0-9]{1,}-[0-9]{1,}-[0-9]{1,}-[0-9]{1,}")?;
+
         // For all, bins attributs
         for (key, value) in &result_bin {
             match key.as_str() {
@@ -324,10 +328,7 @@ impl Computer {
                     sid = sid_maker(LdapSid::parse(&value[0]).unwrap().1, domain);
                     self.object_identifier = sid.to_owned();
 
-                    let re =
-                        Regex::new(r"^S-[0-9]{1}-[0-9]{1}-[0-9]{1,}-[0-9]{1,}-[0-9]{1,}-[0-9]{1,}")
-                            .unwrap();
-                    for domain_sid in re.captures_iter(&sid) {
+                    for domain_sid in domain_sid_re.captures_iter(&sid) {
                         self.properties.domainsid = domain_sid[0].to_owned().to_string();
                     }
                 }

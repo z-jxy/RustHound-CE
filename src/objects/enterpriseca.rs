@@ -257,7 +257,7 @@ impl EnterpriseCA {
     }
 
     /// Function to get HostingComputer from ACL if ACE get ManageCertificates and is not Group.
-    fn get_hosting_computer(nt: &[u8], domain: &String) -> String {
+    fn get_hosting_computer(nt: &[u8], domain: &str) -> String {
         let mut hosting_computer = String::from("Not found");
         let blacklist_sid = [
             // <https://learn.microsoft.com/fr-fr/windows-server/identity/ad-ds/manage/understand-security-identifiers>

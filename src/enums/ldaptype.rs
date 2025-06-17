@@ -27,7 +27,7 @@ pub enum Type {
 pub fn get_type(result: &SearchEntry) -> std::result::Result<Type, Type> {
     let result_attrs: &HashMap<String, Vec<String>> = &result.attrs;
 
-    let contains = |values: &Vec<String>, to_find: &str| values.iter().any(|elem| elem == to_find);
+    let contains = |values: &[String], to_find: &str| values.iter().any(|elem| elem == to_find);
 
     let object_class_vals = result_attrs.get("objectClass");
     let flags_vals = result_attrs.get("flags");

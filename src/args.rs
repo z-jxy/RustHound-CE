@@ -36,7 +36,7 @@ pub enum CollectionMethod {
 }
 
 // Current RustHound version
-pub const RUSTHOUND_VERSION: &str = "2.3.4";
+pub const RUSTHOUND_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[cfg(not(feature = "noargs"))]
 fn cli() -> Command {

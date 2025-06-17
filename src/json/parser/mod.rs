@@ -68,7 +68,7 @@ pub fn parse_result_type(
     let mut container_buffer =
         ObjectBuffer::<Container>::new(&format!("{output_dir}/containers.jsonl"))?;
 
-    for (i, entry) in result.into_iter().enumerate() {
+    for entry in result.into_iter() {
         // Start parsing with Type matching
         let atype = get_type(&entry).unwrap_or(Type::Unknown);
         match atype {

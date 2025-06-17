@@ -503,7 +503,7 @@ impl SPNTarget {
     pub fn port(&self) -> &i32 {
         &self.port
     }
-    pub fn service(&self) -> &String {
+    pub fn service(&self) -> &str {
         &self.service
     }
 

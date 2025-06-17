@@ -170,6 +170,7 @@ pub enum AceFormat {
 impl AceFormat {
     pub fn parse(i: &[u8], ace_type: u8) -> IResult<&[u8], AceFormat>
     {
+        #[allow(clippy::if_same_then_else)]
         if ace_type == ACCESS_ALLOWED_ACE_TYPE {
             let data = AceFormat::AceAllowed(AccessAllowedAce::parse(i)?.1);
             Ok((i, data))
@@ -210,7 +211,7 @@ impl AceFormat {
         }
     }
 
-    pub fn get_flags(value: AceFormat) -> Option<ObjectAceFlags>
+    pub fn get_flags(value: &AceFormat) -> Option<ObjectAceFlags>
     {
         match value {
             AceFormat::AceAllowed(_) => None,
@@ -219,7 +220,7 @@ impl AceFormat {
         }
     }
 
-    pub fn get_object_type(value: AceFormat) -> Option<u128>
+    pub fn get_object_type(value: &AceFormat) -> Option<u128>
     {
         match value {
             AceFormat::AceAllowed(_) => None,
@@ -293,7 +294,7 @@ impl AccessAllowedObjectAce {
 
 bitflags! {
     /// AceFlags
-    #[derive(Clone,Debug)]
+    #[derive(Clone, Debug, Copy)]
     pub struct ObjectAceFlags : u32 {
         const ACE_OBJECT_PRESENT = 0x0001;
         const ACE_INHERITED_OBJECT_PRESENT = 0x0002;

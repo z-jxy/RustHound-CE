@@ -55,7 +55,7 @@ impl Trust {
     }
 
     /// Function to parse and replace value for trust domain object.
-    pub fn parse(&mut self, result: SearchEntry, domain: &String) -> Result<(), Box<dyn Error>> {
+    pub fn parse(&mut self, result: SearchEntry, domain: &str) -> Result<(), Box<dyn Error>> {
         let result_dn: String = result.dn.to_uppercase();
         let result_attrs: HashMap<String, Vec<String>> = result.attrs;
         let result_bin: HashMap<String, Vec<Vec<u8>>> = result.bin_attrs;

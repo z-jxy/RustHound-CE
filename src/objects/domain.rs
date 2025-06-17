@@ -70,7 +70,7 @@ impl Domain {
     pub fn parse(
         &mut self,
         result: SearchEntry,
-        domain_name: &String,
+        domain_name: &str,
         dn_sid: &mut HashMap<String, String>,
         sid_type: &mut HashMap<String, String>,
     ) -> Result<String, Box<dyn Error>> {

@@ -6,6 +6,7 @@ pub mod utils;
 
 use env_logger::Builder;
 use log::{error, info, trace};
+use rusthound_ce::ldap::LdapSearchEntry;
 use std::error::Error;
 
 pub use rusthound_ce::args;
@@ -19,7 +20,6 @@ use rusthound_ce::args::auto_args;
 use rusthound_ce::args::{extract_args, Options};
 
 use banner::{print_banner, print_end_banner};
-use json::maker::make_result;
 use ldap::ldap_search;
 use modules::run_modules;
 
