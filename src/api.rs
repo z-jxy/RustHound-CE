@@ -105,10 +105,10 @@ pub async fn prepare_results(
         &mut results.enterprisecas,
         &mut results.certtemplates,
         &mut results.issuancepolicies,
-        &mut results.dn_sid,
-        &mut results.sid_type,
-        &mut results.fqdn_sid,
-        &mut results.fqdn_ip,
+        &results.dn_sid,
+        &results.sid_type,
+        &results.fqdn_sid,
+        &results.fqdn_ip,
     )?;
 
     Ok(results)

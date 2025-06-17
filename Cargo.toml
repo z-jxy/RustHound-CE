@@ -14,7 +14,7 @@ readme = "README.md"
 [dependencies]
 tokio = "1.42.0"
 clap = "4.5.23"
-dhat = "0.3.3"
+dhat = { version = "0.3.3", optional = true }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1.0", features = ["preserve_order"] }
 nom7 = { version="7.0", package="nom" }
@@ -38,7 +38,7 @@ sha1 = "0.10"
 noargs = ["winreg"] # Only available for Windows
 nogssapi = ["ldap3/tls-native"] # Used for linux_musl armv7 and macos compilation
 default = ["ldap3/tls-rustls","ldap3/gssapi"]
-dhat-heap = [] # heap profiling
+dhat-heap = ["dhat"] # heap profiling
 
 
 [profile.release]

@@ -20,11 +20,11 @@ use log::{error, trace};
 /// <http://www.selfadsi.org/deep-inside/ad-security-descriptors.htm#SecurityDescriptorStructure>
 pub fn parse_ntsecuritydescriptor<T: LdapObject>(
     object: &mut T,
-    nt: &Vec<u8>,
+    nt: &[u8],
     entry_type: String,
     result_attrs: &HashMap<String, Vec<String>>,
     result_bin: &HashMap<String, Vec<Vec<u8>>>,
-    domain: &String,
+    domain: &str,
 ) -> Vec<AceTemplate> {
     let mut relations_dacl: Vec<AceTemplate> = Vec::new();
     let relations_sacl: Vec<AceTemplate> = Vec::new();
@@ -120,11 +120,11 @@ pub fn parse_ntsecuritydescriptor<T: LdapObject>(
 /// <https://github.com/fox-it/BloodHound.py/blob/master/bloodhound/enumeration/acls.py>
 fn ace_maker<T: LdapObject>(
     object: &mut T,
-    domain: &String,
+    domain: &str,
     relations: &mut Vec<AceTemplate>,
-    osid: &String,
+    osid: &str,
     aces: Vec<Ace>,
-    entry_type: &String,
+    entry_type: &str,
     _result_attrs: &HashMap<String, Vec<String>>,
     _result_bin: &HashMap<String, Vec<Vec<u8>>>,
 ) {
@@ -416,7 +416,7 @@ fn ace_maker<T: LdapObject>(
             // https://github.com/fox-it/BloodHound.py/blob/645082e3462c93f31b571db945cde1fd7b837fb9/bloodhound/enumeration/acls.py#L146
             if (MaskFlags::ADS_RIGHT_DS_CONTROL_ACCESS.bits() | mask) == mask {
                 // All Extended
-                if ["User", "Domain"].contains(&entry_type.as_str())
+                if ["User", "Domain"].contains(&entry_type)
                     && (flags & ACE_OBJECT_TYPE_PRESENT != ACE_OBJECT_TYPE_PRESENT)
                 {
                     relations.push(AceTemplate::new(
@@ -475,7 +475,7 @@ fn ace_maker<T: LdapObject>(
                         "".to_string(),
                     ));
                 }
-                if ["EnterpriseCA", "RootCA", "CertTemplate"].contains(&entry_type.as_str())
+                if ["EnterpriseCA", "RootCA", "CertTemplate"].contains(&entry_type)
                     && has_extended_right(&ace, ENROLL)
                 {
                     relations.push(AceTemplate::new(
@@ -486,7 +486,7 @@ fn ace_maker<T: LdapObject>(
                         "".to_string(),
                     ));
                 }
-                if ["EnterpriseCA", "RootCA", "CertTemplate"].contains(&entry_type.as_str())
+                if ["EnterpriseCA", "RootCA", "CertTemplate"].contains(&entry_type)
                     && has_extended_right(&ace, AUTO_ENROLL)
                 {
                     relations.push(AceTemplate::new(
@@ -600,7 +600,7 @@ fn ace_maker<T: LdapObject>(
                 }
             }
 
-            if ["EnterpriseCA", "RootCA"].contains(&entry_type.as_str())
+            if ["EnterpriseCA", "RootCA"].contains(&entry_type)
                 && (MaskFlags::MANAGE_CA.bits() | mask) == mask
             {
                 relations.push(AceTemplate::new(
@@ -611,7 +611,7 @@ fn ace_maker<T: LdapObject>(
                     "".to_string(),
                 ));
             }
-            if ["EnterpriseCA", "RootCA"].contains(&entry_type.as_str())
+            if ["EnterpriseCA", "RootCA"].contains(&entry_type)
                 && (MaskFlags::MANAGE_CERTIFICATES.bits() | mask) == mask
             {
                 relations.push(AceTemplate::new(
@@ -712,7 +712,7 @@ fn has_extended_right(ace: &Ace, bin_right_guid: &str) -> bool {
 
 /// Check if an ACE applies to this object.
 /// <https://github.com/fox-it/BloodHound.py/blob/645082e3462c93f31b571db945cde1fd7b837fb9/bloodhound/enumeration/acls.py#L229>
-fn ace_applies(ace_guid: &String, entry_type: &String) -> bool {
+fn ace_applies(ace_guid: &str, entry_type: &str) -> bool {
     // Checks if an ACE applies to this object (based on object classes).
     // Note that this function assumes you already verified that InheritedObjectType is set (via the flag).
     // If this is not set, the ACE applies to all object types.
@@ -723,14 +723,13 @@ fn ace_applies(ace_guid: &String, entry_type: &String) -> bool {
             .get(entry_type)
             .unwrap_or(&String::from("GUID-NOT-FOUND"))
     );
-    ace_guid
-        == OBJECTTYPE_GUID_HASHMAP
-            .get(entry_type)
-            .unwrap_or(&String::from("GUID-NOT-FOUND"))
+    OBJECTTYPE_GUID_HASHMAP
+        .get(entry_type)
+        .is_some_and(|guid| ace_guid == guid)
 }
 
 /// Function to check the user can read Service Account password
-pub fn parse_gmsa(processed_aces: &mut Vec<AceTemplate>, user: &mut User) {
+pub fn parse_gmsa(processed_aces: &mut [AceTemplate], user: &mut User) {
     for i in 0..processed_aces.len() {
         match processed_aces[i].right_name().as_str() {
             "Owns" | "Owner" => {}
