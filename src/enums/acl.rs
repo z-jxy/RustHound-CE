@@ -192,7 +192,7 @@ fn ace_maker<T: LdapObject>(
                 // continue
                 // https://github.com/fox-it/BloodHound.py/blob/645082e3462c93f31b571db945cde1fd7b837fb9/bloodhound/enumeration/acls.py#L85
                 let ace_guid =
-                    decode_guid_le(&inherited_object_type.to_le_bytes().to_vec()).to_lowercase();
+                    decode_guid_le(inherited_object_type.to_le_bytes().as_ref()).to_lowercase();
                 if !(ace_applies(&ace_guid, entry_type)) {
                     continue;
                 }
@@ -204,7 +204,7 @@ fn ace_maker<T: LdapObject>(
             };
             trace!("ACE MASK for ACETYPE 0x05: {:?}", mask);
 
-            let ace_guid = decode_guid_le(&object_type.to_le_bytes().to_vec()).to_lowercase();
+            let ace_guid = decode_guid_le(object_type.to_le_bytes().as_ref()).to_lowercase();
             trace!("ACE GUID for ACETYPE 0x05: {:?}", ace_guid);
 
             // https://github.com/fox-it/BloodHound.py/blob/645082e3462c93f31b571db945cde1fd7b837fb9/bloodhound/enumeration/acls.py#L92
@@ -656,11 +656,11 @@ fn can_write_property(ace: &Ace, bin_property: &str) -> bool {
 
     trace!(
         "AceFormat::get_object_type {}",
-        decode_guid_le(&typea.to_le_bytes().to_vec())
+        decode_guid_le(typea.to_le_bytes().as_ref())
     );
     trace!("bin_property_guid_string {}", bin_property.to_uppercase());
 
-    if bin_to_string(&typea.to_le_bytes().to_vec()) == bin_property.to_uppercase() {
+    if bin_to_string(typea.to_le_bytes().as_ref()) == bin_property.to_uppercase() {
         trace!("MATCHED AceFormat::get_object_type with bin_property!");
         return true;
     }
@@ -698,11 +698,11 @@ fn has_extended_right(ace: &Ace, bin_right_guid: &str) -> bool {
 
     trace!(
         "AceFormat::get_object_type {}",
-        decode_guid_le(&typea.to_le_bytes().to_vec()).to_uppercase()
+        decode_guid_le(typea.to_le_bytes().as_ref()).to_uppercase()
     );
     trace!("bin_right_guid {}", bin_right_guid.to_uppercase());
 
-    if decode_guid_le(&typea.to_le_bytes().to_vec()) == bin_right_guid.to_uppercase() {
+    if decode_guid_le(typea.to_le_bytes().as_ref()) == bin_right_guid.to_uppercase() {
         trace!("MATCHED AceFormat::get_object_type with bin_right_guid!");
         return true;
     }
@@ -730,14 +730,12 @@ fn ace_applies(ace_guid: &str, entry_type: &str) -> bool {
 
 /// Function to check the user can read Service Account password
 pub fn parse_gmsa(processed_aces: &mut [AceTemplate], user: &mut User) {
-    for i in 0..processed_aces.len() {
-        match processed_aces[i].right_name().as_str() {
+    for ace in processed_aces {
+        match ace.right_name().as_str() {
             "Owns" | "Owner" => {}
             _ => {
-                *processed_aces[i].right_name_mut() = "ReadGMSAPassword".to_string();
-                let mut aces = user.aces().to_owned();
-                aces.push(processed_aces[i].to_owned());
-                *user.aces_mut() = aces;
+                *ace.right_name_mut() = "ReadGMSAPassword".to_string();
+                user.aces_mut().push(ace.to_owned());
             }
         }
     }
@@ -747,7 +745,7 @@ pub fn parse_gmsa(processed_aces: &mut [AceTemplate], user: &mut User) {
 pub fn parse_ca_security(
     nt: &[u8],
     hosting_computer_sid: &String,
-    domain: &String,
+    domain: &str,
 ) -> Vec<AceTemplate> {
     // The CASecurity exist in the AD object DACL and in registry of the CA server.
     // SharpHound prefer to use the values from registry as they are the ground truth.
