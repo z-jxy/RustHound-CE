@@ -781,7 +781,7 @@ pub fn add_affected_computers_for_ou(
 /// This function replaces FQDN by SID in users' SPNTargets or computers' AllowedToDelegate
 pub fn replace_fqdn_by_sid<T: LdapObject>(
     object_type: Type,
-    vec_src: &mut Vec<T>,
+    vec_src: &mut [T],
     fqdn_sid: &HashMap<String, String>,
 ) -> Result<(), Box<dyn Error>> {
     // Progress bar setup

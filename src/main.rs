@@ -23,9 +23,16 @@ use json::maker::make_result;
 use ldap::ldap_search;
 use modules::run_modules;
 
+#[cfg(feature = "dhat-heap")]
+#[global_allocator]
+static ALLOC: dhat::Alloc = dhat::Alloc;
+
 /// Main of RustHound
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
+    #[cfg(feature = "dhat-heap")]
+    let _profiler = dhat::Profiler::new_heap();
+
     // Banner
     print_banner();
 
