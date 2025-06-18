@@ -1,3 +1,4 @@
+#![allow(clippy::too_many_arguments)]
 //! Run a LDAP enumeration and parse results
 //!
 //! This module will prepare your connection and request the LDAP server to retrieve all the information needed to create the json files.
@@ -26,7 +27,7 @@ use std::io::{self, stdin, Write};
 use std::process;
 
 // New type to implement Serialize and Deserialize for SearchEntry
-#[derive(serde::Deserialize, serde::Serialize, Debug, Clone, bincode::Encode, bincode::Decode)]
+#[derive(Debug, Clone, bincode::Encode, bincode::Decode)]
 pub struct LdapSearchEntry {
     /// Entry DN.
     pub dn: String,
@@ -56,6 +57,11 @@ impl From<LdapSearchEntry> for SearchEntry {
     }
 }
 
+pub enum LdapAuth {
+    SimpleBind { username: String, password: String },
+    GssapiBind { ldapfqdn: String, domain: String },
+}
+
 /// Function to request all AD values.
 pub async fn ldap_search(
     ldaps: bool,
@@ -63,8 +69,8 @@ pub async fn ldap_search(
     port: Option<u16>,
     domain: &str,
     ldapfqdn: &str,
-    username: &str,
-    password: &str,
+    username: Option<&str>,
+    password: Option<&str>,
     kerberos: bool,
     ldapfilter: &str,
 ) -> Result<Vec<SearchEntry>, Box<dyn Error>> {
@@ -234,8 +240,8 @@ fn ldap_constructor(
     port: Option<u16>,
     domain: &str,
     ldapfqdn: &str,
-    username: &str,
-    password: &str,
+    username: Option<&str>,
+    password: Option<&str>,
     kerberos: bool,
 ) -> Result<LdapArgs, Box<dyn Error>> {
     // Prepare ldap url
@@ -247,7 +253,7 @@ fn ldap_constructor(
     // Username prompt
     let mut s = String::new();
     let mut _s_username: String;
-    if username.contains("not set") && !kerberos {
+    if username.is_none() && !kerberos {
         print!("Username: ");
         io::stdout().flush()?;
         stdin()
@@ -262,7 +268,7 @@ fn ldap_constructor(
         }
         _s_username = s.to_owned();
     } else {
-        _s_username = username.to_owned();
+        _s_username = username.unwrap_or("not set").to_owned();
     }
 
     // Format username and email
@@ -279,16 +285,12 @@ fn ldap_constructor(
     // Password prompt
     let mut _s_password: String = String::new();
     if !_s_username.contains("not set") && !kerberos {
-        if password.contains("not set") {
-            // Prompt for user password
-            let rpass: String =
-                rpassword::prompt_password("Password: ").unwrap_or("not set".to_string());
-            _s_password = rpass;
-        } else {
-            _s_password = password.to_owned();
-        }
+        _s_password = match password {
+            Some(p) => p.to_owned(),
+            None => rpassword::prompt_password("Password: ").unwrap_or("not set".to_string()),
+        };
     } else {
-        _s_password = password.to_owned();
+        _s_password = password.unwrap_or("not set").to_owned();
     }
 
     // Print infos if verbose mod is set
@@ -373,8 +375,8 @@ pub fn prepare_ldap_dc(domain: &str) -> Vec<String> {
 #[cfg(not(feature = "nogssapi"))]
 async fn gssapi_connection(
     ldap: &mut ldap3::Ldap,
-    ldapfqdn: &String,
-    domain: &String,
+    ldapfqdn: &str,
+    domain: &str,
 ) -> Result<(), Box<dyn Error>> {
     let res = ldap.sasl_gssapi_bind(ldapfqdn).await?.success();
     match res {

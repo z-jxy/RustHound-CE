@@ -103,6 +103,7 @@ impl Computer {
 
     /// Function to parse and replace value for computer object.
     /// <https://bloodhound.readthedocs.io/en/latest/further-reading/json.html#computers>
+    #[allow(clippy::too_many_arguments)]
     pub fn parse(
         &mut self,
         result: SearchEntry,

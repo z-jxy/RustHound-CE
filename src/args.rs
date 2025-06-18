@@ -12,8 +12,8 @@ use winreg::{enums::*, RegKey};
 #[derive(Clone, Debug)]
 pub struct Options {
     pub domain: String,
-    pub username: String,
-    pub password: String,
+    pub username: Option<String>,
+    pub password: Option<String>,
     pub ldapfqdn: String,
     pub ip: Option<String>,
     pub port: Option<u16>,
@@ -183,14 +183,12 @@ pub fn extract_args() -> Options {
         .get_one::<String>("domain")
         .map(|s| s.as_str())
         .unwrap();
-    let u = matches
+    let username = matches
         .get_one::<String>("ldapusername")
-        .map(|s| s.as_str())
-        .unwrap_or("not set");
-    let p = matches
+        .map(|s| s.to_owned());
+    let password = matches
         .get_one::<String>("ldappassword")
-        .map(|s| s.as_str())
-        .unwrap_or("not set");
+        .map(|s| s.to_owned());
     let f = matches
         .get_one::<String>("ldapfqdn")
         .map(|s| s.as_str())
@@ -252,8 +250,8 @@ pub fn extract_args() -> Options {
     // Return all
     Options {
         domain: d.to_string(),
-        username: u.to_string(),
-        password: p.to_string(),
+        username,
+        password,
         ldapfqdn: f.to_string(),
         ip,
         port,

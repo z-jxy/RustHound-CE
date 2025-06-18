@@ -4,7 +4,6 @@ pub mod json;
 pub mod modules;
 pub mod utils;
 
-use bincode::Encode;
 use env_logger::Builder;
 use log::{error, info, trace};
 use rusthound_ce::ldap::LdapSearchEntry;
@@ -75,8 +74,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 common_args.port,
                 &common_args.domain,
                 &common_args.ldapfqdn,
-                &common_args.username,
-                &common_args.password,
+                common_args.username.as_deref(),
+                common_args.password.as_deref(),
                 common_args.kerberos,
                 &common_args.ldap_filter,
             )
@@ -98,14 +97,27 @@ async fn main() -> Result<(), Box<dyn Error>> {
         }
     };
 
-    println!("Found {} LDAP objects", result.len());
+    info!("Found {} LDAP objects", result.len());
+    let memory_usage: usize = result
+        .iter()
+        .map(|entry| {
+            std::mem::size_of::<ldap3::SearchEntry>()
+                + entry.dn.len()
+                + entry
+                    .attrs
+                    .iter()
+                    .map(|(key, values)| key.len() + values.iter().map(|v| v.len()).sum::<usize>())
+                    .sum::<usize>()
+        })
+        .sum();
+    info!("Memory usage for LDAP entries: {} bytes", memory_usage);
 
     let mut results = rusthound_ce::prepare_results(result, &common_args).await?;
 
     // Running modules
     run_modules(
         &common_args,
-        &mut results.fqdn_ip,
+        &mut results.mappings.fqdn_ip,
         results.computers.as_mut_slice(),
     )
     .await?;

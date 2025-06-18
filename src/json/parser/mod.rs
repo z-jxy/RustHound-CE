@@ -20,9 +20,10 @@ use log::info;
 // use crate::modules::adcs::parser::{parse_adcs_ca,parse_adcs_template};
 
 /// Function to get type for object by object
+#[allow(clippy::too_many_arguments)]
 pub fn parse_result_type(
     common_args: &Options,
-    mut result: Vec<SearchEntry>,
+    result: Vec<SearchEntry>,
     // vec_users: &mut Vec<User>,
     // vec_groups: &mut Vec<Group>,
     // vec_computers: &mut Vec<Computer>,

@@ -2,6 +2,18 @@ use std::collections::HashMap;
 
 use ldap3::SearchEntry;
 
+#[derive(Default)]
+pub struct DomainMappings {
+    /// DN to SID
+    pub dn_sid: HashMap<String, String>,
+    ///  DN to Type
+    pub sid_type: HashMap<String, String>,
+    /// FQDN to SID
+    pub fqdn_sid: HashMap<String, String>,
+    /// fqdn to an ip address
+    pub fqdn_ip: HashMap<String, String>,
+}
+
 use crate::{
     args::Options,
     io::jsonl_load,
@@ -32,14 +44,7 @@ pub struct Results {
     pub certtemplates: Vec<CertTemplate>,
     pub issuancepolicies: Vec<IssuancePolicie>,
 
-    /// DN to SID
-    pub dn_sid: HashMap<String, String>,
-    ///  DN to Type
-    pub sid_type: HashMap<String, String>,
-    /// FQDN to SID
-    pub fqdn_sid: HashMap<String, String>,
-    /// fqdn to an ip address
-    pub fqdn_ip: HashMap<String, String>,
+    pub mappings: DomainMappings,
 }
 
 pub async fn prepare_results(
@@ -68,10 +73,10 @@ pub async fn prepare_results(
         &mut results.enterprisecas,
         &mut results.certtemplates,
         &mut results.issuancepolicies,
-        &mut results.dn_sid,
-        &mut results.sid_type,
-        &mut results.fqdn_sid,
-        &mut results.fqdn_ip,
+        &mut results.mappings.dn_sid,
+        &mut results.mappings.sid_type,
+        &mut results.mappings.fqdn_sid,
+        &mut results.mappings.fqdn_ip,
     )?;
 
     results.users = jsonl_load(format!(".rusthound-cache/{}/users.jsonl", options.domain))?;
@@ -105,10 +110,10 @@ pub async fn prepare_results(
         &mut results.enterprisecas,
         &mut results.certtemplates,
         &mut results.issuancepolicies,
-        &results.dn_sid,
-        &results.sid_type,
-        &results.fqdn_sid,
-        &results.fqdn_ip,
+        &results.mappings.dn_sid,
+        &results.mappings.sid_type,
+        &results.mappings.fqdn_sid,
+        &results.mappings.fqdn_ip,
     )?;
 
     Ok(results)
