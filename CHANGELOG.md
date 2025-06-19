@@ -1,5 +1,18 @@
 # Changelog
 
+## v2.3.5
+
+### Date
+`2025/06/19`
+
+### Summary
+
+Issue #[10](https://github.com/g0h4n/RustHound-CE/issues/10) fixed.
+
+The problem was caused by the ACEs from `msDS-GroupMSAMembership` overwriting those from `nTSecurityDescriptor`, due to a reassignment of `self.aces` instead of appending to it on gMSA users.
+
+The fix ensures that ACEs from both attributes are now properly merged. As a result, users and groups with `ReadGMSAPassword` permissions on gMSA accounts are correctly captured and included in the final output. Thanks to [0xdf223](https://github.com/0xdf223) for reporting.
+
 ## v2.3.4
 
 ### Date

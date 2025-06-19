@@ -305,7 +305,7 @@ impl User {
                      &result_bin,
                      &domain,
                   );
-                  self.aces = relations_ace;
+                  self.aces_mut().extend(relations_ace);
             }
             "sIDHistory" => {
                   // not tested! #tocheck
@@ -330,9 +330,9 @@ impl User {
                      &domain,
                   );
                   // Now add the new ACE wich who can read GMSA password
-                  // trace!("User ACES before GMSA: {:?}", user.aces());
+                  // trace!("User ACES before GMSA: {:?}", self.aces());
                   parse_gmsa(&mut relations_ace, self);
-                  // info!("User ACES after GMSA: {:?}", user.aces());
+                  // trace!("User ACES after GMSA: {:?}", self.aces());
             }
             "userCertificate" => {
                   // <https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-adls/d66d1662-0b4f-44ab-a4c8-e788f3ae39cf>

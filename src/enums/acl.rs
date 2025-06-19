@@ -725,22 +725,15 @@ fn ace_applies(ace_guid: &String, entry_type: &String) -> bool {
     return &ace_guid == &OBJECTTYPE_GUID_HASHMAP.get(entry_type).unwrap_or(&String::from("GUID-NOT-FOUND"))
 }
 
-/// Function to check the user can read Service Account password
-pub fn parse_gmsa(
-    processed_aces: &mut Vec<AceTemplate>,
-    user: &mut User
-) {
-    for i in 0..processed_aces.len()
-    {
-        match processed_aces[i].right_name().as_str() {
-            "Owns" | "Owner" => {},
-            _ => {
-                *processed_aces[i].right_name_mut() = "ReadGMSAPassword".to_string();
-                let mut aces = user.aces().to_owned();
-                aces.push(processed_aces[i].to_owned());
-                *user.aces_mut() = aces;
-            }
+/// Function to parse GMSA DACL which states which users (or groups) can read the password
+pub fn parse_gmsa(processed_aces: &[AceTemplate], user: &mut User) {
+    for ace in processed_aces {
+        if ace.right_name() == "Owner"  { // || ace.right_name() == "Owns" {
+            continue;
         }
+        let mut ace = ace.clone();
+        *ace.right_name_mut() = "ReadGMSAPassword".to_string();
+        user.aces_mut().push(ace);
     }
 }
 
