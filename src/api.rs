@@ -17,7 +17,10 @@ pub struct DomainMappings {
 use crate::{
     args::Options,
     io::jsonl_load,
-    json::{checker::check_all_result, parser::parse_result_type},
+    json::{
+        checker::check_all_result,
+        parser::{parse_result_type_from_cache, parse_result_type_from_mem},
+    },
     objects::{
         aiaca::AIACA, certtemplate::CertTemplate, computer::Computer, container::Container,
         domain::Domain, enterpriseca::EnterpriseCA, fsp::Fsp, gpo::Gpo, group::Group,
@@ -55,7 +58,7 @@ pub async fn prepare_results(
 
     // Analyze object by object
     // Get type and parse it to get values
-    parse_result_type(
+    parse_result_type_from_mem(
         options,
         result,
         // &mut results.users,
@@ -77,6 +80,80 @@ pub async fn prepare_results(
         &mut results.mappings.sid_type,
         &mut results.mappings.fqdn_sid,
         &mut results.mappings.fqdn_ip,
+    )?;
+
+    results.users = jsonl_load(format!(".rusthound-cache/{}/users.jsonl", options.domain))?;
+    results.groups = jsonl_load(format!(".rusthound-cache/{}/groups.jsonl", options.domain))?;
+    results.computers = jsonl_load(format!(
+        ".rusthound-cache/{}/computers.jsonl",
+        options.domain
+    ))?;
+    results.ous = jsonl_load(format!(".rusthound-cache/{}/ous.jsonl", options.domain))?;
+    results.gpos = jsonl_load(format!(".rusthound-cache/{}/gpos.jsonl", options.domain))?;
+    results.containers = jsonl_load(format!(
+        ".rusthound-cache/{}/containers.jsonl",
+        options.domain
+    ))?;
+
+    // Functions to replace and add missing values
+    check_all_result(
+        options,
+        &mut results.users,
+        &mut results.groups,
+        &mut results.computers,
+        &mut results.ous,
+        &mut results.domains,
+        &mut results.gpos,
+        &mut results.fsps,
+        &mut results.containers,
+        &mut results.trusts,
+        &mut results.ntauthstores,
+        &mut results.aiacas,
+        &mut results.rootcas,
+        &mut results.enterprisecas,
+        &mut results.certtemplates,
+        &mut results.issuancepolicies,
+        &results.mappings.dn_sid,
+        &results.mappings.sid_type,
+        &results.mappings.fqdn_sid,
+        &results.mappings.fqdn_ip,
+    )?;
+
+    Ok(results)
+}
+
+pub async fn prepare_results_from_cache(
+    ldap_cache_path: impl AsRef<std::path::Path>,
+    options: &Options,
+    total_objects: Option<usize>,
+) -> Result<Results, Box<dyn std::error::Error>> {
+    let mut results = Results::default();
+
+    // Analyze object by object
+    // Get type and parse it to get values
+    parse_result_type_from_cache(
+        options,
+        ldap_cache_path,
+        // &mut results.users,
+        // &mut results.groups,
+        // &mut results.computers,
+        // &mut results.ous,
+        &mut results.domains,
+        // &mut results.gpos,
+        &mut results.fsps,
+        // &mut results.containers,
+        &mut results.trusts,
+        &mut results.ntauthstores,
+        &mut results.aiacas,
+        &mut results.rootcas,
+        &mut results.enterprisecas,
+        &mut results.certtemplates,
+        &mut results.issuancepolicies,
+        &mut results.mappings.dn_sid,
+        &mut results.mappings.sid_type,
+        &mut results.mappings.fqdn_sid,
+        &mut results.mappings.fqdn_ip,
+        total_objects,
     )?;
 
     results.users = jsonl_load(format!(".rusthound-cache/{}/users.jsonl", options.domain))?;

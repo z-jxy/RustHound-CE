@@ -58,6 +58,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         std::path::PathBuf::from(format!(".rusthound-cache/{}", common_args.domain))
             .join("searched_objects.bin");
 
+    let mut total_objects = None;
     let result: Vec<ldap3::SearchEntry> = match common_args.resume {
         true => {
             info!("Resuming from cache: {}", ldap_cache_path.display());
@@ -69,7 +70,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         }
         false => {
             // LDAP request to get all informations in result
-            ldap_search_with_cache(
+            let (_, total_cached) = ldap_search_with_cache(
                 common_args.ldaps,
                 common_args.ip.as_deref(),
                 common_args.port,
@@ -82,6 +83,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 &ldap_cache_path,
             )
             .await?;
+            total_objects = Some(total_cached);
 
             log::debug!("Loading LDAP cache from: {}", ldap_cache_path.display());
             let data: Vec<LdapSearchEntry> = crate::io::bincode_load_streaming(
@@ -107,7 +109,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .sum();
     info!("Memory usage for LDAP entries: {} bytes", memory_usage);
 
-    let mut results = rusthound_ce::prepare_results(result, &common_args).await?;
+    let mut results =
+        rusthound_ce::prepare_results_from_cache(ldap_cache_path, &common_args, total_objects)
+            .await?;
 
     // Running modules
     run_modules(

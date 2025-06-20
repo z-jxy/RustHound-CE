@@ -238,7 +238,7 @@ pub async fn ldap_search_with_cache(
     kerberos: bool,
     ldapfilter: &str,
     cache_path: &PathBuf,
-) -> Result<(), Box<dyn Error>> {
+) -> Result<(BincodeObjectBuffer<LdapSearchEntry>, usize), Box<dyn Error>> {
     use crate::io::DiskBuffer;
     // Construct LDAP args
     let ldap_args = ldap_constructor(
@@ -293,6 +293,7 @@ pub async fn ldap_search_with_cache(
 
     // Prepare LDAP result vector
     let mut rs: BincodeObjectBuffer<LdapSearchEntry> = BincodeObjectBuffer::new(cache_path)?;
+    let mut total = 0; // for progress bar
 
     // Request all namingContexts for current DC
     let res = match get_all_naming_contexts(&mut ldap).await {
@@ -356,6 +357,7 @@ pub async fn ldap_search_with_cache(
             while let Some(entry) = search.next().await? {
                 let entry = SearchEntry::construct(entry);
                 //trace!("{:?}", &entry);
+                total += 1;
                 // Manage progress bar
                 count += 1;
                 progress_bar(
@@ -386,10 +388,10 @@ pub async fn ldap_search_with_cache(
         ldap.unbind().await?;
     }
 
-    rs.finish()?;
+    rs.flush_buffer()?;
 
     // Return the vector with the result
-    Ok(())
+    Ok((rs, total))
 }
 
 /// Structure containing the LDAP connection arguments.

@@ -3,6 +3,8 @@ use std::error::Error;
 use std::fs::OpenOptions;
 use std::io::{BufRead, BufReader, BufWriter, Write};
 
+pub mod iter;
+
 const BUFFER_SIZE: usize = 1000;
 
 pub trait DiskBuffer<T>
