@@ -1,4 +1,3 @@
-use std::collections::VecDeque;
 use std::error::Error;
 use std::fs::OpenOptions;
 use std::io::{BufRead, BufReader, BufWriter, Write};
@@ -11,11 +10,11 @@ pub trait DiskBuffer<T>
 where
     Self: Sized,
 {
-    fn buffer_mut(&mut self) -> &mut VecDeque<T>;
+    fn buffer_mut(&mut self) -> &mut Vec<T>;
     fn flush_buffer(&mut self) -> Result<(), Box<dyn Error>>;
 
     fn add(&mut self, item: T) -> Result<(), Box<dyn Error>> {
-        self.buffer_mut().push_back(item);
+        self.buffer_mut().push(item);
 
         if self.buffer_mut().len() >= self.buffer_mut().capacity() {
             self.flush_buffer()?;
@@ -69,12 +68,12 @@ where
     T: serde::Serialize,
 {
     #[inline]
-    fn buffer_mut(&mut self) -> &mut VecDeque<T> {
+    fn buffer_mut(&mut self) -> &mut Vec<T> {
         &mut self.0.buffer
     }
 
     fn flush_buffer(&mut self) -> Result<(), Box<dyn Error>> {
-        while let Some(item) = self.0.buffer.pop_front() {
+        for item in self.0.buffer.drain(..) {
             let json_line = serde_json::to_string(&item)?;
             writeln!(self.0.writer, "{json_line}")?;
         }
@@ -88,25 +87,13 @@ where
     T: bincode::Encode,
 {
     #[inline]
-    fn buffer_mut(&mut self) -> &mut VecDeque<T> {
+    fn buffer_mut(&mut self) -> &mut Vec<T> {
         &mut self.obj_buffer.buffer
     }
 
     fn flush_buffer(&mut self) -> Result<(), Box<dyn Error>> {
-        // while let Some(item) = self.obj_buffer.buffer.pop_front() {
-        //     let encoded = bincode::encode_to_vec(&item, bincode::config::standard())?;
-
-        //     let len = encoded.len() as u32;
-        //     self.obj_buffer.writer.write_all(&len.to_le_bytes())?;
-
-        //     self.obj_buffer.writer.write_all(&encoded)?;
-        // }
-
-        // self.obj_buffer.writer.flush()?;
-
         for item in self.obj_buffer.buffer.drain(..) {
-            // More efficient than pop_front
-            self.encode_buffer.clear(); // Reuse buffer
+            self.encode_buffer.clear();
             bincode::encode_into_std_write(
                 &item,
                 &mut self.encode_buffer,
@@ -126,7 +113,7 @@ where
 ///
 /// Flushes to the file when it reaches its capacity or when explicitly flushed.
 pub struct ObjectBuffer<T> {
-    buffer: VecDeque<T>,
+    buffer: Vec<T>,
     writer: BufWriter<std::fs::File>,
 }
 
@@ -139,7 +126,7 @@ impl<T> ObjectBuffer<T> {
             .open(file_path)?;
 
         Ok(ObjectBuffer {
-            buffer: VecDeque::with_capacity(BUFFER_SIZE),
+            buffer: Vec::with_capacity(BUFFER_SIZE),
             writer: BufWriter::new(file),
         })
     }
@@ -152,7 +139,7 @@ impl<T> ObjectBuffer<T> {
             .open(file_path)?;
 
         Ok(ObjectBuffer {
-            buffer: VecDeque::with_capacity(capacity),
+            buffer: Vec::with_capacity(capacity),
             writer: BufWriter::new(file),
         })
     }
