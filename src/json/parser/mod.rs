@@ -1,4 +1,4 @@
-use crate::io::ObjectBuffer;
+use crate::io::{DiskBuffer, JsonLObjectBuffer, ObjectBuffer};
 use crate::objects::common::parse_unknown;
 use crate::objects::{
     aiaca::AIACA, certtemplate::CertTemplate, computer::Computer, container::Container,
@@ -60,14 +60,14 @@ pub fn parse_result_type(
     let output_dir = format!(".rusthound-cache/{domain}");
     std::fs::create_dir_all(&output_dir)?;
 
-    let mut user_buffer = ObjectBuffer::<User>::new(&format!("{output_dir}/users.jsonl"))?;
-    let mut group_buffer = ObjectBuffer::<Group>::new(&format!("{output_dir}/groups.jsonl"))?;
+    let mut user_buffer = JsonLObjectBuffer::<User>::new(&format!("{output_dir}/users.jsonl"))?;
+    let mut group_buffer = JsonLObjectBuffer::<Group>::new(&format!("{output_dir}/groups.jsonl"))?;
     let mut computer_buffer =
-        ObjectBuffer::<Computer>::new(&format!("{output_dir}/computers.jsonl"))?;
-    let mut ou_buffer = ObjectBuffer::<Ou>::new(&format!("{output_dir}/ous.jsonl"))?;
-    let mut gpo_buffer = ObjectBuffer::<Gpo>::new(&format!("{output_dir}/gpos.jsonl"))?;
+        JsonLObjectBuffer::<Computer>::new(&format!("{output_dir}/computers.jsonl"))?;
+    let mut ou_buffer = JsonLObjectBuffer::<Ou>::new(&format!("{output_dir}/ous.jsonl"))?;
+    let mut gpo_buffer = JsonLObjectBuffer::<Gpo>::new(&format!("{output_dir}/gpos.jsonl"))?;
     let mut container_buffer =
-        ObjectBuffer::<Container>::new(&format!("{output_dir}/containers.jsonl"))?;
+        JsonLObjectBuffer::<Container>::new(&format!("{output_dir}/containers.jsonl"))?;
 
     for entry in result.into_iter() {
         // Start parsing with Type matching

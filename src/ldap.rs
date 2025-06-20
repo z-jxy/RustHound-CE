@@ -13,6 +13,7 @@
 
 // use crate::errors::Result;
 use crate::banner::progress_bar;
+use crate::io::BincodeObjectBuffer;
 use crate::utils::format::domain_to_dc;
 
 use colored::Colorize;
@@ -24,6 +25,7 @@ use log::{debug, error, info, trace};
 use std::collections::HashMap;
 use std::error::Error;
 use std::io::{self, stdin, Write};
+use std::path::PathBuf;
 use std::process;
 
 // New type to implement Serialize and Deserialize for SearchEntry
@@ -222,6 +224,172 @@ pub async fn ldap_search(
 
     // Return the vector with the result
     Ok(rs)
+}
+
+/// Function to request all AD values.
+pub async fn ldap_search_with_cache(
+    ldaps: bool,
+    ip: Option<&str>,
+    port: Option<u16>,
+    domain: &str,
+    ldapfqdn: &str,
+    username: Option<&str>,
+    password: Option<&str>,
+    kerberos: bool,
+    ldapfilter: &str,
+    cache_path: &PathBuf,
+) -> Result<(), Box<dyn Error>> {
+    use crate::io::DiskBuffer;
+    // Construct LDAP args
+    let ldap_args = ldap_constructor(
+        ldaps, ip, port, domain, ldapfqdn, username, password, kerberos,
+    )?;
+
+    // LDAP connection
+    let consettings = LdapConnSettings::new().set_no_tls_verify(true);
+    let (conn, mut ldap) = LdapConnAsync::with_settings(consettings, &ldap_args.s_url).await?;
+    ldap3::drive!(conn);
+
+    if !kerberos {
+        debug!("Trying to connect with simple_bind() function (username:password)");
+        let res = ldap
+            .simple_bind(&ldap_args.s_username, &ldap_args.s_password)
+            .await?
+            .success();
+        match res {
+            Ok(_res) => {
+                info!(
+                    "Connected to {} Active Directory!",
+                    domain.to_uppercase().bold().green()
+                );
+                info!("Starting data collection...");
+            }
+            Err(err) => {
+                error!(
+                    "Failed to authenticate to {} Active Directory. Reason: {err}\n",
+                    domain.to_uppercase().bold().red()
+                );
+                process::exit(0x0100);
+            }
+        }
+    } else {
+        debug!("Trying to connect with sasl_gssapi_bind() function (kerberos session)");
+        if !&ldapfqdn.contains("not set") {
+            #[cfg(not(feature = "nogssapi"))]
+            gssapi_connection(&mut ldap, &ldapfqdn, &domain).await?;
+            #[cfg(feature = "nogssapi")]
+            {
+                error!("Kerberos auth and GSSAPI not compatible with current os!");
+                process::exit(0x0100);
+            }
+        } else {
+            error!(
+                "Need Domain Controller FQDN to bind GSSAPI connection. Please use '{}'\n",
+                "-f DC01.DOMAIN.LAB".bold()
+            );
+            process::exit(0x0100);
+        }
+    }
+
+    // Prepare LDAP result vector
+    let mut rs: BincodeObjectBuffer<LdapSearchEntry> = BincodeObjectBuffer::new(cache_path)?;
+
+    // Request all namingContexts for current DC
+    let res = match get_all_naming_contexts(&mut ldap).await {
+        Ok(res) => {
+            trace!("naming_contexts: {:?}", &res);
+            res
+        }
+        Err(err) => {
+            error!("No namingContexts found! Reason: {err}\n");
+            process::exit(0x0100);
+        }
+    };
+
+    // namingContexts: DC=domain,DC=local
+    // namingContexts: CN=Configuration,DC=domain,DC=local (needed for AD CS datas)
+    if res.iter().any(|s| s.contains("Configuration")) {
+        for cn in &res {
+            // Set control LDAP_SERVER_SD_FLAGS_OID to get nTSecurityDescriptor
+            // https://ldapwiki.com/wiki/LDAP_SERVER_SD_FLAGS_OID
+            let ctrls = RawControl {
+                ctype: String::from("1.2.840.113556.1.4.801"),
+                crit: true,
+                val: Some(vec![48, 3, 2, 1, 5]),
+            };
+            ldap.with_controls(ctrls.to_owned());
+
+            // Prepare filter
+            // let mut _s_filter: &str = "";
+            // if cn.contains("Configuration") {
+            //     _s_filter = "(|(objectclass=pKIEnrollmentService)(objectclass=pkicertificatetemplate)(objectclass=subschema)(objectclass=certificationAuthority)(objectclass=container))";
+            // } else {
+            //     _s_filter = "(objectClass=*)";
+            // }
+            //let _s_filter = "(objectClass=*)";
+            //let _s_filter = "(objectGuid=*)";
+            info!("Ldap filter : {}", ldapfilter.bold().green());
+            let _s_filter = ldapfilter;
+
+            // Every 999 max value in ldap response (err 4 ldap)
+            let adapters: Vec<Box<dyn Adapter<_, _>>> = vec![
+                Box::new(EntriesOnly::new()),
+                Box::new(PagedResults::new(999)),
+            ];
+
+            // Streaming search with adaptaters and filters
+            let mut search = ldap
+                .streaming_search_with(
+                    adapters, // Adapter which fetches Search results with a Paged Results control.
+                    cn,
+                    Scope::Subtree,
+                    _s_filter,
+                    vec!["*", "nTSecurityDescriptor"],
+                    // Without the presence of this control, the server returns an SD only when the SD attribute name is explicitly mentioned in the requested attribute list.
+                    // https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-adts/932a7a8d-8c93-4448-8093-c79b7d9ba499
+                )
+                .await?;
+
+            // Wait and get next values
+            let pb = ProgressBar::new(1);
+            let mut count = 0;
+            while let Some(entry) = search.next().await? {
+                let entry = SearchEntry::construct(entry);
+                //trace!("{:?}", &entry);
+                // Manage progress bar
+                count += 1;
+                progress_bar(
+                    pb.to_owned(),
+                    "LDAP objects retrieved".to_string(),
+                    count,
+                    "#".to_string(),
+                );
+                // Push all result in rs vec()
+                rs.add(entry.into())?;
+            }
+            pb.finish_and_clear();
+
+            let res = search.finish().await.success();
+            match res {
+                Ok(_res) => info!("All data collected for NamingContext {}", &cn.bold()),
+                Err(err) => {
+                    error!("No data collected on {}! Reason: {err}", &cn.bold().red());
+                }
+            }
+        }
+        // // If no result exit program
+        // if rs.is_empty() {
+        //     process::exit(0x0100);
+        // }
+
+        // Terminate the connection to the server
+        ldap.unbind().await?;
+    }
+
+    rs.finish()?;
+
+    // Return the vector with the result
+    Ok(())
 }
 
 /// Structure containing the LDAP connection arguments.

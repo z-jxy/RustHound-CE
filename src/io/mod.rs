@@ -5,6 +5,55 @@ use std::io::{BufRead, BufReader, BufWriter, Write};
 
 const BUFFER_SIZE: usize = 1000;
 
+pub trait DiskBuffer<T>
+where
+    Self: Sized,
+{
+    fn buffer_mut(&mut self) -> &mut VecDeque<T>;
+    fn flush_buffer(&mut self) -> Result<(), Box<dyn Error>>;
+
+    fn add(&mut self, item: T) -> Result<(), Box<dyn Error>> {
+        self.buffer_mut().push_back(item);
+
+        if self.buffer_mut().len() >= self.buffer_mut().capacity() {
+            self.flush_buffer()?;
+        }
+        Ok(())
+    }
+
+    fn finish(mut self) -> Result<(), Box<dyn Error>> {
+        self.flush_buffer()?;
+        Ok(())
+    }
+}
+
+/// JSON lines object buffer
+pub struct JsonLObjectBuffer<T>(pub ObjectBuffer<T>);
+impl<T> JsonLObjectBuffer<T> {
+    pub fn new(file_path: &str) -> Result<Self, Box<dyn Error>> {
+        Ok(JsonLObjectBuffer(ObjectBuffer::new(file_path)?))
+    }
+
+    pub fn new_with_capacity(file_path: &str, capacity: usize) -> Result<Self, Box<dyn Error>> {
+        Ok(JsonLObjectBuffer(ObjectBuffer::new_with_capacity(
+            file_path, capacity,
+        )?))
+    }
+}
+
+pub struct BincodeObjectBuffer<T>(pub ObjectBuffer<T>);
+impl<T> BincodeObjectBuffer<T> {
+    pub fn new(file_path: impl AsRef<std::path::Path>) -> Result<Self, Box<dyn Error>> {
+        Ok(BincodeObjectBuffer(ObjectBuffer::new(file_path)?))
+    }
+
+    pub fn new_with_capacity(file_path: &str, capacity: usize) -> Result<Self, Box<dyn Error>> {
+        Ok(BincodeObjectBuffer(ObjectBuffer::new_with_capacity(
+            file_path, capacity,
+        )?))
+    }
+}
+
 /// A buffer for writing objects to a JSON Lines file
 ///
 /// Flushes to the file when it reaches its capacity or when explicitly flushed.
@@ -13,8 +62,51 @@ pub struct ObjectBuffer<T> {
     writer: BufWriter<std::fs::File>,
 }
 
-impl<T: serde::Serialize> ObjectBuffer<T> {
-    pub fn new(file_path: &str) -> Result<Self, Box<dyn Error>> {
+impl<T> DiskBuffer<T> for JsonLObjectBuffer<T>
+where
+    T: serde::Serialize,
+{
+    #[inline]
+    fn buffer_mut(&mut self) -> &mut VecDeque<T> {
+        &mut self.0.buffer
+    }
+
+    fn flush_buffer(&mut self) -> Result<(), Box<dyn Error>> {
+        while let Some(item) = self.0.buffer.pop_front() {
+            let json_line = serde_json::to_string(&item)?;
+            writeln!(self.0.writer, "{json_line}")?;
+        }
+        self.0.writer.flush()?;
+        Ok(())
+    }
+}
+
+impl<T> DiskBuffer<T> for BincodeObjectBuffer<T>
+where
+    T: bincode::Encode,
+{
+    #[inline]
+    fn buffer_mut(&mut self) -> &mut VecDeque<T> {
+        &mut self.0.buffer
+    }
+
+    fn flush_buffer(&mut self) -> Result<(), Box<dyn Error>> {
+        while let Some(item) = self.0.buffer.pop_front() {
+            let encoded = bincode::encode_to_vec(&item, bincode::config::standard())?;
+
+            let len = encoded.len() as u32;
+            self.0.writer.write_all(&len.to_le_bytes())?;
+
+            self.0.writer.write_all(&encoded)?;
+        }
+
+        self.0.writer.flush()?;
+        Ok(())
+    }
+}
+
+impl<T> ObjectBuffer<T> {
+    pub fn new(file_path: impl AsRef<std::path::Path>) -> Result<Self, Box<dyn Error>> {
         let file = OpenOptions::new()
             .create(true)
             .write(true)
@@ -39,29 +131,6 @@ impl<T: serde::Serialize> ObjectBuffer<T> {
             writer: BufWriter::new(file),
         })
     }
-
-    pub fn add(&mut self, item: T) -> Result<(), Box<dyn Error>> {
-        self.buffer.push_back(item);
-
-        if self.buffer.len() >= self.buffer.capacity() {
-            self.flush_buffer()?;
-        }
-        Ok(())
-    }
-
-    pub fn flush_buffer(&mut self) -> Result<(), Box<dyn Error>> {
-        while let Some(item) = self.buffer.pop_front() {
-            let json_line = serde_json::to_string(&item)?;
-            writeln!(self.writer, "{json_line}")?;
-        }
-        self.writer.flush()?;
-        Ok(())
-    }
-
-    pub fn finish(mut self) -> Result<(), Box<dyn Error>> {
-        self.flush_buffer()?;
-        Ok(())
-    }
 }
 
 /// Loads a `Vec<T>` from a JSON Lines file
@@ -81,4 +150,38 @@ where
     }
 
     Ok(out)
+}
+
+pub fn bincode_load_streaming<T>(
+    file_path: impl AsRef<std::path::Path>,
+) -> Result<Vec<T>, Box<dyn Error>>
+where
+    T: bincode::Decode<()>,
+{
+    use std::io::Read;
+
+    let file = std::fs::File::open(file_path.as_ref())?;
+    let mut buf_reader = BufReader::new(file);
+    let mut items = Vec::new();
+
+    loop {
+        let mut len_bytes = [0u8; 4];
+        match buf_reader.read_exact(&mut len_bytes) {
+            Ok(()) => {}
+            Err(e) if e.kind() == std::io::ErrorKind::UnexpectedEof => {
+                break;
+            }
+            Err(e) => return Err(e.into()),
+        }
+
+        let len = u32::from_le_bytes(len_bytes) as usize;
+
+        let mut data = vec![0u8; len];
+        buf_reader.read_exact(&mut data)?;
+
+        let (item, _) = bincode::decode_from_slice::<T, _>(&data, bincode::config::standard())?;
+        items.push(item);
+    }
+
+    Ok(items)
 }

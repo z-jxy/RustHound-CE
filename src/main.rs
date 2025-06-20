@@ -6,9 +6,11 @@ pub mod utils;
 
 use env_logger::Builder;
 use log::{error, info, trace};
+use rusthound_ce::ldap::ldap_search_with_cache;
 use rusthound_ce::ldap::LdapSearchEntry;
 use std::error::Error;
 use std::io::BufReader;
+use x509_parser::der_parser::rusticata_macros::debug;
 
 pub use rusthound_ce::args;
 pub use rusthound_ce::io;
@@ -68,7 +70,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         }
         false => {
             // LDAP request to get all informations in result
-            let result = ldap_search(
+            ldap_search_with_cache(
                 common_args.ldaps,
                 common_args.ip.as_deref(),
                 common_args.port,
@@ -78,20 +80,14 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 common_args.password.as_deref(),
                 common_args.kerberos,
                 &common_args.ldap_filter,
+                &ldap_cache_path,
             )
             .await?;
-            {
-                let data = result
-                    .into_iter()
-                    .map(LdapSearchEntry::from)
-                    .collect::<Vec<LdapSearchEntry>>();
-                let mut file = std::fs::File::create(&ldap_cache_path)?;
-                bincode::encode_into_std_write(data, &mut file, bincode::config::standard())?;
-            }
-            // TODO: handle this better
-            let data: Vec<LdapSearchEntry> = bincode::decode_from_reader(
-                BufReader::new(std::fs::File::open(&ldap_cache_path)?),
-                bincode::config::standard(),
+
+            log::debug!("Loading LDAP cache from: {}", ldap_cache_path.display());
+            let data: Vec<LdapSearchEntry> = crate::io::bincode_load_streaming(
+                &ldap_cache_path,
+                // bincode::config::standard(),
             )?;
             data.into_iter().map(Into::into).collect::<Vec<_>>()
         }
