@@ -1,4 +1,4 @@
-use crate::io::iter::BincodeIterator;
+use crate::io::iter::BincodeFileIterator;
 use crate::io::{DiskBuffer, JsonLObjectBuffer};
 use crate::ldap::LdapSearchEntry;
 use crate::objects::common::parse_unknown;
@@ -210,15 +210,9 @@ pub fn parse_result_type_from_mem(
 pub fn parse_result_type_from_cache(
     common_args: &Options,
     ldap_cache_path: impl AsRef<std::path::Path>,
-    // result: Vec<SearchEntry>,
-    // vec_users: &mut Vec<User>,
-    // vec_groups: &mut Vec<Group>,
-    // vec_computers: &mut Vec<Computer>,
-    // vec_ous: &mut Vec<Ou>,
+
     vec_domains: &mut Vec<Domain>,
-    // vec_gpos: &mut Vec<Gpo>,
     vec_fsps: &mut Vec<Fsp>,
-    // vec_containers: &mut Vec<Container>,
     vec_trusts: &mut Vec<Trust>,
     vec_ntauthstore: &mut Vec<NtAuthStore>,
     vec_aiacas: &mut Vec<AIACA>,
@@ -232,8 +226,9 @@ pub fn parse_result_type_from_cache(
     fqdn_sid: &mut HashMap<String, String>,
     fqdn_ip: &mut HashMap<String, String>,
 
+    // the total number of objects may not be known if the ldap query was never run
+    // (e.g run was resumed from cached results)
     total_objects: Option<usize>,
-    // adcs_templates: &mut HashMap<String, Vec<String>>,
 ) -> Result<(), Box<dyn Error>> {
     // Domain name
     let domain = &common_args.domain;
@@ -263,7 +258,7 @@ pub fn parse_result_type_from_cache(
         Regex::new(r"CN=DOMAINUPDATES,CN=SYSTEM,")?,
     );
 
-    for entry in BincodeIterator::<LdapSearchEntry, _>::from_file(&ldap_cache_path)? {
+    for entry in BincodeFileIterator::<LdapSearchEntry>::from_file(&ldap_cache_path)? {
         let entry: SearchEntry = entry?.into();
         // Start parsing with Type matching
         let atype = get_type(&entry).unwrap_or(Type::Unknown);

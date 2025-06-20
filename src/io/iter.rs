@@ -3,6 +3,8 @@ use std::fs::File;
 use std::io::{BufReader, Read};
 use std::marker::PhantomData;
 
+pub type BincodeFileIterator<T> = BincodeIterator<T, BufReader<File>>;
+
 /// Lazy iterator for bincode-encoded, length-prefixed data
 pub struct BincodeIterator<T, R: Read> {
     reader: R,
@@ -58,13 +60,13 @@ where
         let len = u32::from_le_bytes(len_bytes) as usize;
 
         // Validate length to prevent excessive allocation
-        if len > 100_000_000 {
-            // 100MB limit, adjust as needed
-            return Some(Err(format!(
-                "Item length {len} exceeds maximum allowed size"
-            )
-            .into()));
-        }
+        // if len > 100_000_000 {
+        //     // 100MB limit, adjust as needed
+        //     return Some(Err(format!(
+        //         "Item length {len} exceeds maximum allowed size"
+        //     )
+        //     .into()));
+        // }
 
         // Read the exact amount of data for this item
         let mut data = vec![0u8; len];

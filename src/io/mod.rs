@@ -11,9 +11,12 @@ pub trait DiskBuffer<T>
 where
     Self: Sized,
 {
+    /// Returns a mutable reference to the internal buffer
     fn buffer_mut(&mut self) -> &mut Vec<T>;
+    /// Flush the buffer to disk
     fn flush_buffer(&mut self) -> Result<(), Box<dyn Error>>;
-
+    /// Add an item to the buffer,
+    /// Default implemetation flushes to disk if it reaches capacity
     fn add(&mut self, item: T) -> Result<(), Box<dyn Error>> {
         self.buffer_mut().push(item);
 
@@ -23,9 +26,9 @@ where
         Ok(())
     }
 
+    /// Flush the buffer to disk and consume `self`
     fn finish(mut self) -> Result<(), Box<dyn Error>> {
-        self.flush_buffer()?;
-        Ok(())
+        self.flush_buffer()
     }
 }
 
@@ -110,9 +113,6 @@ where
     }
 }
 
-/// A buffer for writing objects to a JSON Lines file
-///
-/// Flushes to the file when it reaches its capacity or when explicitly flushed.
 pub struct ObjectBuffer<T> {
     buffer: Vec<T>,
     writer: BufWriter<std::fs::File>,
