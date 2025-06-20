@@ -266,13 +266,11 @@ pub fn parse_result_type_from_cache(
             Type::User => {
                 let mut user: User = User::new();
                 user.parse(entry, domain, dn_sid, sid_type, &domain_sid)?;
-                // vec_users.push(user);
                 user_buffer.add(user)?;
             }
             Type::Group => {
                 let mut group = Group::new();
                 group.parse(entry, domain, dn_sid, sid_type, &domain_sid)?;
-                // vec_groups.push(group);
                 group_buffer.add(group)?;
             }
             Type::Computer => {
@@ -286,13 +284,11 @@ pub fn parse_result_type_from_cache(
                     fqdn_ip,
                     &domain_sid,
                 )?;
-                // vec_computers.push(computer);
                 computer_buffer.add(computer)?;
             }
             Type::Ou => {
                 let mut ou = Ou::new();
                 ou.parse(entry, domain, dn_sid, sid_type, &domain_sid)?;
-                // vec_ous.push(ou);
                 ou_buffer.add(ou)?;
             }
             Type::Domain => {
@@ -305,7 +301,6 @@ pub fn parse_result_type_from_cache(
             Type::Gpo => {
                 let mut gpo = Gpo::new();
                 gpo.parse(entry, domain, dn_sid, sid_type, &domain_sid)?;
-                // vec_gpos.push(gpo);
                 gpo_buffer.add(gpo)?;
             }
             Type::ForeignSecurityPrincipal => {
