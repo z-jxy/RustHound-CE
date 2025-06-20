@@ -88,10 +88,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
             )
             .await?;
             total_objects = Some(total_cached);
-
-            // log::debug!("Loading LDAP cache from: {}", ldap_cache_path.display());
-            // let data: Vec<LdapSearchEntry> = crate::io::bincode_load(&ldap_cache_path)?;
-            // data.into_iter().map(Into::into).collect::<Vec<_>>()
         }
     };
 
