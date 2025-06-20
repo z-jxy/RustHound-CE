@@ -59,14 +59,18 @@ async fn main() -> Result<(), Box<dyn Error>> {
             .join("searched_objects.bin");
 
     let mut total_objects = None;
-    let result: Vec<ldap3::SearchEntry> = match common_args.resume {
+
+    let mut ldap_result: Vec<ldap3::SearchEntry> = vec![];
+
+    match common_args.resume {
         true => {
+            // TODO: just continue and call the prepare_results_from_cache function
             info!("Resuming from cache: {}", ldap_cache_path.display());
             let data: Vec<LdapSearchEntry> = bincode::decode_from_reader(
                 BufReader::new(std::fs::File::open(&ldap_cache_path)?),
                 bincode::config::standard(),
             )?;
-            data.into_iter().map(Into::into).collect::<Vec<_>>()
+            ldap_result.extend(data.into_iter().map(Into::into).collect::<Vec<_>>())
         }
         false => {
             // LDAP request to get all informations in result
@@ -85,29 +89,20 @@ async fn main() -> Result<(), Box<dyn Error>> {
             .await?;
             total_objects = Some(total_cached);
 
-            log::debug!("Loading LDAP cache from: {}", ldap_cache_path.display());
-            let data: Vec<LdapSearchEntry> = crate::io::bincode_load(
-                &ldap_cache_path,
-                // bincode::config::standard(),
-            )?;
-            data.into_iter().map(Into::into).collect::<Vec<_>>()
+            // log::debug!("Loading LDAP cache from: {}", ldap_cache_path.display());
+            // let data: Vec<LdapSearchEntry> = crate::io::bincode_load(&ldap_cache_path)?;
+            // data.into_iter().map(Into::into).collect::<Vec<_>>()
         }
     };
 
-    info!("Found {} LDAP objects", result.len());
-    let memory_usage: usize = result
-        .iter()
-        .map(|entry| {
-            std::mem::size_of::<ldap3::SearchEntry>()
-                + entry.dn.len()
-                + entry
-                    .attrs
-                    .iter()
-                    .map(|(key, values)| key.len() + values.iter().map(|v| v.len()).sum::<usize>())
-                    .sum::<usize>()
-        })
-        .sum();
-    info!("Memory usage for LDAP entries: {} bytes", memory_usage);
+    info!(
+        "Found {} LDAP objects",
+        if total_objects.is_some() {
+            *total_objects.as_ref().unwrap()
+        } else {
+            ldap_result.len()
+        }
+    );
 
     let mut results =
         rusthound_ce::prepare_results_from_cache(ldap_cache_path, &common_args, total_objects)

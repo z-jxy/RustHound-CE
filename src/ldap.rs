@@ -246,7 +246,9 @@ pub async fn ldap_search_with_cache(
     )?;
 
     // LDAP connection
-    let consettings = LdapConnSettings::new().set_no_tls_verify(true);
+    let consettings = LdapConnSettings::new()
+        .set_conn_timeout(std::time::Duration::from_secs(10))
+        .set_no_tls_verify(true);
     let (conn, mut ldap) = LdapConnAsync::with_settings(consettings, &ldap_args.s_url).await?;
     ldap3::drive!(conn);
 
@@ -366,7 +368,7 @@ pub async fn ldap_search_with_cache(
                     count,
                     "#".to_string(),
                 );
-                // Push all result in rs vec()
+
                 rs.add(entry.into())?;
             }
             pb.finish_and_clear();
@@ -384,8 +386,17 @@ pub async fn ldap_search_with_cache(
         //     process::exit(0x0100);
         // }
 
-        // Terminate the connection to the server
         ldap.unbind().await?;
+    }
+
+    // drop ldap before final flush,
+    // otherwise it will warn about an i/o error
+    // "LDAP connection error: I/O error: Connection reset by peer (os error 54)"
+    drop(ldap);
+    if total == 0 {
+        error!("No LDAP objects found! Exiting...");
+        std::fs::remove_file(cache_path)?;
+        process::exit(0x0100);
     }
 
     rs.flush_buffer()?;
