@@ -58,22 +58,14 @@ async fn main() -> Result<(), Box<dyn Error>> {
         std::path::PathBuf::from(format!(".rusthound-cache/{}", common_args.domain))
             .join("searched_objects.bin");
 
-    let mut total_objects = None;
-
-    let mut ldap_result: Vec<ldap3::SearchEntry> = vec![];
-
-    match common_args.resume {
+    let mut results = match common_args.resume {
         true => {
             // TODO: just continue and call the prepare_results_from_cache function
             info!("Resuming from cache: {}", ldap_cache_path.display());
-            let data: Vec<LdapSearchEntry> = bincode::decode_from_reader(
-                BufReader::new(std::fs::File::open(&ldap_cache_path)?),
-                bincode::config::standard(),
-            )?;
-            ldap_result.extend(data.into_iter().map(Into::into).collect::<Vec<_>>())
+            rusthound_ce::prepare_results_from_cache(ldap_cache_path, &common_args, None).await?
         }
         false => {
-            // LDAP request to get all informations in result
+            // LDAP request to get all information in result
             let (_, total_cached) = ldap_search_with_cache(
                 common_args.ldaps,
                 common_args.ip.as_deref(),
@@ -87,22 +79,15 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 &ldap_cache_path,
             )
             .await?;
-            total_objects = Some(total_cached);
+            info!("Found {total_cached} LDAP objects",);
+            rusthound_ce::prepare_results_from_cache(
+                ldap_cache_path,
+                &common_args,
+                Some(total_cached),
+            )
+            .await?
         }
     };
-
-    info!(
-        "Found {} LDAP objects",
-        if total_objects.is_some() {
-            *total_objects.as_ref().unwrap()
-        } else {
-            ldap_result.len()
-        }
-    );
-
-    let mut results =
-        rusthound_ce::prepare_results_from_cache(ldap_cache_path, &common_args, total_objects)
-            .await?;
 
     // Running modules
     run_modules(
