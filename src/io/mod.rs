@@ -3,6 +3,7 @@ use std::fs::OpenOptions;
 use std::io::{BufRead, BufReader, BufWriter, Write};
 
 pub mod iter;
+pub use iter::BincodeIterator;
 
 const BUFFER_SIZE: usize = 1000;
 
@@ -164,9 +165,7 @@ where
     Ok(out)
 }
 
-pub fn bincode_load_streaming<T>(
-    file_path: impl AsRef<std::path::Path>,
-) -> Result<Vec<T>, Box<dyn Error>>
+pub fn bincode_load<T>(file_path: impl AsRef<std::path::Path>) -> Result<Vec<T>, Box<dyn Error>>
 where
     T: bincode::Decode<()>,
 {

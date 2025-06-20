@@ -86,7 +86,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
             total_objects = Some(total_cached);
 
             log::debug!("Loading LDAP cache from: {}", ldap_cache_path.display());
-            let data: Vec<LdapSearchEntry> = crate::io::bincode_load_streaming(
+            let data: Vec<LdapSearchEntry> = crate::io::bincode_load(
                 &ldap_cache_path,
                 // bincode::config::standard(),
             )?;
