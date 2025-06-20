@@ -13,23 +13,24 @@ use log::{debug, info};
 pub mod common;
 
 /// Functions to replace and add missing values
+#[allow(clippy::too_many_arguments)]
 pub fn check_all_result(
     common_args: &Options,
     vec_users: &mut Vec<User>,
     vec_groups: &mut Vec<Group>,
-    vec_computers: &mut Vec<Computer>,
-    vec_ous: &mut Vec<Ou>,
+    vec_computers: &mut [Computer],
+    vec_ous: &mut [Ou],
     vec_domains: &mut Vec<Domain>,
-    vec_gpos: &mut Vec<Gpo>,
-    _vec_fsps: &mut Vec<Fsp>,
-    vec_containers: &mut Vec<Container>,
+    vec_gpos: &mut [Gpo],
+    _vec_fsps: &mut [Fsp],
+    vec_containers: &mut [Container],
     vec_trusts: &mut Vec<Trust>,
-    vec_ntauthstores: &mut Vec<NtAuthStore>,
-    vec_aiacas: &mut Vec<AIACA>,
-    vec_rootcas: &mut Vec<RootCA>,
+    vec_ntauthstores: &mut [NtAuthStore],
+    vec_aiacas: &mut [AIACA],
+    vec_rootcas: &mut [RootCA],
     vec_enterprisecas: &mut Vec<EnterpriseCA>,
     vec_certtemplates: &mut Vec<CertTemplate>,
-    vec_issuancepolicies: &mut Vec<IssuancePolicie>,
+    vec_issuancepolicies: &mut [IssuancePolicie],
     dn_sid: &HashMap<String, String>,
     sid_type: &HashMap<String, String>,
     fqdn_sid: &HashMap<String, String>,

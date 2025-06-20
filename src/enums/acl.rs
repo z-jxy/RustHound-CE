@@ -118,6 +118,7 @@ pub fn parse_ntsecuritydescriptor<T: LdapObject>(
 
 /// Parse ace in acl and get correct values (thanks fox-it for bloodhound.py works)
 /// <https://github.com/fox-it/BloodHound.py/blob/master/bloodhound/enumeration/acls.py>
+#[allow(clippy::too_many_arguments)]
 fn ace_maker<T: LdapObject>(
     object: &mut T,
     domain: &str,

@@ -1,4 +1,4 @@
-use crate::io::{DiskBuffer, JsonLObjectBuffer, ObjectBuffer};
+use crate::io::{DiskBuffer, JsonLObjectBuffer};
 use crate::objects::common::parse_unknown;
 use crate::objects::{
     aiaca::AIACA, certtemplate::CertTemplate, computer::Computer, container::Container,
@@ -69,6 +69,11 @@ pub fn parse_result_type(
     let mut container_buffer =
         JsonLObjectBuffer::<Container>::new(&format!("{output_dir}/containers.jsonl"))?;
 
+    let (container_re_filt1, container_re_filt2) = (
+        Regex::new(r"[0-9a-z-A-Z]{1,}-[0-9a-z-A-Z]{1,}-[0-9a-z-A-Z]{1,}-[0-9a-z-A-Z]{1,}")?,
+        Regex::new(r"CN=DOMAINUPDATES,CN=SYSTEM,")?,
+    );
+
     for entry in result.into_iter() {
         // Start parsing with Type matching
         let atype = get_type(&entry).unwrap_or(Type::Unknown);
@@ -124,18 +129,12 @@ pub fn parse_result_type(
                 vec_fsps.push(security_principal);
             }
             Type::Container => {
-                let re = Regex::new(
-                    r"[0-9a-z-A-Z]{1,}-[0-9a-z-A-Z]{1,}-[0-9a-z-A-Z]{1,}-[0-9a-z-A-Z]{1,}",
-                )?;
-                if re.is_match(&entry.dn.to_uppercase()) {
+                let upper = entry.dn.to_uppercase();
+                if container_re_filt1.is_match(&upper) || container_re_filt2.is_match(&upper) {
                     //trace!("Container not to add: {}",&entry.dn.to_uppercase());
                     continue;
                 }
-                let re = Regex::new(r"CN=DOMAINUPDATES,CN=SYSTEM,")?;
-                if re.is_match(&entry.dn.to_uppercase()) {
-                    //trace!("Container not to add: {}",&entry.dn.to_uppercase());
-                    continue;
-                }
+
                 //trace!("Container: {}",&entry.dn.to_uppercase());
                 let mut container = Container::new();
                 container.parse(entry, domain, dn_sid, sid_type, &domain_sid)?;

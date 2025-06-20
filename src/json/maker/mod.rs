@@ -13,6 +13,7 @@ use crate::utils::date::return_current_fulldate;
 pub mod common;
 
 /// This function will create json output and zip output
+#[allow(clippy::too_many_arguments)]
 pub fn make_result(
     common_args: &Options,
     vec_users: Vec<User>,

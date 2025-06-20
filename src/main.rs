@@ -10,7 +10,6 @@ use rusthound_ce::ldap::ldap_search_with_cache;
 use rusthound_ce::ldap::LdapSearchEntry;
 use std::error::Error;
 use std::io::BufReader;
-use x509_parser::der_parser::rusticata_macros::debug;
 
 pub use rusthound_ce::args;
 pub use rusthound_ce::io;
@@ -23,7 +22,7 @@ use rusthound_ce::args::auto_args;
 use rusthound_ce::args::{extract_args, Options};
 
 use banner::{print_banner, print_end_banner};
-use ldap::ldap_search;
+// use ldap::ldap_search;
 use modules::run_modules;
 
 #[cfg(feature = "dhat-heap")]
