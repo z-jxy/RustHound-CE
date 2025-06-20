@@ -43,25 +43,25 @@ impl<T> JsonLObjectBuffer<T> {
     }
 }
 
-pub struct BincodeObjectBuffer<T>(pub ObjectBuffer<T>);
+pub struct BincodeObjectBuffer<T> {
+    pub obj_buffer: ObjectBuffer<T>,
+    pub encode_buffer: Vec<u8>,
+}
+
 impl<T> BincodeObjectBuffer<T> {
     pub fn new(file_path: impl AsRef<std::path::Path>) -> Result<Self, Box<dyn Error>> {
-        Ok(BincodeObjectBuffer(ObjectBuffer::new(file_path)?))
+        Ok(BincodeObjectBuffer {
+            obj_buffer: ObjectBuffer::new(file_path)?,
+            encode_buffer: Vec::new(),
+        })
     }
 
     pub fn new_with_capacity(file_path: &str, capacity: usize) -> Result<Self, Box<dyn Error>> {
-        Ok(BincodeObjectBuffer(ObjectBuffer::new_with_capacity(
-            file_path, capacity,
-        )?))
+        Ok(BincodeObjectBuffer {
+            obj_buffer: ObjectBuffer::new_with_capacity(file_path, capacity)?,
+            encode_buffer: Vec::new(),
+        })
     }
-}
-
-/// A buffer for writing objects to a JSON Lines file
-///
-/// Flushes to the file when it reaches its capacity or when explicitly flushed.
-pub struct ObjectBuffer<T> {
-    buffer: VecDeque<T>,
-    writer: BufWriter<std::fs::File>,
 }
 
 impl<T> DiskBuffer<T> for JsonLObjectBuffer<T>
@@ -89,22 +89,45 @@ where
 {
     #[inline]
     fn buffer_mut(&mut self) -> &mut VecDeque<T> {
-        &mut self.0.buffer
+        &mut self.obj_buffer.buffer
     }
 
     fn flush_buffer(&mut self) -> Result<(), Box<dyn Error>> {
-        while let Some(item) = self.0.buffer.pop_front() {
-            let encoded = bincode::encode_to_vec(&item, bincode::config::standard())?;
+        // while let Some(item) = self.obj_buffer.buffer.pop_front() {
+        //     let encoded = bincode::encode_to_vec(&item, bincode::config::standard())?;
 
-            let len = encoded.len() as u32;
-            self.0.writer.write_all(&len.to_le_bytes())?;
+        //     let len = encoded.len() as u32;
+        //     self.obj_buffer.writer.write_all(&len.to_le_bytes())?;
 
-            self.0.writer.write_all(&encoded)?;
+        //     self.obj_buffer.writer.write_all(&encoded)?;
+        // }
+
+        // self.obj_buffer.writer.flush()?;
+
+        for item in self.obj_buffer.buffer.drain(..) {
+            // More efficient than pop_front
+            self.encode_buffer.clear(); // Reuse buffer
+            bincode::encode_into_std_write(
+                &item,
+                &mut self.encode_buffer,
+                bincode::config::standard(),
+            )?;
+
+            let len = self.encode_buffer.len() as u32;
+            self.obj_buffer.writer.write_all(&len.to_le_bytes())?;
+            self.obj_buffer.writer.write_all(&self.encode_buffer)?;
         }
 
-        self.0.writer.flush()?;
         Ok(())
     }
+}
+
+/// A buffer for writing objects to a JSON Lines file
+///
+/// Flushes to the file when it reaches its capacity or when explicitly flushed.
+pub struct ObjectBuffer<T> {
+    buffer: VecDeque<T>,
+    writer: BufWriter<std::fs::File>,
 }
 
 impl<T> ObjectBuffer<T> {
