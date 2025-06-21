@@ -16,13 +16,20 @@ where
     T: bincode::Decode<()>,
 {
     /// Create a new iterator from a file path
-    pub fn from_file(file_path: impl AsRef<std::path::Path>) -> Result<Self, Box<dyn Error>> {
+    pub fn from_path(file_path: impl AsRef<std::path::Path>) -> std::io::Result<Self> {
         let file = File::open(file_path)?;
         let reader = BufReader::new(file);
         Ok(Self {
             reader,
             _phantom: PhantomData,
         })
+    }
+
+    pub fn from_file(file: std::fs::File) -> Self {
+        Self {
+            reader: BufReader::new(file),
+            _phantom: PhantomData,
+        }
     }
 }
 

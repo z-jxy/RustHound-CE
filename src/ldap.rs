@@ -13,7 +13,7 @@
 
 // use crate::errors::Result;
 use crate::banner::progress_bar;
-use crate::io::BincodeObjectBuffer;
+use crate::cache::{BincodeObjectBuffer, CacheHandle};
 use crate::utils::format::domain_to_dc;
 
 use colored::Colorize;
@@ -238,8 +238,8 @@ pub async fn ldap_search_with_cache(
     kerberos: bool,
     ldapfilter: &str,
     cache_path: &PathBuf,
-) -> Result<(BincodeObjectBuffer<LdapSearchEntry>, usize), Box<dyn Error>> {
-    use crate::io::DiskBuffer;
+) -> Result<(CacheHandle, usize), Box<dyn Error>> {
+    use crate::cache::DiskBuffer;
     // Construct LDAP args
     let ldap_args = ldap_constructor(
         ldaps, ip, port, domain, ldapfqdn, username, password, kerberos,
@@ -401,8 +401,11 @@ pub async fn ldap_search_with_cache(
 
     rs.flush_buffer()?;
 
+    // reopen file handle
+    let cache_handle = CacheHandle(rs.into_reader()?);
+
     // Return the vector with the result
-    Ok((rs, total))
+    Ok((cache_handle, total))
 }
 
 /// Structure containing the LDAP connection arguments.

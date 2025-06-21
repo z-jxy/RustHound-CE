@@ -1,9 +1,8 @@
 use std::error::Error;
 use std::fs::OpenOptions;
-use std::io::{BufRead, BufReader, BufWriter, Write};
+use std::io::{BufRead, BufReader, BufWriter, Seek, Write};
 
-pub mod iter;
-pub use iter::BincodeIterator;
+pub use super::iter::BincodeIterator;
 
 const BUFFER_SIZE: usize = 1000;
 
@@ -67,6 +66,16 @@ impl<T> BincodeObjectBuffer<T> {
     }
 }
 
+impl<T: bincode::Decode<()>> BincodeObjectBuffer<T> {
+    pub fn into_reader(
+        self,
+    ) -> Result<BincodeIterator<T, BufReader<std::fs::File>>, Box<dyn Error>> {
+        let mut inner = self.obj_buffer.writer.into_inner()?;
+        inner.seek(std::io::SeekFrom::Start(0))?;
+        Ok(BincodeIterator::from_file(inner))
+    }
+}
+
 impl<T> DiskBuffer<T> for JsonLObjectBuffer<T>
 where
     T: serde::Serialize,
@@ -109,6 +118,8 @@ where
             self.obj_buffer.writer.write_all(&self.encode_buffer)?;
         }
 
+        self.obj_buffer.writer.flush()?;
+
         Ok(())
     }
 }
@@ -123,6 +134,7 @@ impl<T> ObjectBuffer<T> {
         let file = OpenOptions::new()
             .create(true)
             .write(true)
+            .read(true) // read so we can read back the file later
             .truncate(true)
             .open(file_path)?;
 
@@ -136,6 +148,7 @@ impl<T> ObjectBuffer<T> {
         let file = OpenOptions::new()
             .create(true)
             .write(true)
+            .read(true) // read so we can read back the file later
             .truncate(true)
             .open(file_path)?;
 

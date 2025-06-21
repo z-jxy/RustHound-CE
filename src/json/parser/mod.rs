@@ -1,6 +1,4 @@
-use crate::io::iter::BincodeFileIterator;
-use crate::io::{DiskBuffer, JsonLObjectBuffer};
-use crate::ldap::LdapSearchEntry;
+use crate::cache::{CacheHandle, DiskBuffer, JsonLObjectBuffer};
 use crate::objects::common::parse_unknown;
 use crate::objects::{
     aiaca::AIACA, certtemplate::CertTemplate, computer::Computer, container::Container,
@@ -209,7 +207,7 @@ pub fn parse_result_type_from_mem(
 #[allow(clippy::too_many_arguments)]
 pub fn parse_result_type_from_cache(
     common_args: &Options,
-    ldap_cache_path: impl AsRef<std::path::Path>,
+    ldap_cache_path: CacheHandle,
 
     vec_domains: &mut Vec<Domain>,
     vec_fsps: &mut Vec<Fsp>,
@@ -258,7 +256,7 @@ pub fn parse_result_type_from_cache(
         Regex::new(r"CN=DOMAINUPDATES,CN=SYSTEM,")?,
     );
 
-    for entry in BincodeFileIterator::<LdapSearchEntry>::from_file(&ldap_cache_path)? {
+    for entry in ldap_cache_path {
         let entry: SearchEntry = entry?.into();
         // Start parsing with Type matching
         let atype = get_type(&entry).unwrap_or(Type::Unknown);

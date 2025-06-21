@@ -91,7 +91,7 @@ pub mod objects;
 
 pub mod api;
 
-pub mod io;
+pub mod cache;
 
 extern crate bitflags;
 extern crate chrono;

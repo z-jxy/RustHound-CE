@@ -6,13 +6,12 @@ pub mod utils;
 
 use env_logger::Builder;
 use log::{error, info, trace};
+use rusthound_ce::cache::CacheHandle;
 use rusthound_ce::ldap::ldap_search_with_cache;
-use rusthound_ce::ldap::LdapSearchEntry;
 use std::error::Error;
-use std::io::BufReader;
 
 pub use rusthound_ce::args;
-pub use rusthound_ce::io;
+pub use rusthound_ce::cache;
 pub use rusthound_ce::ldap;
 pub use rusthound_ce::objects;
 
@@ -62,11 +61,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
         true => {
             // TODO: just continue and call the prepare_results_from_cache function
             info!("Resuming from cache: {}", ldap_cache_path.display());
-            rusthound_ce::prepare_results_from_cache(ldap_cache_path, &common_args, None).await?
+            let cache = CacheHandle::from_path(ldap_cache_path)?;
+            rusthound_ce::prepare_results_from_cache(cache, &common_args, None).await?
         }
         false => {
             // LDAP request to get all information in result
-            let (_, total_cached) = ldap_search_with_cache(
+            let (cache, total_cached) = ldap_search_with_cache(
                 common_args.ldaps,
                 common_args.ip.as_deref(),
                 common_args.port,
@@ -80,12 +80,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
             )
             .await?;
             info!("Found {total_cached} LDAP objects",);
-            rusthound_ce::prepare_results_from_cache(
-                ldap_cache_path,
-                &common_args,
-                Some(total_cached),
-            )
-            .await?
+            rusthound_ce::prepare_results_from_cache(cache, &common_args, Some(total_cached))
+                .await?
         }
     };
 

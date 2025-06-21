@@ -16,7 +16,7 @@ pub struct DomainMappings {
 
 use crate::{
     args::Options,
-    io::jsonl_load,
+    cache::{jsonl_load, CacheHandle},
     json::{
         checker::check_all_result,
         parser::{parse_result_type_from_cache, parse_result_type_from_mem},
@@ -123,7 +123,7 @@ pub async fn prepare_results(
 }
 
 pub async fn prepare_results_from_cache(
-    ldap_cache_path: impl AsRef<std::path::Path>,
+    ldap_cache_path: CacheHandle,
     options: &Options,
     total_objects: Option<usize>,
 ) -> Result<Results, Box<dyn std::error::Error>> {
