@@ -333,8 +333,8 @@ pub fn auto_args() -> Options {
     // Return all
     Options {
         domain: domain.to_string(),
-        username: "not set".to_string(),
-        password: "not set".to_string(),
+        username: None,
+        password: None,
         ldapfqdn: fqdn.to_string(),
         ip: None,
         port: port,
@@ -348,5 +348,8 @@ pub fn auto_args() -> Options {
         zip: true,
         verbose: log::LevelFilter::Info,
         ldap_filter: "(objectClass=*)".to_string(),
+        resume: false,
+        cache: false,
+        cache_buffer_size: 1000,
     }
 }

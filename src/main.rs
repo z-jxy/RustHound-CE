@@ -14,6 +14,7 @@ pub use rusthound_ce::args;
 pub use rusthound_ce::cache;
 pub use rusthound_ce::ldap;
 pub use rusthound_ce::objects;
+pub use rusthound_ce::ADResults;
 
 #[cfg(feature = "noargs")]
 use rusthound_ce::args::auto_args;
