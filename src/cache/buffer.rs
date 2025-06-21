@@ -1,6 +1,7 @@
 use std::error::Error;
 use std::fs::OpenOptions;
 use std::io::{BufRead, BufReader, BufWriter, Seek, Write};
+use std::path::Path;
 
 pub use super::iter::BincodeIterator;
 
@@ -51,14 +52,17 @@ pub struct BincodeObjectBuffer<T> {
 }
 
 impl<T> BincodeObjectBuffer<T> {
-    pub fn new(file_path: impl AsRef<std::path::Path>) -> Result<Self, Box<dyn Error>> {
+    pub fn new(file_path: impl AsRef<Path>) -> Result<Self, Box<dyn Error>> {
         Ok(BincodeObjectBuffer {
             obj_buffer: ObjectBuffer::new(file_path)?,
             encode_buffer: Vec::new(),
         })
     }
 
-    pub fn new_with_capacity(file_path: &str, capacity: usize) -> Result<Self, Box<dyn Error>> {
+    pub fn new_with_capacity(
+        file_path: impl AsRef<Path>,
+        capacity: usize,
+    ) -> Result<Self, Box<dyn Error>> {
         Ok(BincodeObjectBuffer {
             obj_buffer: ObjectBuffer::new_with_capacity(file_path, capacity)?,
             encode_buffer: Vec::new(),
@@ -130,7 +134,7 @@ pub struct ObjectBuffer<T> {
 }
 
 impl<T> ObjectBuffer<T> {
-    pub fn new(file_path: impl AsRef<std::path::Path>) -> Result<Self, Box<dyn Error>> {
+    pub fn new(file_path: impl AsRef<Path>) -> Result<Self, Box<dyn Error>> {
         let file = OpenOptions::new()
             .create(true)
             .write(true)
@@ -144,7 +148,10 @@ impl<T> ObjectBuffer<T> {
         })
     }
 
-    pub fn new_with_capacity(file_path: &str, capacity: usize) -> Result<Self, Box<dyn Error>> {
+    pub fn new_with_capacity(
+        file_path: impl AsRef<Path>,
+        capacity: usize,
+    ) -> Result<Self, Box<dyn Error>> {
         let file = OpenOptions::new()
             .create(true)
             .write(true)
@@ -160,7 +167,7 @@ impl<T> ObjectBuffer<T> {
 }
 
 /// Loads a `Vec<T>` from a JSON Lines file
-pub fn jsonl_load<T>(file_path: impl AsRef<std::path::Path>) -> Result<Vec<T>, Box<dyn Error>>
+pub fn jsonl_load<T>(file_path: impl AsRef<Path>) -> Result<Vec<T>, Box<dyn Error>>
 where
     T: serde::de::DeserializeOwned,
 {
@@ -178,7 +185,7 @@ where
     Ok(out)
 }
 
-pub fn bincode_load<T>(file_path: impl AsRef<std::path::Path>) -> Result<Vec<T>, Box<dyn Error>>
+pub fn bincode_load<T>(file_path: impl AsRef<Path>) -> Result<Vec<T>, Box<dyn Error>>
 where
     T: bincode::Decode<()>,
 {

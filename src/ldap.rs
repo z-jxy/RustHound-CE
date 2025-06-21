@@ -238,6 +238,7 @@ pub async fn ldap_search_with_cache(
     kerberos: bool,
     ldapfilter: &str,
     cache_path: &PathBuf,
+    cache_size: usize,
 ) -> Result<(CacheHandle, usize), Box<dyn Error>> {
     use crate::cache::DiskBuffer;
     // Construct LDAP args
@@ -294,7 +295,8 @@ pub async fn ldap_search_with_cache(
     }
 
     // Prepare LDAP result vector
-    let mut rs: BincodeObjectBuffer<LdapSearchEntry> = BincodeObjectBuffer::new(cache_path)?;
+    let mut rs: BincodeObjectBuffer<LdapSearchEntry> =
+        BincodeObjectBuffer::new_with_capacity(cache_path, cache_size)?;
     let mut total = 0; // for progress bar
 
     // Request all namingContexts for current DC

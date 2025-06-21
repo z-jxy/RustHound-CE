@@ -65,23 +65,40 @@ async fn main() -> Result<(), Box<dyn Error>> {
             rusthound_ce::prepare_results_from_cache(cache, &common_args, None).await?
         }
         false => {
-            // LDAP request to get all information in result
-            let (cache, total_cached) = ldap_search_with_cache(
-                common_args.ldaps,
-                common_args.ip.as_deref(),
-                common_args.port,
-                &common_args.domain,
-                &common_args.ldapfqdn,
-                common_args.username.as_deref(),
-                common_args.password.as_deref(),
-                common_args.kerberos,
-                &common_args.ldap_filter,
-                &ldap_cache_path,
-            )
-            .await?;
-            info!("Found {total_cached} LDAP objects",);
-            rusthound_ce::prepare_results_from_cache(cache, &common_args, Some(total_cached))
-                .await?
+            if common_args.cache {
+                info!("Using cache for LDAP search: {}", ldap_cache_path.display());
+                let (cache, total_cached) = ldap_search_with_cache(
+                    common_args.ldaps,
+                    common_args.ip.as_deref(),
+                    common_args.port,
+                    &common_args.domain,
+                    &common_args.ldapfqdn,
+                    common_args.username.as_deref(),
+                    common_args.password.as_deref(),
+                    common_args.kerberos,
+                    &common_args.ldap_filter,
+                    &ldap_cache_path,
+                    common_args.cache_buffer_size,
+                )
+                .await?;
+                info!("Found {total_cached} LDAP objects",);
+                rusthound_ce::prepare_results_from_cache(cache, &common_args, Some(total_cached))
+                    .await?
+            } else {
+                let result = rusthound_ce::ldap_search(
+                    common_args.ldaps,
+                    common_args.ip.as_deref(),
+                    common_args.port,
+                    &common_args.domain,
+                    &common_args.ldapfqdn,
+                    common_args.username.as_deref(),
+                    common_args.password.as_deref(),
+                    common_args.kerberos,
+                    &common_args.ldap_filter,
+                )
+                .await?;
+                rusthound_ce::prepare_results(result, &common_args).await?
+            }
         }
     };
 

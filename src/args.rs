@@ -28,6 +28,8 @@ pub struct Options {
     pub verbose: log::LevelFilter,
     pub ldap_filter: String,
     pub resume: bool,
+    pub cache: bool,
+    pub cache_buffer_size: usize,
 }
 
 #[derive(Clone, Debug)]
@@ -162,6 +164,19 @@ fn cli() -> Command {
             .required(false)
             .action(ArgAction::SetTrue)
         )
+        .arg(Arg::new("cache")
+            .long("cache")
+            .help("Cache LDAP search results to disk (reduce memory usage on large domains)")
+            .required(false)
+            .action(ArgAction::SetTrue)
+        )
+        .arg(Arg::new("cache_buffer")
+            .long("cache-buffer")
+            .help("Buffer size to use when caching")
+            .required(false)
+            .value_parser(value_parser!(usize))
+            .default_value("1000")
+        )
         .next_help_heading("OPTIONAL MODULES")
         .arg(Arg::new("fqdn-resolver")
             .long("fqdn-resolver")
@@ -246,6 +261,11 @@ pub fn extract_args() -> Options {
         .unwrap_or("(objectClass=*)");
 
     let resume = matches.get_flag("resume");
+    let cache = matches.get_flag("cache");
+    let cache_buffer = matches
+        .get_one::<usize>("cache_buffer")
+        .copied()
+        .unwrap_or(1000);
 
     // Return all
     Options {
@@ -266,6 +286,8 @@ pub fn extract_args() -> Options {
         verbose: v,
         ldap_filter: ldap_filter.to_string(),
         resume,
+        cache,
+        cache_buffer_size: cache_buffer,
     }
 }
 
