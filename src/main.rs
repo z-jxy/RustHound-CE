@@ -6,15 +6,13 @@ pub mod utils;
 
 use env_logger::Builder;
 use log::{error, info, trace};
-use rusthound_ce::cache::CacheHandle;
-use rusthound_ce::ldap::ldap_search_with_cache;
 use std::error::Error;
 
-pub use rusthound_ce::args;
-pub use rusthound_ce::cache;
-pub use rusthound_ce::ldap;
-pub use rusthound_ce::objects;
-pub use rusthound_ce::ADResults;
+pub use rusthound_ce::{
+    args, objects, ADResults,
+    {cache, cache::CacheHandle},
+    {ldap, ldap::ldap_search_with_cache},
+};
 
 #[cfg(feature = "noargs")]
 use rusthound_ce::args::auto_args;
