@@ -1,5 +1,14 @@
 # Changelog
 
+## v2.3.6
+
+### Date
+`2025/06/23`
+
+### Summary
+
+This version includes a complete code review to apply improvements suggested by [Clippy](https://doc.rust-lang.org/clippy/usage.html) and contributions from [z-jxy](https://github.com/z-jxy). It addresses potential logic issues, removes dead code, and resolves an infinite recursion bug in the Debug implementation.
+
 ## v2.3.5
 
 ### Date

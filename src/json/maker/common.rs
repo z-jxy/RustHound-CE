@@ -2,17 +2,17 @@ use serde_json::value::Value;
 
 use std::collections::HashMap;
 use colored::Colorize;
-use log::{info,debug,trace};
+use log::{info, debug, trace};
 
 use std::fs;
 use std::fs::File;
 use std::io::{Seek, Write};
 use zip::result::ZipResult;
-use zip::write::{SimpleFileOptions,ZipWriter};
+use zip::write::{SimpleFileOptions, ZipWriter};
 
 extern crate zip;
 use crate::args::{Options, RUSTHOUND_VERSION};
-use crate::objects::common::{FinalJson,Meta,LdapObject};
+use crate::objects::common::{FinalJson, Meta, LdapObject};
 
 /// Current Bloodhound version 4.3+
 pub const BLOODHOUND_VERSION_4: i8 = 6;
@@ -27,7 +27,7 @@ pub fn add_file<T: LdapObject>(
    common_args: &Options, 
  ) -> std::io::Result<()>
  {
-  if vec_json.len() != 0 {
+  if !vec_json.is_empty() {
     debug!("Making {}.json",&name);
   
     let path = &common_args.path;
@@ -42,7 +42,7 @@ pub fn add_file<T: LdapObject>(
     let final_json = FinalJson::new(
         result,
         Meta::new(
-          000000 as i32,
+          000000_i32,
           name.to_owned(),
           count as i32,
           BLOODHOUND_VERSION_4,

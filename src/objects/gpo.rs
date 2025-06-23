@@ -1,20 +1,12 @@
 use serde_json::value::Value;
 use serde::{Deserialize, Serialize};
-
-use crate::enums::decode_guid_le;
-use crate::objects::common::{
-    LdapObject,
-    AceTemplate,
-    Link,
-    SPNTarget,
-    Member
-};
-
 use ldap3::SearchEntry;
 use log::{debug, trace};
 use std::collections::HashMap;
 use std::error::Error;
 
+use crate::objects::common::{LdapObject, AceTemplate, Link, SPNTarget, Member};
+use crate::enums::decode_guid_le;
 use crate::enums::acl::parse_ntsecuritydescriptor;
 use crate::utils::date::string_to_epoch;
 
@@ -48,31 +40,32 @@ impl Gpo {
     pub fn parse(
         &mut self,
         result: SearchEntry,
-        domain: &String,
+        domain: &str,
         dn_sid: &mut HashMap<String, String>,
         sid_type: &mut HashMap<String, String>,
-        domain_sid: &String
+        domain_sid: &str
     ) -> Result<(), Box<dyn Error>> {
         let result_dn: String = result.dn.to_uppercase();
         let result_attrs: HashMap<String, Vec<String>> = result.attrs;
         let result_bin: HashMap<String, Vec<Vec<u8>>> = result.bin_attrs;
-        
+
         // Debug for current object
-        debug!("Parse gpo: {}", result_dn);
+        debug!("Parse gpo: {result_dn}");
+
         // Trace all result attributes
         for (key, value) in &result_attrs {
-            trace!("  {:?}:{:?}", key, value);
+            trace!("  {key:?}:{value:?}");
         }
         // Trace all bin result attributes
         for (key, value) in &result_bin {
-            trace!("  {:?}:{:?}", key, value);
+            trace!("  {key:?}:{value:?}");
         }
-        
+
         // Change all values...
         self.properties.domain = domain.to_uppercase();
         self.properties.distinguishedname = result_dn;
         self.properties.domainsid = domain_sid.to_string();
-        
+
         // Check and replace value
         for (key, value) in &result_attrs {
             match key.as_str() {
@@ -82,7 +75,7 @@ impl Gpo {
                     self.properties.name = email.to_uppercase();
                 }
                 "description" => {
-                    self.properties.description = value.get(0).map(|s| s.clone());
+                    self.properties.description = value.first().cloned();
                 }
                 "whenCreated" => {
                     let epoch = string_to_epoch(&value[0])?;
@@ -99,32 +92,30 @@ impl Gpo {
                 _ => {}
             }
         }
-        
+
         // For all, bins attributes
         for (key, value) in &result_bin {
             match key.as_str() {
                 "objectGUID" => {
                     // objectGUID raw to string
-                    self.object_identifier = decode_guid_le(&value[0]).to_owned().into();
+                    self.object_identifier = decode_guid_le(&value[0]).to_owned();
                 }
                 "nTSecurityDescriptor" => {
-                    // Needed with acl
-                    let entry_type = "Gpo".to_string();
                     // nTSecurityDescriptor raw to string
                     let relations_ace = parse_ntsecuritydescriptor(
                         self,
                         &value[0],
-                        entry_type,
+                        "Gpo",
                         &result_attrs,
                         &result_bin,
-                        &domain,
+                        domain,
                     );
                     self.aces = relations_ace;
                 }
                 _ => {}
             }
         }
-        
+
         // Push DN and SID in HashMap
         dn_sid.insert(
             self.properties.distinguishedname.to_string(),
@@ -135,7 +126,7 @@ impl Gpo {
             self.object_identifier.to_string(),
             "Gpo".to_string(),
         );
-        
+
         // Trace and return Gpo struct
         // trace!("JSON OUTPUT: {:?}",serde_json::to_string(&self).unwrap());
         Ok(())
@@ -145,7 +136,7 @@ impl Gpo {
 impl LdapObject for Gpo {
     // To JSON
     fn to_json(&self) -> Value {
-        serde_json::to_value(&self).unwrap()
+        serde_json::to_value(self).unwrap()
     }
 
     // Get values

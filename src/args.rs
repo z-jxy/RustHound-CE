@@ -12,8 +12,8 @@ use regex::Regex;
 #[derive(Clone, Debug)]
 pub struct Options {
     pub domain: String,
-    pub username: String,
-    pub password: String,
+    pub username: Option<String>,
+    pub password: Option<String>,
     pub ldapfqdn: String,
     pub ip: Option<String>,
     pub port: Option<u16>,
@@ -36,134 +36,133 @@ pub enum CollectionMethod {
 }
 
 // Current RustHound version
-pub const RUSTHOUND_VERSION: &str = "2.3.5";
+pub const RUSTHOUND_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[cfg(not(feature = "noargs"))]
 fn cli() -> Command {
-    let cmd = Command::new("rusthound-ce")
-        .version(RUSTHOUND_VERSION)
-        .about("Active Directory data collector for BloodHound Community Edition.\ng0h4n <https://twitter.com/g0h4n_0>")
-        .arg(Arg::new("v")
-            .short('v')
-            .help("Set the level of verbosity")
-            .action(ArgAction::Count),
-        )
-        .next_help_heading("REQUIRED VALUES")
-        .arg(Arg::new("domain")
-                .short('d')
-                .long("domain")
-                .help("Domain name like: DOMAIN.LOCAL")
-                .required(true)
-                .value_parser(value_parser!(String))
-            )
-        .next_help_heading("OPTIONAL VALUES")
-        .arg(Arg::new("ldapusername")
-            .short('u')
-            .long("ldapusername")
-            .help("LDAP username, like: user@domain.local")
-            .required(false)
+    // Return Command args
+    Command::new("rusthound-ce")
+    .version(RUSTHOUND_VERSION)
+    .about("Active Directory data collector for BloodHound Community Edition.\ng0h4n <https://twitter.com/g0h4n_0>")
+    .arg(Arg::new("v")
+        .short('v')
+        .help("Set the level of verbosity")
+        .action(ArgAction::Count),
+    )
+    .next_help_heading("REQUIRED VALUES")
+    .arg(Arg::new("domain")
+        .short('d')
+        .long("domain")
+            .help("Domain name like: DOMAIN.LOCAL")
+            .required(true)
             .value_parser(value_parser!(String))
-        )
-        .arg(Arg::new("ldappassword")
-            .short('p')
-            .long("ldappassword")
-            .help("LDAP password")
-            .required(false)
-            .value_parser(value_parser!(String))
-        )
-        .arg(Arg::new("ldapfqdn")
-            .short('f')
-            .long("ldapfqdn")
-            .help("Domain Controller FQDN like: DC01.DOMAIN.LOCAL or just DC01")
-            .required(false)
-            .value_parser(value_parser!(String))
-        )
-        .arg(Arg::new("ldapip")
-            .short('i')
-            .long("ldapip")
-            .help("Domain Controller IP address like: 192.168.1.10")
-            .required(false)
-            .value_parser(value_parser!(String))
-        )
-        .arg(Arg::new("ldapport")
-            .short('P')
-            .long("ldapport")
-            .help("LDAP port [default: 389]")
-            .required(false)
-            .value_parser(value_parser!(String))
-        )
-        .arg(Arg::new("name-server")
-            .short('n')
-            .long("name-server")
-            .help("Alternative IP address name server to use for DNS queries")
-            .required(false)
-            .value_parser(value_parser!(String))
-        )
-        .arg(Arg::new("output")
-            .short('o')
-            .long("output")
-            .help("Output directory where you would like to save JSON files [default: ./]")
-            .required(false)
-            .value_parser(value_parser!(String))
-        )
-        .next_help_heading("OPTIONAL FLAGS")
-        .arg(Arg::new("collectionmethod")
-            .short('c')
-            .long("collectionmethod")
-            .help("Which information to collect. Supported: All (LDAP,SMB,HTTP requests), DCOnly (no computer connections, only LDAP requests). (default: All)")
-            .required(false)
-            .value_name("COLLECTIONMETHOD")
-            .value_parser(["All", "DCOnly"])
-            .num_args(0..=1)
-            .default_missing_value("All")
-        )
-        .arg(Arg::new("ldap-filter")
-            .long("ldap-filter")
-            .help("Use custom ldap-filter default is : (objectClass=*)")
-            .required(false)
-            .value_parser(value_parser!(String))
-            .default_missing_value("(objectClass=*)")
-        )
-        .arg(Arg::new("ldaps")
-            .long("ldaps")
-            .help("Force LDAPS using for request like: ldaps://DOMAIN.LOCAL/")
-            .required(false)
-            .action(ArgAction::SetTrue)
-            .global(false)
-        )
-        .arg(Arg::new("kerberos")
-            .short('k')
-            .long("kerberos")
-            .help("Use Kerberos authentication. Grabs credentials from ccache file (KRB5CCNAME) based on target parameters for Linux.")
-            .required(false)
-            .action(ArgAction::SetTrue)
-            .global(false)
-        )
-        .arg(Arg::new("dns-tcp")
-                .long("dns-tcp")
-                .help("Use TCP instead of UDP for DNS queries")
-                .required(false)
-                .action(ArgAction::SetTrue)
-                .global(false)
-            )
-        .arg(Arg::new("zip")
-            .long("zip")
-            .short('z')
-            .help("Compress the JSON files into a zip archive")
-            .required(false)
-            .action(ArgAction::SetTrue)
-            .global(false)
-        )
-        .next_help_heading("OPTIONAL MODULES")
-        .arg(Arg::new("fqdn-resolver")
-            .long("fqdn-resolver")
-            .help("Use fqdn-resolver module to get computers IP address")
-            .required(false)
-            .action(ArgAction::SetTrue)
-            .global(false)
-        );
-        // Return Command args
-        cmd
+    )
+    .next_help_heading("OPTIONAL VALUES")
+    .arg(Arg::new("ldapusername")
+        .short('u')
+        .long("ldapusername")
+        .help("LDAP username, like: user@domain.local")
+        .required(false)
+        .value_parser(value_parser!(String))
+    )
+    .arg(Arg::new("ldappassword")
+        .short('p')
+        .long("ldappassword")
+        .help("LDAP password")
+        .required(false)
+        .value_parser(value_parser!(String))
+    )
+    .arg(Arg::new("ldapfqdn")
+        .short('f')
+        .long("ldapfqdn")
+        .help("Domain Controller FQDN like: DC01.DOMAIN.LOCAL or just DC01")
+        .required(false)
+        .value_parser(value_parser!(String))
+    )
+    .arg(Arg::new("ldapip")
+        .short('i')
+        .long("ldapip")
+        .help("Domain Controller IP address like: 192.168.1.10")
+        .required(false)
+        .value_parser(value_parser!(String))
+    )
+    .arg(Arg::new("ldapport")
+        .short('P')
+        .long("ldapport")
+        .help("LDAP port [default: 389]")
+        .required(false)
+        .value_parser(value_parser!(String))
+    )
+    .arg(Arg::new("name-server")
+        .short('n')
+        .long("name-server")
+        .help("Alternative IP address name server to use for DNS queries")
+        .required(false)
+        .value_parser(value_parser!(String))
+    )
+    .arg(Arg::new("output")
+        .short('o')
+        .long("output")
+        .help("Output directory where you would like to save JSON files [default: ./]")
+        .required(false)
+        .value_parser(value_parser!(String))
+    )
+    .next_help_heading("OPTIONAL FLAGS")
+    .arg(Arg::new("collectionmethod")
+        .short('c')
+        .long("collectionmethod")
+        .help("Which information to collect. Supported: All (LDAP,SMB,HTTP requests), DCOnly (no computer connections, only LDAP requests). (default: All)")
+        .required(false)
+        .value_name("COLLECTIONMETHOD")
+        .value_parser(["All", "DCOnly"])
+        .num_args(0..=1)
+        .default_missing_value("All")
+    )
+    .arg(Arg::new("ldap-filter")
+        .long("ldap-filter")
+        .help("Use custom ldap-filter default is : (objectClass=*)")
+        .required(false)
+        .value_parser(value_parser!(String))
+        .default_missing_value("(objectClass=*)")
+    )
+    .arg(Arg::new("ldaps")
+        .long("ldaps")
+        .help("Force LDAPS using for request like: ldaps://DOMAIN.LOCAL/")
+        .required(false)
+        .action(ArgAction::SetTrue)
+        .global(false)
+    )
+    .arg(Arg::new("kerberos")
+        .short('k')
+        .long("kerberos")
+        .help("Use Kerberos authentication. Grabs credentials from ccache file (KRB5CCNAME) based on target parameters for Linux.")
+        .required(false)
+        .action(ArgAction::SetTrue)
+        .global(false)
+    )
+    .arg(Arg::new("dns-tcp")
+        .long("dns-tcp")
+        .help("Use TCP instead of UDP for DNS queries")
+        .required(false)
+        .action(ArgAction::SetTrue)
+        .global(false)
+    )
+    .arg(Arg::new("zip")
+        .long("zip")
+        .short('z')
+        .help("Compress the JSON files into a zip archive")
+        .required(false)
+        .action(ArgAction::SetTrue)
+        .global(false)
+    )
+    .next_help_heading("OPTIONAL MODULES")
+    .arg(Arg::new("fqdn-resolver")
+        .long("fqdn-resolver")
+        .help("Use fqdn-resolver module to get computers IP address")
+        .required(false)
+        .action(ArgAction::SetTrue)
+        .global(false)
+    )
 }
 
 #[cfg(not(feature = "noargs"))]
@@ -174,27 +173,53 @@ pub fn extract_args() -> Options {
     let matches = cli().get_matches();
 
     // Now get values
-    let d = matches.get_one::<String>("domain").map(|s| s.as_str()).unwrap();
-    let u = matches.get_one::<String>("ldapusername").map(|s| s.as_str()).unwrap_or("not set");
-    let p = matches.get_one::<String>("ldappassword").map(|s| s.as_str()).unwrap_or("not set");
-    let f = matches.get_one::<String>("ldapfqdn").map(|s| s.as_str()).unwrap_or("not set");
-    let ip = matches.get_one::<String>("ldapip").map(|s| s.clone());
+    let d = matches
+        .get_one::<String>("domain")
+        .map(|s| s.as_str())
+        .unwrap();
+    let username = matches
+        .get_one::<String>("ldapusername")
+        .map(|s| s.to_owned());
+    let password = matches
+        .get_one::<String>("ldappassword")
+        .map(|s| s.to_owned());
+    let f = matches
+        .get_one::<String>("ldapfqdn")
+        .map(|s| s.as_str())
+        .unwrap_or("not set");
+    let ip = matches.get_one::<String>("ldapip").cloned();    
     let port = match matches.get_one::<String>("ldapport") {
-        Some(val) => {
-            match val.parse::<u16>() {
-                Ok(x) => Some(x),
-                Err(_) => None,
-            }
-        },
-        None => None
+        Some(val) => val.parse::<u16>().ok(),
+        None => None,
     };
-    let n = matches.get_one::<String>("name-server").map(|s| s.as_str()).unwrap_or("not set");
-    let path = matches.get_one::<String>("output").map(|s| s.as_str()).unwrap_or("./");
-    let ldaps = matches.get_one::<bool>("ldaps").map(|s| s.to_owned()).unwrap_or(false);
-    let dns_tcp = matches.get_one::<bool>("dns-tcp").map(|s| s.to_owned()).unwrap_or(false);
-    let z = matches.get_one::<bool>("zip").map(|s| s.to_owned()).unwrap_or(false);
-    let fqdn_resolver = matches.get_one::<bool>("fqdn-resolver").map(|s| s.to_owned()).unwrap_or(false);
-    let kerberos = matches.get_one::<bool>("kerberos").map(|s| s.to_owned()).unwrap_or(false);
+    let n = matches
+        .get_one::<String>("name-server")
+        .map(|s| s.as_str())
+        .unwrap_or("not set");
+    let path = matches
+        .get_one::<String>("output")
+        .map(|s| s.as_str())
+        .unwrap_or("./");
+    let ldaps = matches
+        .get_one::<bool>("ldaps")
+        .map(|s| s.to_owned())
+        .unwrap_or(false);
+    let dns_tcp = matches
+        .get_one::<bool>("dns-tcp")
+        .map(|s| s.to_owned())
+        .unwrap_or(false);
+    let z = matches
+        .get_one::<bool>("zip")
+        .map(|s| s.to_owned())
+        .unwrap_or(false);
+    let fqdn_resolver = matches
+        .get_one::<bool>("fqdn-resolver")
+        .map(|s| s.to_owned())
+        .unwrap_or(false);
+    let kerberos = matches
+        .get_one::<bool>("kerberos")
+        .map(|s| s.to_owned())
+        .unwrap_or(false);
     let v = match matches.get_count("v") {
         0 => log::LevelFilter::Info,
         1 => log::LevelFilter::Debug,
@@ -210,18 +235,18 @@ pub fn extract_args() -> Options {
     // Return all
     Options {
         domain: d.to_string(),
-        username: u.to_string(),
-        password: p.to_string(),
+        username,
+        password,
         ldapfqdn: f.to_string(),
-        ip: ip,
-        port: port,
+        ip,
+        port,
         name_server: n.to_string(),
         path: path.to_string(),
-        collection_method: collection_method,
-        ldaps: ldaps,
-        dns_tcp: dns_tcp,
-        fqdn_resolver: fqdn_resolver,
-        kerberos: kerberos,
+        collection_method,
+        ldaps,
+        dns_tcp,
+        fqdn_resolver,
+        kerberos,
         zip: z,
         verbose: v,
         ldap_filter: ldap_filter.to_string(),

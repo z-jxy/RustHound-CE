@@ -609,16 +609,12 @@ impl Meta {
 
 
 /// Function to parse and replace value for unknown object.
-pub fn parse_unknown(result: SearchEntry, _domain: &String) -> serde_json::value::Value  {
+pub fn parse_unknown(result: SearchEntry, _domain: &str) -> serde_json::value::Value  {
 
    let _result_dn = result.dn.to_uppercase();
-
-   let _result_attrs: HashMap<String, Vec<String>>;
-   _result_attrs = result.attrs;
-
-   let _result_bin: HashMap<String, Vec<Vec<u8>>>;
-   _result_bin = result.bin_attrs;
-
+   let _result_attrs: HashMap<String, Vec<String>> = result.attrs;
+   let _result_bin: HashMap<String, Vec<Vec<u8>>> = result.bin_attrs;
+   
    let unknown_json = json!({
        "unknown": null,
    });
@@ -633,5 +629,5 @@ pub fn parse_unknown(result: SearchEntry, _domain: &String) -> serde_json::value
    //    println!("  {:?}:{:?}", key, value);
    // }
 
-   return unknown_json
+   unknown_json
 }

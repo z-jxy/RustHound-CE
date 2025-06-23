@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use std::error::Error;
 use ldap3::SearchEntry;
-use regex::Regex;
 use indicatif::ProgressBar;
 use crate::objects::common::parse_unknown;
 use crate::objects::{
@@ -27,6 +26,8 @@ use log::info;
 use crate::args::Options;
 use crate::banner::progress_bar;
 use crate::enums::ldaptype::*;
+use crate::enums::regex::{PARSER_MOD_RE1,PARSER_MOD_RE2};
+
 // use crate::modules::adcs::parser::{parse_adcs_ca,parse_adcs_template};
 
 /// Function to get type for object by object
@@ -150,14 +151,12 @@ pub fn parse_result_type(
                 vec_fsps.push(security_principal);
             }
             Type::Container => {
-                let re = Regex::new(r"[0-9a-z-A-Z]{1,}-[0-9a-z-A-Z]{1,}-[0-9a-z-A-Z]{1,}-[0-9a-z-A-Z]{1,}")?;
-                if re.is_match(&cloneresult.dn.to_uppercase()) 
+                if PARSER_MOD_RE1.is_match(&cloneresult.dn.to_uppercase()) 
                 {
                     //trace!("Container not to add: {}",&cloneresult.dn.to_uppercase());
                     continue
                 }
-                let re = Regex::new(r"CN=DOMAINUPDATES,CN=SYSTEM,")?;
-                if re.is_match(&cloneresult.dn.to_uppercase()) 
+                if PARSER_MOD_RE2.is_match(&cloneresult.dn.to_uppercase()) 
                 {
                     //trace!("Container not to add: {}",&cloneresult.dn.to_uppercase());
                     continue

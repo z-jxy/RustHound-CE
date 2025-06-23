@@ -1,22 +1,15 @@
 use serde_json::value::Value;
 use serde::{Deserialize, Serialize};
-
-use crate::objects::common::{
-    LdapObject,
-    AceTemplate,
-    SPNTarget,
-    Link,
-    Member
-};
-
 use ldap3::SearchEntry;
 use log::{debug, trace};
 use std::collections::HashMap;
 use std::error::Error;
 
+use crate::objects::common::{LdapObject, AceTemplate, SPNTarget, Link, Member};
 use crate::enums::acl::parse_ntsecuritydescriptor;
 use crate::enums::sid::decode_guid_le;
 use crate::utils::date::string_to_epoch;
+
 
 /// Container structure
 #[derive(Debug, Clone, Deserialize, Serialize, Default)]
@@ -47,29 +40,30 @@ impl Container {
     pub fn parse(
         &mut self,
         result: SearchEntry,
-        domain: &String,
+        domain: &str,
         dn_sid: &mut HashMap<String, String>,
         sid_type: &mut HashMap<String, String>,
-        domain_sid: &String
+        domain_sid: &str
     ) -> Result<(), Box<dyn Error>> {
         let result_dn: String = result.dn.to_uppercase();
         let result_attrs: HashMap<String, Vec<String>> = result.attrs;
         let result_bin: HashMap<String, Vec<Vec<u8>>> = result.bin_attrs;
 
         // Debug for current object
-        debug!("Parse Container: {}", result_dn);
+        debug!("Parse Container: {result_dn}");
+
         // Trace all result attributes
         for (key, value) in &result_attrs {
-            trace!("  {:?}:{:?}", key, value);
+            trace!("  {key:?}:{value:?}");
         }
         // Trace all bin result attributes
         for (key, value) in &result_bin {
-            trace!("  {:?}:{:?}", key, value);
+            trace!("  {key:?}:{value:?}");
         }
 
         // Change all values...
         self.properties.domain = domain.to_uppercase();
-        self.properties.distinguishedname = result_dn;        
+        self.properties.distinguishedname = result_dn;
         self.properties.domainsid = domain_sid.to_string();
 
         // With a check
@@ -100,16 +94,14 @@ impl Container {
                     self.object_identifier = guid.to_owned();
                 }
                 "nTSecurityDescriptor" => {
-                    // Needed with acl
-                    let entry_type = "Container".to_string();
                     // nTSecurityDescriptor raw to string
                     let relations_ace = parse_ntsecuritydescriptor(
                         self,
                         &value[0],
-                        entry_type,
+                        "Container",
                         &result_attrs,
                         &result_bin,
-                        &domain,
+                        domain,
                     );
                     self.aces = relations_ace;
                 }
@@ -153,7 +145,7 @@ pub struct ContainerProperties {
 impl LdapObject for Container {
     // To JSON
     fn to_json(&self) -> Value {
-        serde_json::to_value(&self).unwrap()
+        serde_json::to_value(self).unwrap()
     }
 
     // Get values

@@ -1,23 +1,14 @@
 use serde_json::value::Value;
 use serde::{Deserialize, Serialize};
-
-use crate::objects::common::{
-    LdapObject,
-    GPOChange,
-    Link,
-    AceTemplate,
-    SPNTarget,
-    Member
-};
-use crate::objects::trust::Trust;
-
 use colored::Colorize;
 use ldap3::SearchEntry;
 use log::{info, debug, trace};
-use regex::Regex;
 use std::collections::HashMap;
 use std::error::Error;
 
+use crate::enums::regex::OBJECT_SID_RE1;
+use crate::objects::common::{LdapObject, GPOChange, Link, AceTemplate, SPNTarget, Member};
+use crate::objects::trust::Trust;
 use crate::utils::date::{span_to_string, string_to_epoch};
 use crate::enums::acl::parse_ntsecuritydescriptor;
 use crate::enums::forestlevel::get_forest_level;
@@ -75,7 +66,7 @@ impl Domain {
     pub fn parse(
         &mut self,
         result: SearchEntry,
-        domain_name: &String,
+        domain_name: &str,
         dn_sid: &mut HashMap<String, String>,
         sid_type: &mut HashMap<String, String>,
     ) -> Result<String, Box<dyn Error>> {
@@ -84,14 +75,15 @@ impl Domain {
         let result_bin: HashMap<String, Vec<Vec<u8>>> = result.bin_attrs;
 
         // Debug for current object
-        debug!("Parse domain: {}", result_dn);
+        debug!("Parse domain: {result_dn}");
+
         // Trace all result attributes
         for (key, value) in &result_attrs {
-            trace!("  {:?}:{:?}", key, value);
+            trace!("  {key:?}:{value:?}");
         }
         // Trace all bin result attributes
         for (key, value) in &result_bin {
-            trace!("  {:?}:{:?}", key, value);
+            trace!("  {key:?}:{value:?}");
         }
 
         // Change all values...
@@ -174,6 +166,7 @@ impl Domain {
                 _ => {}
             }
         }
+
         // For all, bins attributes
         for (key, value) in &result_bin {
             match key.as_str() {
@@ -182,9 +175,7 @@ impl Domain {
                     sid = sid_maker(LdapSid::parse(&value[0]).unwrap().1, domain_name);
                     self.object_identifier = sid.to_owned();
 
-                    let re = Regex::new(r"^S-[0-9]{1}-[0-9]{1}-[0-9]{1,}-[0-9]{1,}-[0-9]{1,}-[0-9]{1,}")?;
-                    for domain_sid in re.captures_iter(&sid) 
-                    {
+                    for domain_sid in OBJECT_SID_RE1.captures_iter(&sid) {
                         self.properties.domainsid = domain_sid[0].to_owned().to_string();
                         global_domain_sid = domain_sid[0].to_owned().to_string();
                     }
@@ -193,18 +184,16 @@ impl Domain {
                     self.properties.collected = true;
                 }
                 "nTSecurityDescriptor" => {
-                    // Needed with acl
-                    let entry_type = "Domain".to_string();
                     // nTSecurityDescriptor raw to string
                     let relations_ace = parse_ntsecuritydescriptor(
                         self,
                         &value[0],
-                        entry_type,
+                        "Domain",
                         &result_attrs,
                         &result_bin,
-                        &domain_name,
+                        domain_name,
                     );
-                    self.aces = relations_ace.into();
+                    self.aces = relations_ace;
                 }
                 _ => {}
             }
@@ -230,7 +219,7 @@ impl Domain {
 impl LdapObject for Domain {
     // To JSON
     fn to_json(&self) -> Value {
-        serde_json::to_value(&self).unwrap()
+        serde_json::to_value(self).unwrap()
     }
 
     // Get values

@@ -16,15 +16,15 @@ pub async fn resolving_all_fqdn(
    dns_tcp:       bool,
    name_server:   &String,
    fqdn_ip:       &mut HashMap<String, String>,
-   vec_computer:  &Vec<Computer>
+   vec_computer:  &[Computer]
 ) {
    info!("Resolving FQDN to IP address started...");
    for value in fqdn_ip.to_owned()
    {
       for i in 0..vec_computer.len()
       {
-         if (vec_computer[i].properties().name().to_string() == value.0.to_owned().to_string()) 
-         && (vec_computer[i].properties().enabled().to_owned() == true) {
+         if (*vec_computer[i].properties().name() == value.0.to_owned()) 
+         && (*vec_computer[i].properties().enabled()) {
             debug!("Trying to resolve FQDN: {}",value.0.to_string());
             // Resolve FQDN to IP address
             let address = resolver(value.0.to_string(),dns_tcp,name_server).await;
@@ -64,7 +64,7 @@ pub async fn resolver(
       }
       Err(_err) => {},
    };
-   return None
+   None
 }
 
 /// Function to prepare resolver configuration
@@ -75,7 +75,7 @@ pub fn make_resolver_conf(
    let mut c = ResolverConfig::new();
    let mut socket = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 53);
    let mut dns_protocol = Protocol::Udp;
-   if dns_tcp == true
+   if dns_tcp
    {
       dns_protocol = Protocol::Tcp;
    }
@@ -97,5 +97,5 @@ pub fn make_resolver_conf(
 
    let mut o = ResolverOpts::default();
    o.timeout = Duration::new(0, 10);
-   return (c,o)
+   (c,o)
 }

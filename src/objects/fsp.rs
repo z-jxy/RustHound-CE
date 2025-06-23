@@ -1,20 +1,12 @@
 use serde_json::value::Value;
 use serde::{Deserialize, Serialize};
-
-use crate::objects::common::{
-    LdapObject,
-    AceTemplate,
-    SPNTarget,
-    Link,
-    Member
-};
-
 use ldap3::SearchEntry;
 use log::{debug, trace};
-use regex::Regex;
 use std::collections::HashMap;
 use std::error::Error;
 
+use crate::enums::regex::OBJECT_SID_RE1;
+use crate::objects::common::{LdapObject, AceTemplate, SPNTarget, Link, Member};
 use crate::utils::date::string_to_epoch;
 use crate::enums::secdesc::LdapSid;
 use crate::enums::sid::{objectsid_to_vec8, sid_maker};
@@ -46,40 +38,41 @@ impl Fsp {
     pub fn parse(
         &mut self,
         result: SearchEntry,
-        domain: &String,
+        domain: &str,
         dn_sid: &mut HashMap<String, String>,
         sid_type: &mut HashMap<String, String>,
     ) -> Result<(), Box<dyn Error>> {
         let result_dn: String = result.dn.to_uppercase();
         let result_attrs: HashMap<String, Vec<String>> = result.attrs;
         let result_bin: HashMap<String, Vec<Vec<u8>>> = result.bin_attrs;
-        
+
         // Debug for current object
-        debug!("Parse ForeignSecurityPrincipal: {}", result_dn);
+        debug!("Parse ForeignSecurityPrincipal: {result_dn}");
+
         // Trace all result attributes
         for (key, value) in &result_attrs {
-            trace!("  {:?}:{:?}", key, value);
+            trace!("  {key:?}:{value:?}");
         }
         // Trace all bin result attributes
         for (key, value) in &result_bin {
-            trace!("  {:?}:{:?}", key, value);
+            trace!("  {key:?}:{value:?}");
         }
-        
+
         // Change all values...
         self.properties.domain = domain.to_uppercase();
         self.properties.distinguishedname = result_dn;    
-        
+
         #[allow(unused_assignments)]
         let mut sid: String = "".to_owned();
         let mut ftype: &str = "Base";
-        
+
         // With a check
         for (key, value) in &result_attrs {
             match key.as_str() {
                 "name" => {
-                    let name = format!("{}-{}", domain, &value.get(0).unwrap_or(&"".to_owned()));
+                    let name = format!("{}-{}", domain, &value.first().unwrap_or(&"".to_owned()));
                     self.properties.name = name.to_uppercase();
-        
+
                     // Type for group Member maker
                     // based on https://docs.microsoft.com/fr-fr/troubleshoot/windows-server/identity/security-identifiers-in-windows
                     let split = value[0].split("-").collect::<Vec<&str>>();
@@ -103,33 +96,28 @@ impl Fsp {
                     let vec_sid = objectsid_to_vec8(&value[0]);
                     sid = sid_maker(LdapSid::parse(&vec_sid).unwrap().1, domain);
                     self.object_identifier = sid.to_owned();
-        
-                    let re = Regex::new(r"^S-[0-9]{1}-[0-9]{1}-[0-9]{1,}-[0-9]{1,}-[0-9]{1,}-[0-9]{1,}")?;
-                    for domain_sid in re.captures_iter(&sid) 
-                    {
+
+                    for domain_sid in OBJECT_SID_RE1.captures_iter(&sid) {
                         self.properties.domainsid = domain_sid[0].to_owned().to_string();
                     }
                 }
                 "IsDeleted" => {
-                    self.is_deleted = true.into();
+                    self.is_deleted = true;
                 }
                 _ => {}
             }
         }
-        
+
         // Push DN and SID in HashMap
-        if self.object_identifier.to_string() != "SID" {
+        if self.object_identifier != "SID" {
             dn_sid.insert(
                 self.properties.distinguishedname.to_string(),
                 self.object_identifier.to_string()
             );
             // Push DN and Type
-            sid_type.insert(
-                self.object_identifier.to_string(),
-                ftype.to_string()
-            );
+            sid_type.insert(self.object_identifier.to_string(), ftype.to_string());
         }
-        
+
         // Trace and return Fsp struct
         // trace!("JSON OUTPUT: {:?}",serde_json::to_string(&self).unwrap());
         Ok(())
@@ -208,7 +196,7 @@ impl FspProperties {
 impl LdapObject for Fsp {
     // To JSON
     fn to_json(&self) -> Value {
-        serde_json::to_value(&self).unwrap()
+        serde_json::to_value(self).unwrap()
     }
 
     // Get values

@@ -1,20 +1,12 @@
-use serde_json::value::Value;
 use serde::{Deserialize, Serialize};
-
-use crate::objects::common::{
-    LdapObject,
-    AceTemplate,
-    SPNTarget,
-    Link,
-    Member
-};
-
+use serde_json::value::Value;
 use ldap3::SearchEntry;
 use log::{debug, trace};
-use regex::Regex;
 use std::collections::HashMap;
 use std::error::Error;
 
+use crate::enums::regex::OBJECT_SID_RE1;
+use crate::objects::common::{LdapObject, AceTemplate, SPNTarget, Link, Member};
 use crate::enums::acl::parse_ntsecuritydescriptor;
 use crate::enums::secdesc::LdapSid;
 use crate::enums::sid::{objectsid_to_vec8, sid_maker};
@@ -66,40 +58,41 @@ impl Group {
     pub fn parse(
         &mut self,
         result: SearchEntry,
-        domain: &String,
+        domain: &str,
         dn_sid: &mut HashMap<String, String>,
         sid_type: &mut HashMap<String, String>,
-        domain_sid: &String,
+        domain_sid: &str,
     ) -> Result<(), Box<dyn Error>> {
         let result_dn: String = result.dn.to_uppercase();
         let result_attrs: HashMap<String, Vec<String>> = result.attrs;
         let result_bin: HashMap<String, Vec<Vec<u8>>> = result.bin_attrs;
-        
-        debug!("Parse group: {}", result_dn);
+
+        debug!("Parse group: {result_dn}");
+
         // Trace all result attributes
         for (key, value) in &result_attrs {
-            trace!("  {:?}:{:?}", key, value);
+            trace!("  {key:?}:{value:?}");
         }
         // Trace all bin result attributes
         for (key, value) in &result_bin {
-            trace!("  {:?}:{:?}", key, value);
+            trace!("  {key:?}:{value:?}");
         }
-        
+
         // Some needed vectors.
         let mut vec_members: Vec<Member> = Vec::new();
         let mut member_template = Member::new();
-        
+
         // Change all values...
         self.properties.domain = domain.to_uppercase();
         self.properties.distinguishedname = result_dn;
         self.properties.domainsid = domain_sid.to_string();
-        
+
         // With a check
         for (key, value) in &result_attrs {
             match key.as_str() {
                 "name" => {
                     let name = &value[0];
-                    let email = format!("{}@{}",name.to_owned(),domain);
+                    let email = format!("{}@{}", name.to_owned(), domain);
                     self.properties.name = email.to_uppercase();
                 }
                 "description" => {
@@ -111,13 +104,13 @@ impl Group {
                     if isadmin == "1" {
                         admincount = true;
                     }
-                    self.properties.admincount = admincount.into();
+                    self.properties.admincount = admincount;
                 }
                 "sAMAccountName" => {
                     self.properties.samaccountname = value[0].to_owned();
                 }
                 "member" => {
-                    if value.len() > 0 {
+                    if value.is_empty() {
                         for member in value {
                             *member_template.object_identifier_mut() = member.to_owned().to_uppercase();
                             if member_template.object_identifier() != "SID" {
@@ -132,30 +125,28 @@ impl Group {
                     let vec_sid = objectsid_to_vec8(&value[0]);
                     let sid = sid_maker(LdapSid::parse(&vec_sid).unwrap().1, domain);
                     self.object_identifier = sid.to_owned();
-        
+
                     /*let re = Regex::new(r"^S-[0-9]{1}-[0-9]{1}-[0-9]{1,}-[0-9]{1,}-[0-9]{1,}-[0-9]{1,}").unwrap();
                     for domain_sid in re.captures_iter(&sid) 
                     {
-                        group_json["Properties"]["domainsid"] = domain_sid[0].to_owned().to_string().into();
+                        group_json["Properties"]["domainsid"] = domain_sid[0].to_owned().to_string();
                     }*/
-        
+
                     // highvalue
                     if sid.ends_with("-512") 
-                    || sid.ends_with("-516") 
-                    || sid.ends_with("-519") 
-                    || sid.ends_with("-520") 
+                        || sid.ends_with("-516") 
+                        || sid.ends_with("-519") 
+                        || sid.ends_with("-520") 
                     {
                         self.properties.highvalue = true;
-                    }
-                    else if sid.ends_with("S-1-5-32-544") 
-                    || sid.ends_with("S-1-5-32-548") 
-                    || sid.ends_with("S-1-5-32-549")
-                    || sid.ends_with("S-1-5-32-550") 
-                    || sid.ends_with("S-1-5-32-551") 
+                    } else if sid.ends_with("S-1-5-32-544") 
+                        || sid.ends_with("S-1-5-32-548") 
+                        || sid.ends_with("S-1-5-32-549")
+                        || sid.ends_with("S-1-5-32-550") 
+                        || sid.ends_with("S-1-5-32-551")
                     {
                         self.properties.highvalue = true;
-                    }
-                    else {
+                    } else {
                         self.properties.highvalue = false;
                     }
                 }
@@ -166,12 +157,12 @@ impl Group {
                     }
                 }
                 "IsDeleted" => {
-                    self.is_deleted =true;
+                    self.is_deleted = true;
                 }
                 _ => {}
             }
         }
-        
+
         // For all, bins attributs
         for (key, value) in &result_bin {
             match key.as_str() {
@@ -179,26 +170,24 @@ impl Group {
                     // objectSid raw to string
                     let sid = sid_maker(LdapSid::parse(&value[0]).unwrap().1, domain);
                     self.object_identifier = sid.to_owned();
-        
-                    let re = Regex::new(r"^S-[0-9]{1}-[0-9]{1}-[0-9]{1,}-[0-9]{1,}-[0-9]{1,}-[0-9]{1,}")?;
-                    for domain_sid in re.captures_iter(&sid) 
-                    {
+
+                    for domain_sid in OBJECT_SID_RE1.captures_iter(&sid) {
                         self.properties.domainsid = domain_sid[0].to_owned().to_string();
                     }
-                    
+    
                     // highvalue
                     if sid.ends_with("-512") 
-                    || sid.ends_with("-516") 
-                    || sid.ends_with("-519") 
-                    || sid.ends_with("-520") 
+                        || sid.ends_with("-516") 
+                        || sid.ends_with("-519") 
+                        || sid.ends_with("-520") 
                     {
                         self.properties.highvalue = true;
                     }
                     else if sid.ends_with("S-1-5-32-544") 
-                    || sid.ends_with("S-1-5-32-548") 
-                    || sid.ends_with("S-1-5-32-549")
-                    || sid.ends_with("S-1-5-32-550") 
-                    || sid.ends_with("S-1-5-32-551") 
+                        || sid.ends_with("S-1-5-32-548") 
+                        || sid.ends_with("S-1-5-32-549")
+                        || sid.ends_with("S-1-5-32-550") 
+                        || sid.ends_with("S-1-5-32-551") 
                     {
                         self.properties.highvalue = true;
                     }
@@ -207,23 +196,21 @@ impl Group {
                     }
                 }
                 "nTSecurityDescriptor" => {
-                    // Needed with acl
-                    let entry_type = "Group".to_string();
                     // nTSecurityDescriptor raw to string
                     let relations_ace = parse_ntsecuritydescriptor(
                         self,
                         &value[0],
-                        entry_type,
+                        "Group",
                         &result_attrs,
                         &result_bin,
-                        &domain,
+                        domain,
                     );
                     self.aces = relations_ace;
                 }
                 _ => {}
             }
         }
-        
+
         // Push DN and SID in HashMap
         dn_sid.insert(
             self.properties.distinguishedname.to_string(),
@@ -234,7 +221,7 @@ impl Group {
             self.object_identifier.to_string(),
             "Group".to_string(),
         );
-        
+
         // Trace and return Group struct
         // trace!("JSON OUTPUT: {:?}",serde_json::to_string(&self).unwrap());
         Ok(())
@@ -244,7 +231,7 @@ impl Group {
 impl LdapObject for Group {
     // To JSON
     fn to_json(&self) -> Value {
-        serde_json::to_value(&self).unwrap()
+        serde_json::to_value(self).unwrap()
     }
 
     // Get values
@@ -328,11 +315,11 @@ pub struct GroupProperties {
 }
 
 impl GroupProperties {
-   // Mutable access.
-   pub fn name_mut(&mut self) -> &mut String {
-      &mut self.name
-   }
-   pub fn highvalue_mut(&mut self) -> &mut bool {
-      &mut self.highvalue
-   }
+    // Mutable access.
+    pub fn name_mut(&mut self) -> &mut String {
+        &mut self.name
+    }
+    pub fn highvalue_mut(&mut self) -> &mut bool {
+        &mut self.highvalue
+    }
 }

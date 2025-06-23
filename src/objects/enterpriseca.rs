@@ -1,25 +1,21 @@
 use colored::Colorize;
-use serde_json::value::Value;
 use serde::{Deserialize, Serialize};
+use serde_json::value::Value;
 use x509_parser::oid_registry::asn1_rs::oid;
 use x509_parser::prelude::*;
-
-use crate::enums::{decode_guid_le, parse_ntsecuritydescriptor, MaskFlags, SecurityDescriptor, AceFormat, Acl, sid_maker, parse_ca_security};
-use crate::json::checker::common::get_name_from_full_distinguishedname;
-use crate::utils::date::string_to_epoch;
-use crate::objects::common::{
-    LdapObject,
-    AceTemplate,
-    SPNTarget,
-    Link,
-    Member
-};
-use crate::utils::crypto::calculate_sha1;
-
 use ldap3::SearchEntry;
 use log::{debug, error, info, trace};
 use std::collections::HashMap;
 use std::error::Error;
+
+use crate::enums::{
+    MaskFlags, SecurityDescriptor, AceFormat, Acl,
+    decode_guid_le, parse_ntsecuritydescriptor, sid_maker, parse_ca_security
+};
+use crate::json::checker::common::get_name_from_full_distinguishedname;
+use crate::objects::common::{LdapObject, AceTemplate, SPNTarget, Link, Member};
+use crate::utils::crypto::calculate_sha1;
+use crate::utils::date::string_to_epoch;
 
 /// EnterpriseCA structure
 #[derive(Debug, Clone, Deserialize, Serialize, Default)]
@@ -64,29 +60,30 @@ impl EnterpriseCA {
     pub fn parse(
         &mut self,
         result: SearchEntry,
-        domain: &String,
+        domain: &str,
         dn_sid: &mut HashMap<String, String>,
         sid_type: &mut HashMap<String, String>,
-        domain_sid: &String
+        domain_sid: &str,
     ) -> Result<(), Box<dyn Error>> {
         let result_dn: String = result.dn.to_uppercase();
         let result_attrs: HashMap<String, Vec<String>> = result.attrs;
         let result_bin: HashMap<String, Vec<Vec<u8>>> = result.bin_attrs;
-        
+
         // Debug for current object
-        debug!("Parse EnterpriseCA: {}", result_dn);
+        debug!("Parse EnterpriseCA: {result_dn}");
+
         // Trace all result attributes
         for (key, value) in &result_attrs {
-            trace!("  {:?}:{:?}", key, value);
+            trace!("  {key:?}:{value:?}");
         }
         // Trace all bin result attributes
         for (key, value) in &result_bin {
-            trace!("  {:?}:{:?}", key, value);
+            trace!("  {key:?}:{value:?}");
         }
 
         // Change all values...
         self.properties.domain = domain.to_uppercase();
-        self.properties.distinguishedname = result_dn;    
+        self.properties.distinguishedname = result_dn;
         self.properties.domainsid = domain_sid.to_string();
         let ca_name = get_name_from_full_distinguishedname(&self.properties.distinguishedname);
         self.properties.caname = ca_name;
@@ -95,7 +92,7 @@ impl EnterpriseCA {
         for (key, value) in &result_attrs {
             match key.as_str() {
                 "name" => {
-                    let name = format!("{}@{}", &value[0], domain);                    
+                    let name = format!("{}@{}", &value[0], domain);
                     self.properties.name = name.to_uppercase();
                 }
                 "description" => {
@@ -105,7 +102,7 @@ impl EnterpriseCA {
                     self.properties.dnshostname = value[0].to_owned();
                 }
                 "certificateTemplates" => {
-                    if value.len() <= 0 {
+                    if value.is_empty() {
                         error!("No certificate templates enabled for {}", self.properties.caname);
                     } else {
                         //ca.enabled_templates = value.to_vec();
@@ -128,7 +125,7 @@ impl EnterpriseCA {
                     }
                 }
                 "IsDeleted" => {
-                    self.is_deleted = true.into();
+                    self.is_deleted = true;
                 }
                 _ => {}
             }
@@ -140,33 +137,39 @@ impl EnterpriseCA {
                 "objectGUID" => {
                     // objectGUID raw to string
                     let guid = decode_guid_le(&value[0]);
-                    self.object_identifier = guid.to_owned().into();
+                    self.object_identifier = guid.to_owned();
                 }
                 "nTSecurityDescriptor" => {
-                    // Needed with acl
-                    let entry_type = "EnterpriseCA".to_string();
                     // nTSecurityDescriptor raw to string
                     let relations_ace = parse_ntsecuritydescriptor(
                         self,
                         &value[0],
-                        entry_type,
+                        "EnterpriseCA",
                         &result_attrs,
                         &result_bin,
-                        &domain,
+                        domain,
                     );
                     // Aces
                     self.aces = relations_ace;
                     // HostingComputer
-                    self.hosting_computer = Self::get_hosting_computer(&value[0], &domain);
+                    self.hosting_computer = Self::get_hosting_computer(&value[0], domain);
                     // CASecurity
-                    let ca_security_data = parse_ca_security(&value[0], &self.hosting_computer, &domain);
-                    if ca_security_data.len() != 0 {
-                        let ca_security = CASecurity { data: ca_security_data, collected: true, failure_reason: None };
+                    let ca_security_data = parse_ca_security(&value[0], &self.hosting_computer, domain);
+                    if !ca_security_data.is_empty() {
+                        let ca_security = CASecurity {
+                            data: ca_security_data,
+                            collected: true,
+                            failure_reason: None,
+                        };
                         self.properties.casecuritycollected = true;
                         let ca_registry_data = CARegistryData::new(ca_security);
                         self.ca_registry_data = ca_registry_data;
                     } else {
-                        let ca_security = CASecurity { data: Vec::new(), collected: false, failure_reason: Some(String::from("Failed to get CASecurity!")) };
+                        let ca_security = CASecurity {
+                            data: Vec::new(),
+                            collected: false,
+                            failure_reason: Some(String::from("Failed to get CASecurity!"))
+                        };
                         self.properties.casecuritycollected = false;
                         let ca_registry_data = CARegistryData::new(ca_security);
                         self.ca_registry_data = ca_registry_data;
@@ -203,7 +206,7 @@ impl EnterpriseCA {
                                                     self.properties.hasbasicconstraints = false;
                                                     self.properties.basicconstraintpathlength = 0;
                                                 }
-                                            },
+                                            }
                                             None => {
                                                 self.properties.hasbasicconstraints = false;
                                                 self.properties.basicconstraintpathlength = 0;
@@ -221,15 +224,15 @@ impl EnterpriseCA {
         }
 
         // Push DN and SID in HashMap
-        if self.object_identifier.to_string() != "SID" {
+        if self.object_identifier != "SID" {
             dn_sid.insert(
                 self.properties.distinguishedname.to_string(),
-                self.object_identifier.to_string()
+                self.object_identifier.to_string(),
             );
             // Push DN and Type
             sid_type.insert(
                 self.object_identifier.to_string(),
-                "EnterpriseCA".to_string()
+                "EnterpriseCA".to_string(),
             );
         }
 
@@ -240,20 +243,20 @@ impl EnterpriseCA {
 
     /// Function to get HostingComputer from ACL if ACE get ManageCertificates and is not Group.
     fn get_hosting_computer(
-        nt: &Vec<u8>,
-        domain: &String,
+        nt: &[u8],
+        domain: &str,
     ) -> String {
         let mut hosting_computer = String::from("Not found");
-        let blacklist_sid = vec![
+        let blacklist_sid = [
             // <https://learn.microsoft.com/fr-fr/windows-server/identity/ad-ds/manage/understand-security-identifiers>
             "-544", // Administrators
             "-519", // Enterprise Administrators
             "-512", // Domain Admins
         ];
-        let secdesc: SecurityDescriptor = SecurityDescriptor::parse(&nt).unwrap().1;
+        let secdesc: SecurityDescriptor = SecurityDescriptor::parse(nt).unwrap().1;
         if secdesc.offset_dacl as usize != 0 
         {
-            let res = Acl::parse(&nt[secdesc.offset_dacl as usize..]);    
+            let res = Acl::parse(&nt[secdesc.offset_dacl as usize..]);
             match res {
                 Ok(_res) => {
                     let dacl = _res.1;
@@ -261,7 +264,7 @@ impl EnterpriseCA {
                     for ace in aces {
                         if ace.ace_type == 0x00 {
                             let sid = sid_maker(AceFormat::get_sid(ace.data.to_owned()).unwrap(), domain);
-                            let mask = match AceFormat::get_mask(ace.data.to_owned()) {
+                            let mask = match AceFormat::get_mask(&ace.data) {
                                 Some(mask) => mask,
                                 None => continue,
                             };
@@ -285,7 +288,7 @@ impl EnterpriseCA {
 impl LdapObject for EnterpriseCA {
     // To JSON
     fn to_json(&self) -> Value {
-        serde_json::to_value(&self).unwrap()
+        serde_json::to_value(self).unwrap()
     }
 
     // Get values
@@ -316,7 +319,7 @@ impl LdapObject for EnterpriseCA {
     fn get_haslaps(&self) -> &bool {
         &false
     }
-    
+
     // Get mutable values
     fn get_aces_mut(&mut self) -> &mut Vec<AceTemplate> {
         &mut self.aces
@@ -327,7 +330,7 @@ impl LdapObject for EnterpriseCA {
     fn get_allowed_to_delegate_mut(&mut self) -> &mut Vec<Member> {
         panic!("Not used by current object.");
     }
-    
+
     // Edit values
     fn set_is_acl_protected(&mut self, is_acl_protected: bool) {
         self.is_acl_protected = is_acl_protected;
@@ -357,26 +360,26 @@ impl LdapObject for EnterpriseCA {
 // EnterpriseCA properties structure
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct EnterpriseCAProperties {
-   domain: String,
-   name: String,
-   distinguishedname: String,
-   domainsid: String,
-   isaclprotected: bool,
-   description: Option<String>,
-   whencreated: i64,
-   flags: String,
-   caname: String,
-   dnshostname: String,
-   certthumbprint: String,
-   certname: String,
-   certchain: Vec<String>,
-   hasbasicconstraints: bool,
-   basicconstraintpathlength: u32,
-   unresolvedpublishedtemplates: Vec<String>,
-   casecuritycollected: bool,
-   enrollmentagentrestrictionscollected: bool,
-   isuserspecifiessanenabledcollected: bool,
-   roleseparationenabledcollected: bool,
+    domain: String,
+    name: String,
+    distinguishedname: String,
+    domainsid: String,
+    isaclprotected: bool,
+    description: Option<String>,
+    whencreated: i64,
+    flags: String,
+    caname: String,
+    dnshostname: String,
+    certthumbprint: String,
+    certname: String,
+    certchain: Vec<String>,
+    hasbasicconstraints: bool,
+    basicconstraintpathlength: u32,
+    unresolvedpublishedtemplates: Vec<String>,
+    casecuritycollected: bool,
+    enrollmentagentrestrictionscollected: bool,
+    isuserspecifiessanenabledcollected: bool,
+    roleseparationenabledcollected: bool,
 }
 
 impl Default for EnterpriseCAProperties {
@@ -448,7 +451,7 @@ impl Default for CASecurity {
             data: Vec::new(),
             collected: true,
             failure_reason: None,
-       }
+        }
     }
 }
 
@@ -469,7 +472,7 @@ impl Default for EnrollmentAgentRestrictions {
             restrictions: Vec::new(),
             collected: true,
             failure_reason: None,
-       }
+        }
     }
 }
 
@@ -490,7 +493,7 @@ impl Default for IsUserSpecifiesSanEnabled {
             value: false,
             collected: true,
             failure_reason: None,
-       }
+        }
     }
 }
 
@@ -511,6 +514,6 @@ impl Default for RoleSeparationEnabled {
             value: false,
             collected: true,
             failure_reason: None,
-       }
+        }
     }
 }

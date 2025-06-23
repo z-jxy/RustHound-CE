@@ -2,22 +2,16 @@ use serde_json::value::Value;
 use serde::{Deserialize, Serialize};
 use x509_parser::oid_registry::asn1_rs::oid;
 use x509_parser::prelude::*;
-
-use crate::enums::{decode_guid_le, parse_ntsecuritydescriptor};
-use crate::utils::date::string_to_epoch;
-use crate::objects::common::{
-    LdapObject,
-    AceTemplate,
-    SPNTarget,
-    Link,
-    Member
-};
-use crate::utils::crypto::calculate_sha1;
-
 use ldap3::SearchEntry;
 use log::{debug, error, trace};
 use std::collections::HashMap;
 use std::error::Error;
+
+use crate::objects::common::{LdapObject, AceTemplate, SPNTarget, Link, Member};
+use crate::enums::{decode_guid_le, parse_ntsecuritydescriptor};
+use crate::utils::date::string_to_epoch;
+use crate::utils::crypto::calculate_sha1;
+
 
 /// RootCA structure
 #[derive(Debug, Clone, Deserialize, Serialize, Default)]
@@ -48,32 +42,33 @@ impl RootCA {
     pub fn parse(
         &mut self,
         result: SearchEntry,
-        domain: &String,
+        domain: &str,
         dn_sid: &mut HashMap<String, String>,
         sid_type: &mut HashMap<String, String>,
-        domain_sid: &String
+        domain_sid: &str
     ) -> Result<(), Box<dyn Error>> {
         let result_dn: String = result.dn.to_uppercase();
         let result_attrs: HashMap<String, Vec<String>> = result.attrs;
         let result_bin: HashMap<String, Vec<Vec<u8>>> = result.bin_attrs;
-        
+
         // Debug for current object
-        debug!("Parse RootCA: {}", result_dn);
+        debug!("Parse RootCA: {result_dn}");
+
         // Trace all result attributes
         for (key, value) in &result_attrs {
-            trace!("  {:?}:{:?}", key, value);
+            trace!("  {key:?}:{value:?}");
         }
         // Trace all bin result attributes
         for (key, value) in &result_bin {
-            trace!("  {:?}:{:?}", key, value);
+            trace!("  {key:?}:{value:?}");
         }
-        
+
         // Change all values...
         self.properties.domain = domain.to_uppercase();
         self.properties.distinguishedname = result_dn;    
         self.properties.domainsid = domain_sid.to_string();
         self.domain_sid = domain_sid.to_string();
-        
+
         // With a check
         for (key, value) in &result_attrs {
             match key.as_str() {
@@ -82,7 +77,7 @@ impl RootCA {
                     self.properties.name = name.to_uppercase();
                 }
                 "description" => {
-                    self.properties.description = value.get(0).map(|s| s.clone());
+                    self.properties.description = value.first().cloned();
                 }
                 "whenCreated" => {
                     let epoch = string_to_epoch(&value[0])?;
@@ -91,30 +86,28 @@ impl RootCA {
                     }
                 }
                 "IsDeleted" => {
-                    self.is_deleted = true.into();
+                    self.is_deleted = true;
                 }
                 _ => {}
             }
         }
-        
+
         // For all, bins attributs
         for (key, value) in &result_bin {
             match key.as_str() {
                 "objectGUID" => {
                     // objectGUID raw to string
-                    self.object_identifier = decode_guid_le(&value[0]).to_owned().into();
+                    self.object_identifier = decode_guid_le(&value[0]).to_owned();
                 }
                 "nTSecurityDescriptor" => {
-                    // Needed with acl
-                    let entry_type = "RootCA".to_string();
                     // nTSecurityDescriptor raw to string
                     let relations_ace = parse_ntsecuritydescriptor(
                         self,
                         &value[0],
-                        entry_type,
+                        "RootCA",
                         &result_attrs,
                         &result_bin,
-                        &domain,
+                        domain,
                     );
                     self.aces = relations_ace;
                 }
@@ -124,7 +117,7 @@ impl RootCA {
                     self.properties.certthumbprint = certsha1.to_string();
                     self.properties.certname = certsha1.to_string();
                     self.properties.certchain = vec![certsha1.to_string()];
-        
+
                     // Parsing certificate.
                     let res = X509Certificate::from_der(&value[0]);
                     match res {
@@ -144,15 +137,15 @@ impl RootCA {
                                                 if _path_len_constraint > &0 {
                                                     self.properties.hasbasicconstraints = true;
                                                     self.properties.basicconstraintpathlength = _path_len_constraint.to_owned();
-        
+
                                                 } else {
                                                     self.properties.hasbasicconstraints = false;
-                                                    self.properties.basicconstraintpathlength = 0 as u32;
+                                                    self.properties.basicconstraintpathlength = 0_u32;
                                                 }
                                             },
                                             None => {
                                                 self.properties.hasbasicconstraints = false;
-                                                self.properties.basicconstraintpathlength = 0 as u32;
+                                                self.properties.basicconstraintpathlength = 0_u32;
                                             }
                                         }
                                     }
@@ -165,9 +158,9 @@ impl RootCA {
                 _ => {}
             }
         }
-        
+
         // Push DN and SID in HashMap
-        if self.object_identifier.to_string() != "SID" {
+        if self.object_identifier != "SID" {
             dn_sid.insert(
                 self.properties.distinguishedname.to_string(),
                 self.object_identifier.to_string()
@@ -188,7 +181,7 @@ impl RootCA {
 impl LdapObject for RootCA {
     // To JSON
     fn to_json(&self) -> Value {
-        serde_json::to_value(&self).unwrap()
+        serde_json::to_value(self).unwrap()
     }
 
     // Get values

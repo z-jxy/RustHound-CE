@@ -1,20 +1,14 @@
 use serde_json::value::Value;
 use serde::{Deserialize, Serialize};
-
-use crate::enums::{decode_guid_le, get_pki_cert_name_flags, get_pki_enrollment_flags, parse_ntsecuritydescriptor};
-use crate::json::checker::common::get_name_from_full_distinguishedname;
-use crate::utils::date::{filetime_to_span, span_to_string, string_to_epoch};
-use crate::objects::common::{
-    LdapObject,
-    AceTemplate,
-    SPNTarget,
-    Link,
-    Member
-};
 use ldap3::SearchEntry;
 use log::{debug, trace};
 use std::collections::HashMap;
 use std::error::Error;
+
+use crate::objects::common::{LdapObject, AceTemplate, SPNTarget, Link, Member};
+use crate::enums::{decode_guid_le, get_pki_cert_name_flags, get_pki_enrollment_flags, parse_ntsecuritydescriptor};
+use crate::json::checker::common::get_name_from_full_distinguishedname;
+use crate::utils::date::{filetime_to_span, span_to_string, string_to_epoch};
 
 /// CertTemplate structure
 #[derive(Debug, Clone, Deserialize, Serialize, Default)]
@@ -51,24 +45,25 @@ impl CertTemplate {
     pub fn parse(
         &mut self,
         result: SearchEntry,
-        domain: &String,
+        domain: &str,
         dn_sid: &mut HashMap<String, String>,
         sid_type: &mut HashMap<String, String>,
-        domain_sid: &String
+        domain_sid: &str
     ) -> Result<(), Box<dyn Error>> {
         let result_dn: String = result.dn.to_uppercase();
         let result_attrs: HashMap<String, Vec<String>> = result.attrs;
         let result_bin: HashMap<String, Vec<Vec<u8>>> = result.bin_attrs;
 
         // Debug for current object
-        debug!("Parse CertTemplate: {}", result_dn);
+        debug!("Parse CertTemplate: {result_dn}");
+
         // Trace all result attributes
         for (key, value) in &result_attrs {
-            trace!("  {:?}:{:?}", key, value);
+            trace!("  {key:?}:{value:?}");
         }
         // Trace all bin result attributes
         for (key, value) in &result_bin {
-            trace!("  {:?}:{:?}", key, value);
+            trace!("  {key:?}:{value:?}");
         }
 
         // Change all values...
@@ -91,51 +86,51 @@ impl CertTemplate {
                     self.properties.displayname = value[0].to_owned();
                 }
                 "msPKI-Certificate-Name-Flag" => {
-                    if value.len() != 0 {
+                    if !value.is_empty() {
                         self.properties.certificatenameflag = get_pki_cert_name_flags(value[0].parse::<i64>().unwrap_or(0) as u64);
                         self.properties.enrolleesuppliessubject = self.properties.certificatenameflag.contains("ENROLLEE_SUPPLIES_SUBJECT");
                         self.properties.subjectaltrequireupn = self.properties.certificatenameflag.contains("SUBJECT_ALT_REQUIRE_UPN");
                     }
                 }
                 "msPKI-Enrollment-Flag" => {
-                    if value.len() != 0 {
+                    if !value.is_empty() {
                         self.properties.enrollmentflag = get_pki_enrollment_flags(value[0].parse::<i64>().unwrap_or(0) as u64);
                         self.properties.requiresmanagerapproval = self.properties.enrollmentflag.contains("PEND_ALL_REQUESTS");
                         self.properties.nosecurityextension = self.properties.enrollmentflag.contains("NO_SECURITY_EXTENSION");
                     }
                 }
                 "msPKI-Private-Key-Flag" => {
-                    // if value.len() != 0 {
+                    // if !value.is_empty() {
                     //     self.properties.() = get_pki_private_flags(value[0].parse::<i64>().unwrap_or(0) as u64);
                     // }
                 }
                 "msPKI-RA-Signature" => {
-                    if value.len() != 0 {
-                        self.properties.authorizedsignatures = value.get(0).unwrap_or(&"0".to_string()).parse::<i64>().unwrap_or(0);
+                    if !value.is_empty() {
+                        self.properties.authorizedsignatures = value.first().unwrap_or(&"0".to_string()).parse::<i64>().unwrap_or(0);
                     }
                 }
                 "msPKI-RA-Application-Policies" => {
-                    if value.len() != 0 {
+                    if !value.is_empty() {
                         self.properties.applicationpolicies = value.to_owned();
                     }
                 }
                 "msPKI-Certificate-Application-Policy" => {
-                    if value.len() != 0 {
+                    if !value.is_empty() {
                         self.properties.certificateapplicationpolicy = value.to_owned();
                     }
                 }
                 "msPKI-RA-Policies" => {
-                    if value.len() != 0 {
+                    if !value.is_empty() {
                         self.properties.issuancepolicies = value.to_owned();
                     }
                 }
                 "msPKI-Cert-Template-OID" => {
-                    if value.len() != 0 {
+                    if !value.is_empty() {
                         self.properties.oid = value[0].to_owned();
                     }
                 }
                 "pKIExtendedKeyUsage" => {
-                    if value.len() != 0 {
+                    if !value.is_empty() {
                         self.properties.ekus = value.to_owned();
                     }
                 }
@@ -149,7 +144,7 @@ impl CertTemplate {
                     }
                 }
                 "IsDeleted" => {
-                    self.is_deleted = true.into();
+                    self.is_deleted = true;
                 }
                 _ => {}
             }
@@ -161,19 +156,17 @@ impl CertTemplate {
                 "objectGUID" => {
                     // objectGUID raw to string
                     let guid = decode_guid_le(&value[0]);
-                    self.object_identifier = guid.to_owned().into();
+                    self.object_identifier = guid.to_owned();
                 }
                 "nTSecurityDescriptor" => {
-                    // Needed with acl
-                    let entry_type = "CertTemplate".to_string();
                     // nTSecurityDescriptor raw to string
                     let relations_ace =  parse_ntsecuritydescriptor(
                         self,
                         &value[0],
-                        entry_type,
+                        "CertTemplate",
                         &result_attrs,
                         &result_bin,
-                        &domain,
+                        domain,
                     );
                     self.aces = relations_ace;
                 }
@@ -198,7 +191,7 @@ impl CertTemplate {
         self.properties.authenticationenabled = Self::authentication_is_enabled(self);
 
         // Push DN and SID in HashMap
-        if self.object_identifier.to_string() != "SID" {
+        if self.object_identifier != "SID" {
             dn_sid.insert(
                 self.properties.distinguishedname.to_string(),
                 self.object_identifier.to_string()
@@ -218,19 +211,19 @@ impl CertTemplate {
     /// Function to get effective ekus for one template.
     fn get_effectiveekus(
         schema_version: &i64,
-        ekus: &Vec<String>,
-        certificateapplicationpolicy: &Vec<String>,
+        ekus: &[String],
+        certificateapplicationpolicy: &[String],
     ) -> Vec<String> {
-        if schema_version == &1 && ekus.len() > 0 {
-            return ekus.to_vec()
+        if schema_version == &1 && !ekus.is_empty() {
+            ekus.to_vec()
         } else {
-            return certificateapplicationpolicy.to_vec();
+            certificateapplicationpolicy.to_vec()
         }
     }
 
     /// Function to check if authentication is enabled or not.
     fn authentication_is_enabled(&mut self) -> bool {
-        let authentication_oids = vec![
+        let authentication_oids = [
             "1.3.6.1.5.5.7.3.2", // ClientAuthentication,
             "1.3.6.1.5.2.3.4", // PKINITClientAuthentication
             "1.3.6.1.4.1.311.20.2.2", // SmartcardLogon
@@ -245,7 +238,7 @@ impl CertTemplate {
 impl LdapObject for CertTemplate {
     // To JSON
     fn to_json(&self) -> Value {
-        serde_json::to_value(&self).unwrap()
+        serde_json::to_value(self).unwrap()
     }
 
     // Get values

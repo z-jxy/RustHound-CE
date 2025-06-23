@@ -69,12 +69,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // LDAP request to get all informations in result
     let result = ldap_search(
         common_args.ldaps,
-        &common_args.ip,
+        common_args.ip.as_deref(),
         &common_args.port,
         &common_args.domain,
         &common_args.ldapfqdn,
-        &common_args.username,
-        &common_args.password,
+        common_args.username.as_deref(),
+        common_args.password.as_deref(),
         common_args.kerberos,
         &common_args.ldap_filter
     ).await?;

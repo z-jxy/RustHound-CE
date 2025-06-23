@@ -3,7 +3,7 @@ use crate::objects::common::SPNTarget;
 
 /// Function to check if spns start with mssqlsvc to make SPNTargets
 /// <https://github.com/BloodHoundAD/SharpHound3/blob/master/SharpHound3/Tasks/SPNTasks.cs#L22>
-pub fn check_spn(serviceprincipalname: &String) -> Option<SPNTarget>
+pub fn check_spn(serviceprincipalname: &str) -> Option<SPNTarget>
 {
    if serviceprincipalname.to_lowercase().contains("mssqlsvc")
    {
@@ -38,7 +38,7 @@ pub fn check_spn(serviceprincipalname: &String) -> Option<SPNTarget>
          let vec = split.collect::<Vec<&str>>();
          let fqdn = vec[1].to_owned().to_uppercase();
          let port = 1433;
-         
+ 
          //trace!("{:?}",fqdn);
          *mssqlsvc_spn.computer_sid_mut() = fqdn;
          *mssqlsvc_spn.port_mut() = port;

@@ -12,8 +12,8 @@ RustHound-CE is a cross-platform and cross-compiled BloodHound collector tool wr
 
 RustHound was created during my years as a pentester at Armature Technologies, renamed later Opencyber then NeverHack. I would like to thanks NeverHack for giving me time to research and develop the original RustHound project, which is still available on their github. We've decided to continue working together to contribute to both versions. This one will remain compatible with the community edition, and the NeverHack version with the Legacy version of BloodHound.
 
-- [HELP.md](HELP.md) - How to compile it and how to use it?
-- [CHANGELOG.md](CHANGELOG.md) - A record of all significant version changes.
+- [HELP.md](HELP.md) - How to compile it? How to install it? How to use it?
+- [CHANGELOG.md](CHANGELOG.md) - A record of all significant version changes
 - [ROADMAP.md](ROADMAP.md) - List of planned evolutions
 - [LINKS.md](LINKS.md) - Useful resources
 
@@ -44,7 +44,9 @@ docker run --rm -v $PWD:/usr/src/rusthound-ce rusthound-ce linux
 
 ## Installation
 
-<img alt="Crates.io Version" src="https://img.shields.io/crates/v/rusthound-ce"> <img alt="Crates.io Total Downloads" src="https://img.shields.io/crates/d/rusthound-ce?color=f74c00">
+<a href="https://crates.io/crates/rusthound-ce"><img alt="Crates.io Version" src="https://img.shields.io/crates/v/rusthound-ce"> <img alt="Crates.io Total Downloads" src="https://img.shields.io/crates/d/rusthound-ce?color=f74c00"></a>
+
+Make sure the [required dependencies](https://github.com/g0h4n/RustHound-CE/blob/main/HELP.md#required-dependencies) are installed.
 
 ```bash
 # Install and/or update RustHound-CE from cargo command
@@ -66,3 +68,7 @@ More information and examples with how to compile RustHound-CE or how to use Rus
 [![](https://github.com/NH-RED-TEAM.png?size=50)](https://github.com/NH-RED-TEAM)
 [![](https://github.com/f3rn0s.png?size=50)](https://github.com/f3rn0s)
 [![](https://github.com/barney0.png?size=50)](https://github.com/barney0)
+[![](https://github.com/Mayfly277.png?size=50)](https://github.com/Mayfly277)
+[![](https://github.com/spyr0-sec.png?size=50)](https://github.com/spyr0-sec)
+[![](https://github.com/z-jxy.png?size=50)](https://github.com/z-jxy)
+[![](https://github.com/0xdf223.png?size=50)](https://github.com/0xdf223)

@@ -9,7 +9,7 @@ pub fn convert_timestamp(timestamp: i64) -> i64
 {
     let offset: i64 = 134774*24*60*60;
     let epoch: i64 = timestamp/10000000-offset;
-    return epoch
+    epoch
 }
 
 /// Function to change string to epoch format.
@@ -27,19 +27,19 @@ pub fn string_to_epoch(date: &str) -> Result<i64, Box<dyn Error>> {
 /// Function to return current hours.
 pub fn return_current_time() -> String
 {
-    return Local::now().format("%T").to_string()
+    Local::now().format("%T").to_string()
 }
 
 /// Function to return current date.
 pub fn return_current_date() -> String
 {
-    return Local::now().format("%D").to_string()
+    Local::now().format("%D").to_string()
 }
 
 /// Function to return current date.
 pub fn return_current_fulldate() -> String
 {
-    return Local::now().format("%Y%m%d%H%M%S").to_string()
+    Local::now().format("%Y%m%d%H%M%S").to_string()
 }
 
 /// Function to convert pKIExpirationPeriod Vec<u8> format to i64 Windows format (nanoseconds).

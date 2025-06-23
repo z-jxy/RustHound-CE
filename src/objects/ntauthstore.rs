@@ -1,20 +1,14 @@
 use serde_json::value::Value;
 use serde::{Deserialize, Serialize};
-
-use crate::enums::{decode_guid_le, parse_ntsecuritydescriptor};
-use crate::utils::date::string_to_epoch;
-use crate::objects::common::{
-    LdapObject,
-    AceTemplate,
-    SPNTarget,
-    Link,
-    Member
-};
-use crate::utils::crypto::calculate_sha1;
 use ldap3::SearchEntry;
 use log::{debug, trace};
 use std::collections::HashMap;
 use std::error::Error;
+
+use crate::objects::common::{LdapObject, AceTemplate, SPNTarget, Link, Member};
+use crate::enums::{decode_guid_le, parse_ntsecuritydescriptor};
+use crate::utils::date::string_to_epoch;
+use crate::utils::crypto::calculate_sha1;
 
 /// NtAuthStore structure
 #[derive(Debug, Clone, Deserialize, Serialize, Default)]
@@ -45,24 +39,25 @@ impl NtAuthStore {
     pub fn parse(
         &mut self,
         result: SearchEntry,
-        domain: &String,
+        domain: &str,
         dn_sid: &mut HashMap<String, String>,
         sid_type: &mut HashMap<String, String>,
-        domain_sid: &String
+        domain_sid: &str
     ) -> Result<(), Box<dyn Error>> {
         let result_dn: String = result.dn.to_uppercase();
         let result_attrs: HashMap<String, Vec<String>> = result.attrs;
         let result_bin: HashMap<String, Vec<Vec<u8>>> = result.bin_attrs;
   
         // Debug for current object
-        debug!("Parse NtAuthStore: {}", result_dn);
+        debug!("Parse NtAuthStore: {result_dn}");
+
         // Trace all result attributes
         for (key, value) in &result_attrs {
-            trace!("  {:?}:{:?}", key, value);
+            trace!("  {key:?}:{value:?}");
         }
         // Trace all bin result attributes
         for (key, value) in &result_bin {
-            trace!("  {:?}:{:?}", key, value);
+            trace!("  {key:?}:{value:?}");
         }
   
         // Change all values...
@@ -79,7 +74,7 @@ impl NtAuthStore {
                     self.properties.name = name.to_uppercase();
                 }
                 "description" => {
-                    self.properties.description = value.get(0).map(|s| s.to_owned());
+                    self.properties.description = value.first().map(|s| s.to_owned());
                 }
                 "whenCreated" => {
                     let epoch = string_to_epoch(&value[0])?;
@@ -88,7 +83,7 @@ impl NtAuthStore {
                     }
                 }
                 "IsDeleted" => {
-                    self.is_deleted = true.into();
+                    self.is_deleted = true;
                 }
                 _ => {}
             }
@@ -99,19 +94,17 @@ impl NtAuthStore {
             match key.as_str() {
                 "objectGUID" => {
                     // objectGUID raw to string
-                    self.object_identifier = decode_guid_le(&value[0]).to_owned().into();
+                    self.object_identifier = decode_guid_le(&value[0]).to_owned();
                 }
                 "nTSecurityDescriptor" => {
-                    // Needed with acl
-                    let entry_type = "NtAuthStore".to_string();
                     // nTSecurityDescriptor raw to string
                     let relations_ace = parse_ntsecuritydescriptor(
                         self,
                         &value[0],
-                        entry_type,
+                        "NtAuthStore",
                         &result_attrs,
                         &result_bin,
-                        &domain,
+                        domain,
                     );
                     self.aces = relations_ace;
                 }
@@ -124,7 +117,7 @@ impl NtAuthStore {
         }
   
         // Push DN and SID in HashMap
-        if self.object_identifier.to_string() != "SID" {
+        if self.object_identifier != "SID" {
             dn_sid.insert(
                 self.properties.distinguishedname.to_string(),
                 self.object_identifier.to_string()
@@ -145,7 +138,7 @@ impl NtAuthStore {
 impl LdapObject for NtAuthStore {
     // To JSON
     fn to_json(&self) -> Value {
-        serde_json::to_value(&self).unwrap()
+        serde_json::to_value(self).unwrap()
     }
 
     // Get values

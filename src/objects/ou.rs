@@ -1,20 +1,11 @@
 use serde_json::value::Value;
 use serde::{Deserialize, Serialize};
-
-use crate::objects::common::{
-    LdapObject,
-    AceTemplate,
-    GPOChange,
-    Link,
-    SPNTarget,
-    Member
-};
-
 use ldap3::SearchEntry;
 use log::{debug, trace};
 use std::collections::HashMap;
 use std::error::Error;
 
+use crate::objects::common::{LdapObject, AceTemplate, GPOChange, Link, SPNTarget, Member};
 use crate::enums::acl::parse_ntsecuritydescriptor;
 use crate::enums::gplink::parse_gplink;
 use crate::enums::sid::decode_guid_le;
@@ -67,31 +58,32 @@ impl Ou {
     pub fn parse(
         &mut self,
         result: SearchEntry,
-        domain: &String,
+        domain: &str,
         dn_sid: &mut HashMap<String, String>,
         sid_type: &mut HashMap<String, String>,
-        domain_sid: &String
+        domain_sid: &str
     ) -> Result<(), Box<dyn Error>> {
         let result_dn: String = result.dn.to_uppercase();
         let result_attrs: HashMap<String, Vec<String>> = result.attrs;
         let result_bin: HashMap<String, Vec<Vec<u8>>> = result.bin_attrs;
-        
+
         // Debug for current object
-        debug!("Parse OU: {}", result_dn);
+        debug!("Parse OU: {result_dn}");
+
         // Trace all result attributes
         for (key, value) in &result_attrs {
-             trace!("  {:?}:{:?}", key, value);
+            trace!("  {key:?}:{value:?}");
         }
         // Trace all bin result attributes
         for (key, value) in &result_bin {
-             trace!("  {:?}:{:?}", key, value);
+            trace!("  {key:?}:{value:?}");
         }
-        
+
         // Change all values...
         self.properties.domain = domain.to_uppercase();
         self.properties.distinguishedname = result_dn;
         self.properties.domainsid = domain_sid.to_string();
-        
+
         // Check and replace value
         for (key, value) in &result_attrs {
              match key.as_str() {
@@ -101,7 +93,7 @@ impl Ou {
                      self.properties.name = email.to_uppercase();
                  }
                  "description" => {
-                     self.properties.description = value.get(0).map(|s| s.clone());
+                     self.properties.description = value.first().cloned();
                  }
                  "whenCreated" => {
                      let epoch = string_to_epoch(&value[0])?;
@@ -121,7 +113,7 @@ impl Ou {
                  _ => {}
              }
         }
-        
+
           // For all, bins attributes
         for (key, value) in &result_bin {
              match key.as_str() {
@@ -131,16 +123,14 @@ impl Ou {
                  }
                  "nTSecurityDescriptor" => {
                      // trace!("nTSecurityDescriptor ACES ACLS ?");
-                     // Needed with acl
-                     let entry_type = "OU".to_string();
                      // nTSecurityDescriptor raw to string
                      let relations_ace = parse_ntsecuritydescriptor(
                           self,
                           &value[0],
-                          entry_type,
+                          "OU",
                           &result_attrs,
                           &result_bin,
-                          &domain,
+                          domain,
                      );
                      self.aces = relations_ace;
                  }
@@ -157,7 +147,7 @@ impl Ou {
             self.object_identifier.to_string(),
              "OU".to_string(),
         );
-        
+
         // Trace and return Ou struct
         // trace!("JSON OUTPUT: {:?}",serde_json::to_string(&self).unwrap());
         Ok(())
@@ -167,7 +157,7 @@ impl Ou {
 impl LdapObject for Ou {
     // To JSON
     fn to_json(&self) -> Value {
-        serde_json::to_value(&self).unwrap()
+        serde_json::to_value(self).unwrap()
     }
     
     // Get values

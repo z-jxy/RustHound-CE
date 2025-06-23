@@ -1,24 +1,13 @@
 use serde_json::value::Value;
 use serde::{Deserialize, Serialize};
-
-use crate::objects::common::{
-    LdapObject,
-    Session,
-    AceTemplate,
-    Member,
-    SPNTarget,
-    LocalGroup,
-    Link,
-    DCRegistryData
-};
-
 use colored::Colorize;
 use ldap3::SearchEntry;
 use log::{info, debug, trace};
-use regex::Regex;
 use std::collections::HashMap;
 use std::error::Error;
 
+use crate::enums::{OBJECT_SID_RE1, SID_PART1_RE1};
+use crate::objects::common::{LdapObject, Session, AceTemplate, Member, SPNTarget, LocalGroup, Link, DCRegistryData};
 use crate::utils::date::{convert_timestamp,string_to_epoch};
 use crate::utils::crypto::convert_encryption_types;
 use crate::enums::acl::parse_ntsecuritydescriptor;
@@ -106,25 +95,27 @@ impl Computer {
     pub fn parse(
         &mut self,
         result: SearchEntry,
-        domain: &String,
+        domain: &str,
         dn_sid: &mut HashMap<String, String>,
         sid_type: &mut HashMap<String, String>,
         fqdn_sid: &mut HashMap<String, String>,
         fqdn_ip: &mut HashMap<String, String>,
-        domain_sid: &String
+        domain_sid: &str
     ) -> Result<(), Box<dyn Error>> {
         let result_dn: String = result.dn.to_uppercase();
         let result_attrs: HashMap<String, Vec<String>> = result.attrs;
         let result_bin: HashMap<String, Vec<Vec<u8>>> = result.bin_attrs;
 
-        debug!("Parse computer: {}", result_dn);
+        // Debug for current object
+        debug!("Parse computer: {result_dn}");
+
         // Trace all result attributes
         for (key, value) in &result_attrs {
-            trace!("  {:?}:{:?}", key, value);
+            trace!("  {key:?}:{value:?}");
         }
         // Trace all bin result attributes
         for (key, value) in &result_bin {
-            trace!("  {:?}:{:?}", key, value);
+            trace!("  {key:?}:{value:?}");
         }
 
         // Computer structure
@@ -219,7 +210,7 @@ impl Computer {
                         if flag.contains("AccountDisable") {
                             self.properties.enabled = false;
                         };
-                        //if flag.contains("Lockout") { let enabled = true; computer_json["Properties"]["enabled"] = enabled.into(); };
+                        //if flag.contains("Lockout") { let enabled = true; computer_json["Properties"]["enabled"] = enabled; };
                         // KUD (Kerberos Unconstrained Delegation)
                         if flag.contains("TrustedForDelegation") {
                             self.properties.unconstraineddelegation = true;
@@ -307,10 +298,11 @@ impl Computer {
                 }
                 "msDS-SupportedEncryptionTypes" => {
                     self.properties.supportedencryptiontypes = convert_encryption_types(value[0].parse::<i32>().unwrap_or(0));
-                 }                
+                 }
                 _ => {}
             }
         }
+
         // For all, bins attributs
         for (key, value) in &result_bin {
             match key.as_str() {
@@ -319,46 +311,39 @@ impl Computer {
                     sid = sid_maker(LdapSid::parse(&value[0]).unwrap().1, domain);
                     self.object_identifier = sid.to_owned();
 
-                    let re = Regex::new(r"^S-[0-9]{1}-[0-9]{1}-[0-9]{1,}-[0-9]{1,}-[0-9]{1,}-[0-9]{1,}").unwrap();
-                    for domain_sid in re.captures_iter(&sid) 
-                    {
+                    for domain_sid in OBJECT_SID_RE1.captures_iter(&sid) {
                         self.properties.domainsid = domain_sid[0].to_owned().to_string();
                     }
-                    
                 }
                 "nTSecurityDescriptor" => {
-                    // Needed with acl
-                    let entry_type = "Computer".to_string();
                     // nTSecurityDescriptor raw to string
                     let relations_ace = parse_ntsecuritydescriptor(
                         &mut computer,
                         &value[0],
-                        entry_type,
+                        "Computer",
                         &result_attrs,
                         &result_bin,
-                        &domain,
+                        domain,
                     );
                     self.aces = relations_ace;
                 }
                 "msDS-AllowedToActOnBehalfOfOtherIdentity" => {
                     // RBCD (Resource-based constrained)
-                    // Needed with acl
-                    let entry_type = "Computer".to_string();
                     // msDS-AllowedToActOnBehalfOfOtherIdentity parsing ACEs
                     let relations_ace = parse_ntsecuritydescriptor(
                         &mut computer,
                         &value[0],
-                        entry_type,
+                        "Computer",
                         &result_attrs,
                         &result_bin,
-                        &domain,
+                        domain,
                     );
                     let mut vec_members_allowtoact: Vec<Member> = Vec::new();
                     let mut allowed_to_act = Member::new();
                     for delegated in relations_ace {
                         //trace!("msDS-AllowedToActOnBehalfOfOtherIdentity => ACE: {:?}",delegated);
                         // delegated["RightName"] == "Owner" => continue
-                        if delegated.right_name().to_string() == "GenericAll" {
+                        if *delegated.right_name() == "GenericAll" {
                             *allowed_to_act.object_identifier_mut() = delegated.principal_sid().to_string();
                             vec_members_allowtoact.push(allowed_to_act.to_owned()); 
                             continue
@@ -373,8 +358,7 @@ impl Computer {
         // primaryGroupID if group_id is set
         #[allow(irrefutable_let_patterns)]
         if let id = group_id {
-            let re = Regex::new(r"S-.*-")?;
-            if let Some(part1) = re.find(&sid) {
+            if let Some(part1) = SID_PART1_RE1.find(&sid) {
                 self.primary_group_sid = format!("{}{}", part1.as_str(), id);
             } else {
                 eprintln!("[!] Regex did not match any part of the SID");
@@ -402,7 +386,7 @@ impl Computer {
             self.properties.name.to_string(),
             String::from(""),
         );
-        
+
         // Trace and return Computer struct
         // trace!("JSON OUTPUT: {:?}",serde_json::to_string(&self).unwrap());
         Ok(())
@@ -412,7 +396,7 @@ impl Computer {
 impl LdapObject for Computer {
     // To JSON
     fn to_json(&self) -> Value {
-        serde_json::to_value(&self).unwrap()
+        serde_json::to_value(self).unwrap()
     }
 
     // Get values

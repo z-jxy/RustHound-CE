@@ -58,21 +58,22 @@ impl Trust {
    pub fn parse(
       &mut self,
       result: SearchEntry,
-      domain: &String
+      domain: &str
    ) -> Result<(), Box<dyn Error>> {
       let result_dn: String = result.dn.to_uppercase();
       let result_attrs: HashMap<String, Vec<String>> = result.attrs;
       let result_bin: HashMap<String, Vec<Vec<u8>>> = result.bin_attrs;
 
       // Debug for current object
-      debug!("Parse TrustDomain: {}", result_dn);
+      debug!("Parse TrustDomain: {result_dn}");
+
       // Trace all result attributes
       for (key, value) in &result_attrs {
-         trace!("  {:?}:{:?}", key, value);
+         trace!("  {key:?}:{value:?}");
       }
       // Trace all bin result attributes
       for (key, value) in &result_bin {
-         trace!("  {:?}:{:?}", key, value);
+         trace!("  {key:?}:{value:?}");
       }
 
       // With a check

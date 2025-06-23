@@ -4,6 +4,7 @@
   - [Using Makefile](#using-makefile)
   - [Using Dockerfile](#using-dockerfile)
   - [Using Cargo](#using-cargo)
+      - [Requiered dependencies](#required-dependencies)
   - [Linux x86_64 static version](#manually-for-linux-x86_64-static-version)
   - [Windows static version from Linux](#manually-for-windows-static-version-from-linux)
   - [macOS static version from Linux](#manually-for-macos-static-version-from-linux)
@@ -70,9 +71,9 @@ docker run --rm -v $PWD:/usr/src/rusthound-ce rusthound-ce linux
 docker run --rm -v $PWD:/usr/src/rusthound-ce rusthound-ce macos
 ```
 
-<details><summary><b>SHOW MORE COMPILATION METHODS</b></summary>
-
 ## Using Cargo
+
+### Required dependencies
 
 You will need to install Rust on your system.
 
@@ -90,7 +91,7 @@ Here is how to compile the "release" and "debug" versions using the **cargo** co
 
 ```bash
 git clone https://github.com/g0h4n/RustHound-CE
-cd RustHound
+cd RustHound-CE
 cargo build --release
 # or debug version
 cargo b
@@ -114,7 +115,7 @@ rustup target add x86_64-unknown-linux-gnu
 
 # Static compilation for Linux
 git clone https://github.com/g0h4n/RustHound-CE
-cd RustHound
+cd RustHound-CE
 CFLAGS="-lrt";LDFLAGS="-lrt";RUSTFLAGS='-C target-feature=+crt-static';cargo build --release --target x86_64-unknown-linux-gnu
 ```
 
@@ -132,7 +133,7 @@ rustup target add x86_64-pc-windows-gnu
 
 # Static compilation for Windows
 git clone https://github.com/g0h4n/RustHound-CE
-cd RustHound
+cd RustHound-CE
 RUSTFLAGS="-C target-feature=+crt-static" cargo build --release --target x86_64-pc-windows-gnu
 ```
 
@@ -198,8 +199,6 @@ git clone https://github.com/g0h4n/rusthound-ce
 cd RustHound-CE
 cargo doc --open --no-deps
 ```
-
-</details>
 
 # Usage
 
