@@ -8,6 +8,7 @@ use env_logger::Builder;
 use log::{error, info, trace};
 use std::error::Error;
 
+// reexport for modules that arent part of the core lib
 pub use rusthound_ce::{
     args, objects, ADResults,
     {cache, cache::CacheHandle},
