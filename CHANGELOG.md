@@ -1,5 +1,16 @@
 # Changelog
 
+## v2.3.7
+
+### Date
+`2025/06/24`
+
+### Summary
+
+Issue #[13](https://github.com/g0h4n/RustHound-CE/issues/13) fixed.
+"Group members are no longer collected correctly."
+Fixed a logic error: used `if value.is_empty()` instead of `if !value.is_empty()`
+
 ## v2.3.6
 
 ### Date

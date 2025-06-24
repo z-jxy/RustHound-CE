@@ -110,7 +110,7 @@ impl Group {
                     self.properties.samaccountname = value[0].to_owned();
                 }
                 "member" => {
-                    if value.is_empty() {
+                    if !value.is_empty() {
                         for member in value {
                             *member_template.object_identifier_mut() = member.to_owned().to_uppercase();
                             if member_template.object_identifier() != "SID" {
