@@ -28,6 +28,8 @@ use modules::run_modules;
 #[global_allocator]
 static ALLOC: dhat::Alloc = dhat::Alloc;
 
+const CACHE_DIR: &str = ".rusthound-cache";
+
 /// Main of RustHound
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -53,19 +55,27 @@ async fn main() -> Result<(), Box<dyn Error>> {
     info!("Verbosity level: {:?}", common_args.verbose);
     info!("Collection method: {:?}", common_args.collection_method);
 
-    let ldap_cache_path =
-        std::path::PathBuf::from(format!(".rusthound-cache/{}", common_args.domain))
-            .join("searched_objects.bin");
-
     let mut results = match common_args.resume {
         true => {
             // TODO: just continue and call the prepare_results_from_cache function
+            let ldap_cache_path = std::path::PathBuf::from(CACHE_DIR)
+                .join(&common_args.domain)
+                .join("searched_objects.bin");
             info!("Resuming from cache: {}", ldap_cache_path.display());
             let cache = CacheHandle::from_path(ldap_cache_path)?;
             rusthound_ce::prepare_results_from_cache(cache, &common_args, None).await?
         }
         false => {
             if common_args.cache {
+                let ldap_cache_path = std::path::PathBuf::from(CACHE_DIR)
+                    .join(&common_args.domain)
+                    .join("searched_objects.bin");
+                std::fs::create_dir_all(
+                    ldap_cache_path
+                        .parent()
+                        .expect("Unable to get parent directory for cache path"),
+                    // shouldn't happen
+                )?;
                 info!("Using cache for LDAP search: {}", ldap_cache_path.display());
                 let (cache, total_cached) = ldap_search_with_cache(
                     common_args.ldaps,
