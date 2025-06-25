@@ -7,8 +7,11 @@ use crate::{
     cache::CacheHandle,
     json::{
         checker::check_all_result,
-        parser::{parse_result_type_from_cache, parse_result_type_from_mem},
+        parser::{
+            parse_result_type_from_cache, parse_result_type_from_mem, parse_result_type_from_source,
+        },
     },
+    ldap::EntrySource,
     objects::{
         aiaca::AIACA, certtemplate::CertTemplate, computer::Computer, container::Container,
         domain::Domain, enterpriseca::EnterpriseCA, fsp::Fsp, gpo::Gpo, group::Group,
@@ -95,6 +98,40 @@ pub async fn prepare_results_from_cache(
     total_objects: Option<usize>,
 ) -> Result<ADResults, Box<dyn std::error::Error>> {
     let mut ad_results = parse_result_type_from_cache(options, ldap_cache_path, total_objects)?;
+
+    // Functions to replace and add missing values
+    check_all_result(
+        options,
+        &mut ad_results.users,
+        &mut ad_results.groups,
+        &mut ad_results.computers,
+        &mut ad_results.ous,
+        &mut ad_results.domains,
+        &mut ad_results.gpos,
+        &mut ad_results.fsps,
+        &mut ad_results.containers,
+        &mut ad_results.trusts,
+        &mut ad_results.ntauthstores,
+        &mut ad_results.aiacas,
+        &mut ad_results.rootcas,
+        &mut ad_results.enterprisecas,
+        &mut ad_results.certtemplates,
+        &mut ad_results.issuancepolicies,
+        &ad_results.mappings.dn_sid,
+        &ad_results.mappings.sid_type,
+        &ad_results.mappings.fqdn_sid,
+        &ad_results.mappings.fqdn_ip,
+    )?;
+
+    Ok(ad_results)
+}
+
+pub async fn prepare_results_from_source<S: EntrySource>(
+    source: S,
+    options: &Options,
+    total_objects: Option<usize>,
+) -> Result<ADResults, Box<dyn std::error::Error>> {
+    let mut ad_results = parse_result_type_from_source(options, source, total_objects)?;
 
     // Functions to replace and add missing values
     check_all_result(

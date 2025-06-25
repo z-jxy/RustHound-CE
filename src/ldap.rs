@@ -13,7 +13,7 @@
 
 // use crate::errors::Result;
 use crate::banner::progress_bar;
-use crate::cache::{BincodeObjectBuffer, CacheHandle};
+use crate::cache::{BincodeFileIterator, Storage};
 use crate::utils::format::domain_to_dc;
 
 use colored::Colorize;
@@ -25,7 +25,6 @@ use log::{debug, error, info, trace};
 use std::collections::HashMap;
 use std::error::Error;
 use std::io::{self, stdin, Write};
-use std::path::PathBuf;
 use std::process;
 
 // New type to implement Serialize and Deserialize for SearchEntry
@@ -59,10 +58,40 @@ impl From<LdapSearchEntry> for SearchEntry {
     }
 }
 
-pub enum LdapAuth {
-    SimpleBind { username: String, password: String },
-    GssapiBind { ldapfqdn: String, domain: String },
+/// Used to iterate over LDAP search entries.
+///
+// trait is required because BincodeFileIterator will return a Result(LdapSearchEntry, Box<dyn Error>)
+// without this trait the caller of `` would have to map
+pub trait EntrySource {
+    type Iter: Iterator<Item = Result<LdapSearchEntry, Box<dyn Error>>>;
+    fn into_entry_iter(self) -> Self::Iter;
 }
+
+// For reading from cache
+impl EntrySource for BincodeFileIterator<LdapSearchEntry> {
+    type Iter = Self;
+
+    fn into_entry_iter(self) -> Self::Iter {
+        self
+    }
+}
+
+// For reading from memory
+impl EntrySource for Vec<LdapSearchEntry> {
+    type Iter = std::iter::Map<
+        std::vec::IntoIter<LdapSearchEntry>,
+        fn(LdapSearchEntry) -> Result<LdapSearchEntry, Box<dyn Error>>,
+    >;
+
+    fn into_entry_iter(self) -> Self::Iter {
+        self.into_iter().map(Ok)
+    }
+}
+
+// pub enum LdapAuth {
+//     SimpleBind { username: String, password: String },
+//     GssapiBind { ldapfqdn: String, domain: String },
+// }
 
 /// Function to request all AD values.
 #[allow(clippy::too_many_arguments)]
@@ -228,8 +257,10 @@ pub async fn ldap_search(
 }
 
 /// Function to request all AD values.
+///
+/// This function is the same as `ldap_search`, but uses a [`BincodeObjectBuffer`] to store ldap results to disk
 #[allow(clippy::too_many_arguments)]
-pub async fn ldap_search_with_cache(
+pub async fn ldap_search_with_storage<S: Storage<LdapSearchEntry>>(
     ldaps: bool,
     ip: Option<&str>,
     port: Option<u16>,
@@ -239,10 +270,9 @@ pub async fn ldap_search_with_cache(
     password: Option<&str>,
     kerberos: bool,
     ldapfilter: &str,
-    cache_path: &PathBuf,
-    cache_size: usize,
-) -> Result<(CacheHandle, usize), Box<dyn Error>> {
-    use crate::cache::DiskBuffer;
+    // cache_path: &PathBuf,
+    storage: &mut S,
+) -> Result<usize, Box<dyn Error>> {
     // Construct LDAP args
     let ldap_args = ldap_constructor(
         ldaps, ip, port, domain, ldapfqdn, username, password, kerberos,
@@ -296,9 +326,9 @@ pub async fn ldap_search_with_cache(
         }
     }
 
-    // Prepare LDAP result vector
-    let mut rs: BincodeObjectBuffer<LdapSearchEntry> =
-        BincodeObjectBuffer::new_with_capacity(cache_path, cache_size)?;
+    // // Prepare LDAP result vector
+    // let mut rs: BincodeObjectBuffer<LdapSearchEntry> =
+    //     BincodeObjectBuffer::new_with_capacity(cache_path, cache_size)?;
     let mut total = 0; // for progress bar
 
     // Request all namingContexts for current DC
@@ -373,7 +403,7 @@ pub async fn ldap_search_with_cache(
                     "#".to_string(),
                 );
 
-                rs.add(entry.into())?;
+                storage.add(entry.into())?;
             }
             pb.finish_and_clear();
 
@@ -399,17 +429,17 @@ pub async fn ldap_search_with_cache(
     drop(ldap);
     if total == 0 {
         error!("No LDAP objects found! Exiting...");
-        std::fs::remove_file(cache_path)?;
+        // std::fs::remove_file(cache_path)?; // TODO: return error so we can cleanup cache
         process::exit(0x0100);
     }
 
-    rs.flush_buffer()?;
+    storage.flush()?;
 
     // reopen file handle
-    let cache_handle = CacheHandle(rs.into_reader()?);
+    // let cache_handle = CacheHandle(rs.into_reader()?);
 
     // Return the vector with the result
-    Ok((cache_handle, total))
+    Ok(total)
 }
 
 /// Structure containing the LDAP connection arguments.

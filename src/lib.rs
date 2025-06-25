@@ -106,4 +106,6 @@ pub use ldap3::SearchEntry;
 pub use api::export_results;
 pub use api::prepare_results;
 pub use api::prepare_results_from_cache;
+pub use api::prepare_results_from_source;
 pub use api::ADResults;
+pub use api::DomainMappings;

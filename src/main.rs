@@ -6,13 +6,15 @@ pub mod utils;
 
 use env_logger::Builder;
 use log::{error, info, trace};
+use rusthound_ce::{cache::BincodeObjectBuffer, ldap::LdapSearchEntry};
 use std::error::Error;
 
 // reexport for modules that arent part of the core lib
 pub use rusthound_ce::{
+    api::DomainMappings,
     args, objects, ADResults,
     {cache, cache::CacheHandle},
-    {ldap, ldap::ldap_search_with_cache},
+    {ldap, ldap::ldap_search_with_storage},
 };
 
 #[cfg(feature = "noargs")]
@@ -29,6 +31,7 @@ use modules::run_modules;
 static ALLOC: dhat::Alloc = dhat::Alloc;
 
 const CACHE_DIR: &str = ".rusthound-cache";
+const CACHE_FILE: &str = "ldap.bin";
 
 /// Main of RustHound
 #[tokio::main]
@@ -59,24 +62,31 @@ async fn main() -> Result<(), Box<dyn Error>> {
         true => {
             let ldap_cache_path = std::path::PathBuf::from(CACHE_DIR)
                 .join(&common_args.domain)
-                .join("searched_objects.bin");
+                .join(CACHE_FILE);
             info!("Resuming from cache: {}", ldap_cache_path.display());
             let cache = CacheHandle::from_path(ldap_cache_path)?;
             rusthound_ce::prepare_results_from_cache(cache, &common_args, None).await?
         }
         false => {
             if common_args.cache {
+                // store ldap results in cache
                 let ldap_cache_path = std::path::PathBuf::from(CACHE_DIR)
                     .join(&common_args.domain)
-                    .join("searched_objects.bin");
+                    .join(CACHE_FILE);
                 std::fs::create_dir_all(
                     ldap_cache_path
                         .parent()
-                        .expect("Unable to get parent directory for cache path"),
-                    // shouldn't happen
+                        .expect("Unable to get parent directory for cache path"), // shouldn't happen
                 )?;
                 info!("Using cache for LDAP search: {}", ldap_cache_path.display());
-                let (cache, total_cached) = ldap_search_with_cache(
+
+                let mut cache_writer: BincodeObjectBuffer<LdapSearchEntry> =
+                    BincodeObjectBuffer::new_with_capacity(
+                        ldap_cache_path,
+                        common_args.cache_buffer_size,
+                    )?;
+
+                let total_cached = ldap_search_with_storage(
                     common_args.ldaps,
                     common_args.ip.as_deref(),
                     common_args.port,
@@ -86,15 +96,22 @@ async fn main() -> Result<(), Box<dyn Error>> {
                     common_args.password.as_deref(),
                     common_args.kerberos,
                     &common_args.ldap_filter,
-                    &ldap_cache_path,
-                    common_args.cache_buffer_size,
+                    // &ldap_cache_path,
+                    &mut cache_writer,
                 )
                 .await?;
+
                 info!("Found {total_cached} LDAP objects",);
-                rusthound_ce::prepare_results_from_cache(cache, &common_args, Some(total_cached))
-                    .await?
+                rusthound_ce::prepare_results_from_source(
+                    cache_writer.into_reader()?,
+                    &common_args,
+                    Some(total_cached),
+                )
+                .await?
             } else {
-                let result = rusthound_ce::ldap_search(
+                // store ldap results in memory
+                let mut ldap_results = Vec::new();
+                let total = rusthound_ce::ldap::ldap_search_with_storage(
                     common_args.ldaps,
                     common_args.ip.as_deref(),
                     common_args.port,
@@ -104,9 +121,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
                     common_args.password.as_deref(),
                     common_args.kerberos,
                     &common_args.ldap_filter,
+                    &mut ldap_results,
                 )
                 .await?;
-                rusthound_ce::prepare_results(result, &common_args).await?
+                rusthound_ce::prepare_results_from_source(ldap_results, &common_args, Some(total))
+                    .await?
             }
         }
     };
