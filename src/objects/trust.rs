@@ -61,14 +61,14 @@ impl Trust {
         let result_bin: HashMap<String, Vec<Vec<u8>>> = result.bin_attrs;
 
         // Debug for current object
-        debug!("Parse TrustDomain: {}", result_dn);
+        debug!("Parse TrustDomain: {result_dn}");
         // Trace all result attributes
         for (key, value) in &result_attrs {
-            trace!("  {:?}:{:?}", key, value);
+            trace!("  {key:?}:{value:?}");
         }
         // Trace all bin result attributes
         for (key, value) in &result_bin {
-            trace!("  {:?}:{:?}", key, value);
+            trace!("  {key:?}:{value:?}");
         }
 
         // With a check

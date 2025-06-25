@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use colored::Colorize;
 use ldap3::SearchEntry;
 use log::{info, debug, trace};
+use serde_json::Value;
 use std::collections::HashMap;
 use std::error::Error;
 
@@ -14,7 +15,6 @@ use crate::enums::forestlevel::get_forest_level;
 use crate::enums::gplink::parse_gplink;
 use crate::enums::secdesc::LdapSid;
 use crate::enums::sid::sid_maker;
-use crate::utils::date::{span_to_string, string_to_epoch};
 
 /// Domain structure
 #[derive(Debug, Clone, Deserialize, Serialize, Default)]

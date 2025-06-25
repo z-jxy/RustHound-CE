@@ -39,7 +39,6 @@ pub fn add_default_groups(
     name.push_str(&domain.to_uppercase());
 
     let mut vec_members: Vec<Member> = Vec::new();
-    let computer_re = Regex::new(r"^S-[0-9]+-[0-9]+-[0-9]+(?:-[0-9]+)+")?;
 
     for computer in vec_computers {
         if computer.is_dc() {

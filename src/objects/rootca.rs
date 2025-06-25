@@ -159,7 +159,7 @@ impl RootCA {
                                 }
                             }
                         }
-                        _ => error!("CA x509 certificate parsing failed: {:?}", res),
+                        _ => error!("CA x509 certificate parsing failed: {res:?}"),
                     }
                 }
                 _ => {}

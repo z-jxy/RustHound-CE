@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use colored::Colorize;
 use ldap3::SearchEntry;
 use log::{info, debug, trace};
+use serde_json::Value;
 use std::collections::HashMap;
 use std::error::Error;
 
@@ -13,8 +14,6 @@ use crate::enums::acl::parse_ntsecuritydescriptor;
 use crate::enums::secdesc::LdapSid;
 use crate::enums::sid::sid_maker;
 use crate::enums::uacflags::get_flag;
-use crate::utils::crypto::convert_encryption_types;
-use crate::utils::date::{convert_timestamp, string_to_epoch};
 
 use super::common::UserRight;
 

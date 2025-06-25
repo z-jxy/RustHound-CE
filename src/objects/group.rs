@@ -67,7 +67,7 @@ impl Group {
         let result_attrs: HashMap<String, Vec<String>> = result.attrs;
         let result_bin: HashMap<String, Vec<Vec<u8>>> = result.bin_attrs;
 
-        debug!("Parse group: {}", result_dn);
+        debug!("Parse group: {result_dn}");
         // Trace all result attributes
         for (key, value) in &result_attrs {
             trace!("  {key:?}:{value:?}");
@@ -168,7 +168,7 @@ impl Group {
                     let sid = sid_maker(LdapSid::parse(&value[0]).unwrap().1, domain);
                     self.object_identifier = sid.to_owned();
 
-                    for domain_sid in re.captures_iter(&sid) {
+                    for domain_sid in OBJECT_SID_RE1.captures_iter(&sid) {
                         self.properties.domainsid = domain_sid[0].to_owned().to_string();
                     }
 

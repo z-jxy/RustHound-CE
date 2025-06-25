@@ -112,7 +112,7 @@ impl EnterpriseCA {
                             "Found {} enabled certificate templates",
                             value.len().to_string().bold()
                         );
-                        trace!("Enabled certificate templates: {:?}", value);
+                        trace!("Enabled certificate templates: {value:?}");
                         let enabled_templates: Vec<Member> = value
                             .iter()
                             .map(|template_name| {
@@ -228,7 +228,7 @@ impl EnterpriseCA {
                                 }
                             }
                         }
-                        _ => error!("CA x509 certificate parsing failed: {:?}", res),
+                        _ => error!("CA x509 certificate parsing failed: {res:?}"),
                     }
                 }
                 _ => {}
@@ -273,7 +273,7 @@ impl EnterpriseCA {
                         if ace.ace_type == 0x00 {
                             let sid =
                                 sid_maker(AceFormat::get_sid(ace.data.to_owned()).unwrap(), domain);
-                            let mask = match AceFormat::get_mask(ace.data.to_owned()) {
+                            let mask = match AceFormat::get_mask(&ace.data) {
                                 Some(mask) => mask,
                                 None => continue,
                             };

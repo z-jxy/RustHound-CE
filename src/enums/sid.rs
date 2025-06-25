@@ -31,7 +31,7 @@ pub fn sid_maker(sid: LdapSid, domain: &str) -> String {
         }
     };
 
-    trace!("sid_maker value: {}", final_sid);
+    trace!("sid_maker value: {final_sid}");
     if final_sid.contains("S-0-0") {
         error!(
             "SID contains null bytes!\n[INPUT: {:?}]\n[OUTPUT: {}]",

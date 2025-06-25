@@ -619,7 +619,7 @@ pub fn parse_unknown(result: SearchEntry, _domain: &str) -> serde_json::value::V
     });
 
     // Debug for current object
-    trace!("Parse Unknown object: {}", _result_dn);
+    trace!("Parse Unknown object: {_result_dn}");
     // for (key, value) in &_result_attrs {
     //    println!("  {:?}:{:?}", key, value);
     // }

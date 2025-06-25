@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use ldap3::SearchEntry;
 use log::{debug, trace};
+use serde_json::Value;
 use std::collections::HashMap;
 use std::error::Error;
 

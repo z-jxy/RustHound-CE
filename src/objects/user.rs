@@ -1,19 +1,20 @@
 use serde::{Deserialize, Serialize};
 use ldap3::SearchEntry;
 use log::{debug, error, trace};
+use serde_json::Value;
 use std::collections::HashMap;
 use std::error::Error;
 use x509_parser::prelude::*;
 
-use crate::enums::regex::{OBJECT_SID_RE1, SID_PART1_RE1};
-use crate::objects::common::{LdapObject, AceTemplate, SPNTarget, Link, Member};
-use crate::utils::date::{convert_timestamp, string_to_epoch};
-use crate::utils::crypto::convert_encryption_types;
-use crate::enums::acl::{parse_ntsecuritydescriptor, parse_gmsa};
+use crate::enums::acl::{parse_gmsa, parse_ntsecuritydescriptor};
 use crate::enums::secdesc::LdapSid;
 use crate::enums::sid::sid_maker;
 use crate::enums::spntasks::check_spn;
 use crate::enums::uacflags::get_flag;
+use crate::enums::{OBJECT_SID_RE1, SID_PART1_RE1};
+use crate::objects::common::{AceTemplate, LdapObject, Link, Member, SPNTarget};
+use crate::utils::crypto::convert_encryption_types;
+use crate::utils::date::{convert_timestamp, string_to_epoch};
 
 /// User structure
 #[derive(Debug, Clone, Deserialize, Serialize, Default)]
@@ -42,30 +43,6 @@ pub struct User {
     has_sid_history: Vec<String>,
     #[serde(rename = "ContainedBy")]
     contained_by: Option<Member>,
-    #[serde(rename ="ObjectIdentifier")]
-    object_identifier: String,
-    #[serde(rename ="IsDeleted")]
-    is_deleted: bool,
-    #[serde(rename ="IsACLProtected")]
-    is_acl_protected: bool,
-    #[serde(rename ="Properties")]
-    properties: UserProperties,
-    #[serde(rename ="PrimaryGroupSID")]
-    primary_group_sid: String,
-    #[serde(rename ="SPNTargets")]
-    spn_targets: Vec<SPNTarget>,
-    #[serde(rename ="UnconstrainedDelegation")]
-    unconstrained_delegation: bool,
-    #[serde(rename ="DomainSID")]
-    domain_sid: String,
-    #[serde(rename ="Aces")]
-    aces: Vec<AceTemplate>,
-    #[serde(rename ="AllowedToDelegate")]
-    allowed_to_delegate: Vec<Member>,
-    #[serde(rename ="HasSIDHistory")]
-    has_sid_history: Vec<String>,
-    #[serde(rename ="ContainedBy")]
-    contained_by: Option<Member>,
 }
 
 impl User {
@@ -74,10 +51,6 @@ impl User {
         Self {
             ..Default::default()
         }
-    }
-    // New User
-    pub fn new() -> Self { 
-        Self { ..Default::default()} 
     }
 
     // Immutable access.
@@ -113,18 +86,7 @@ impl User {
         let result_attrs: HashMap<String, Vec<String>> = result.attrs;
         let result_bin: HashMap<String, Vec<Vec<u8>>> = result.bin_attrs;
 
-        debug!("Parse user: {}", result_dn);
-        // Trace all result attributes
-        for (key, value) in &result_attrs {
-            trace!("  {:?}:{:?}", key, value);
-        }
-        // Trace all bin result attributes
-        for (key, value) in &result_bin {
-            trace!("  {:?}:{:?}", key, value);
-        }
-        // Debug for current object
-        debug!("Parse user: {result_dn}");
-
+        debug!("Parse user: {result_dn}", );
         // Trace all result attributes
         for (key, value) in &result_attrs {
             trace!("  {key:?}:{value:?}");
@@ -311,175 +273,6 @@ impl User {
                 _ => {}
             }
         }
-        // With a check
-        let mut group_id: String ="".to_owned();
-        for (key, value) in &result_attrs {
-            match key.as_str() {
-                "sAMAccountName" => {
-                    let name = &value[0];
-                    let email = format!("{}@{}",name.to_owned(),domain);
-                    self.properties.name = email.to_uppercase();
-                    self.properties.samaccountname = name.to_string();
-                }
-                "description" => {
-                    self.properties.description = Some(value[0].to_owned());
-                }
-                "mail" => {
-                    self.properties.email = value[0].to_owned();
-                }
-                "title" => {
-                    self.properties.title = value[0].to_owned();
-                }
-                "userPassword" => {
-                    self.properties.userpassword = value[0].to_owned();
-                }
-                "unixUserPassword" => {
-                    self.properties.unixpassword = value[0].to_owned();
-                }
-                "unicodepwd" => {
-                    self.properties.unicodepassword = value[0].to_owned();
-                }
-                "sfupassword" => {
-                    //self.properties.sfupassword = value[0].to_owned();
-                }
-                "displayName" => {
-                    self.properties.displayname = value[0].to_owned();
-                }
-                "adminCount" => {
-                    let isadmin = &value[0];
-                    let mut admincount = false;
-                    if isadmin =="1" {
-                        admincount = true;
-                    }
-                    self.properties.admincount = admincount;
-                }
-                "homeDirectory" => {
-                    self.properties.homedirectory = value[0].to_owned();
-                }
-                "scriptpath" => {
-                    self.properties.logonscript = value[0].to_owned();
-                }
-                "userAccountControl" => {
-                    let uac = &value[0].parse::<u32>().unwrap_or(0);
-                    self.properties.useraccountcontrol = *uac;
-                    let uac_flags = get_flag(*uac);
-                    //trace!("UAC : {:?}",uac_flags);
-                    for flag in uac_flags {
-                        if flag.contains("AccountDisable") {
-                            self.properties.enabled = false;
-                        };
-                        //if flag.contains("Lockout") { let enabled = true; user_json["Properties"]["enabled"] = enabled;};
-                        if flag.contains("PasswordNotRequired") {
-                            self.properties.passwordnotreqd = true;
-                        };
-                        if flag.contains("DontExpirePassword") {
-                            self.properties.pwdneverexpires = true;
-                        };
-                        if flag.contains("DontReqPreauth") {
-                            self.properties.dontreqpreauth = true;
-                        };
-                        // KUD (Kerberos Unconstrained Delegation)
-                        if flag.contains("TrustedForDelegation") {
-                            self.properties.unconstraineddelegation = true;
-                            self.unconstrained_delegation = true;
-                        };
-                        if flag.contains("NotDelegated") {
-                            self.properties.sensitive = true;
-                        };
-                        //if flag.contains("PasswordExpired") { let password_expired = true; user_json["Properties"]["pwdneverexpires"] = password_expired;};
-                        if flag.contains("TrustedToAuthForDelegation") {
-                            self.properties.trustedtoauth = true;
-                        };
-                    }
-                }
-                "msDS-AllowedToDelegateTo"  => {
-                    // KCD (Kerberos Constrained Delegation)
-                    //trace!(" AllowToDelegateTo: {:?}",&value);
-                    // AllowedToDelegate
-                    let mut vec_members2: Vec<Member> = Vec::new();
-                    for objet in value {
-                        let mut member_allowed_to_delegate = Member::new();
-                        let split = objet.split("/");
-                        let fqdn = split.collect::<Vec<&str>>()[1];
-                        let mut checker = false;
-                        for member in &vec_members2 {
-                          if member.object_identifier().contains(fqdn.to_uppercase().as_str()) {
-                                 checker = true;
-                         }
-                       }
-                        if !checker {
-                          *member_allowed_to_delegate.object_identifier_mut() = fqdn.to_uppercase().to_owned().to_uppercase();
-                          *member_allowed_to_delegate.object_type_mut() ="Computer".to_owned();
-                          vec_members2.push(member_allowed_to_delegate.to_owned()); 
-                       }
-                  }
-                    // *properties.allowedtodelegate = vec_members2.to_owned();
-                    self.allowed_to_delegate = vec_members2;
-                }
-                "lastLogon" => {
-                    let lastlogon = &value[0].parse::<i64>().unwrap_or(0);
-                    if lastlogon.is_positive() {
-                        let epoch = convert_timestamp(*lastlogon);
-                        self.properties.lastlogon = epoch;
-                    }
-                }
-                "lastLogonTimestamp" => {
-                    let lastlogontimestamp = &value[0].parse::<i64>().unwrap_or(0);
-                    if lastlogontimestamp.is_positive() {
-                        let epoch = convert_timestamp(*lastlogontimestamp);
-                        self.properties.lastlogontimestamp = epoch;
-                    }
-                }
-                "pwdLastSet" => {
-                    let pwdlastset = &value[0].parse::<i64>().unwrap_or(0);
-                    if pwdlastset.is_positive() {
-                        let epoch = convert_timestamp(*pwdlastset);
-                        self.properties.pwdlastset = epoch;
-                    }
-                }
-                "whenCreated" => {
-                    let epoch = string_to_epoch(&value[0])?;
-                    if epoch.is_positive() {
-                        self.properties.whencreated = epoch;
-                    }
-                }
-                "servicePrincipalName" => {
-                    // SPNTargets values
-                    let mut targets: Vec<SPNTarget> = Vec::new();
-                    let mut result: Vec<String> = Vec::new();
-                    let mut added: bool = false;
-                    for v in value {
-                        result.push(v.to_owned());
-                        // Checking the spn for service-account (mssql?)
-                        let _target = match check_spn(v).to_owned() {
-                            Some(_target) => {
-                                if !added {
-                                   targets.push(_target.to_owned());
-                                   added = true;
-                                }
-                            },
-                            None => {}
-                        };
-                    }
-                    self.properties.serviceprincipalnames = result;
-                    self.properties.hasspn = true;
-                    self.spn_targets = targets;
-                }
-                "primaryGroupID" => {
-                    group_id = value[0].to_owned();
-                }
-                "IsDeleted" => {
-                    // OID to use: 1.2.840.113556.1.4.417
-                    // https://ldapwiki.com/wiki/IsDeleted
-                    //trace!("isDeleted: {:?}",&value[0]);
-                    self.is_deleted = true;
-                }
-                "msDS-SupportedEncryptionTypes" => {
-                    self.properties.supportedencryptiontypes = convert_encryption_types(value[0].parse::<i32>().unwrap_or(0));
-                }
-                 _ => {}
-            }
-        }
 
         // For all, bins attributs
         let mut sid: String = "".to_owned();
@@ -518,7 +311,7 @@ impl User {
                 }
                 "msDS-GroupMSAMembership" => {
                     // nTSecurityDescriptor raw to string
-                    let mut relations_ace = parse_ntsecuritydescriptor(
+                    let relations_ace = parse_ntsecuritydescriptor(
                         self,
                         &value[0],
                         "User",
@@ -527,9 +320,9 @@ impl User {
                         domain,
                     );
                     // Now add the new ACE wich who can read GMSA password
-                    // trace!("User ACES before GMSA: {:?}", self.aces());
-                    parse_gmsa(&mut relations_ace, self);
-                    // trace!("User ACES after GMSA: {:?}", self.aces());
+                    // trace!("User ACES before GMSA: {:?}", user.aces());
+                    parse_gmsa(&relations_ace, self);
+                    // info!("User ACES after GMSA: {:?}", user.aces());
                 }
                 "userCertificate" => {
                     // <https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-adls/d66d1662-0b4f-44ab-a4c8-e788f3ae39cf>
@@ -537,7 +330,7 @@ impl User {
                     let res = X509Certificate::from_der(&value[0]);
                     match res {
                         Ok((_rem, _cert)) => {}
-                        _ => error!("CA x509 certificate parsing failed: {:?}", res),
+                        _ => error!("CA x509 certificate parsing failed: {res:?}"),
                     }
                 }
                 _ => {}
@@ -692,16 +485,6 @@ impl UserProperties {
         &self.isaclprotected
     }
 
-    // Mutable access.
-    pub fn name_mut(&mut self) -> &mut String {
-        &mut self.name
-    }
-    pub fn domainsid_mut(&mut self) -> &mut String {
-        &mut self.domainsid
-    }
-    pub fn isaclprotected_mut(&mut self) -> &mut bool {
-        &mut self.isaclprotected
-    }
     // Mutable access.
     pub fn name_mut(&mut self) -> &mut String {
         &mut self.name

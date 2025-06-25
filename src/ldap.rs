@@ -496,14 +496,14 @@ fn ldap_constructor(
             None => "not set".to_owned(),
         }
     );
-    debug!("FQDN: {}", ldapfqdn);
-    debug!("Url: {}", s_url);
-    debug!("Domain: {}", domain);
-    debug!("Username: {}", _s_username);
+    debug!("FQDN: {ldapfqdn}");
+    debug!("Url: {s_url}");
+    debug!("Domain: {domain}");
+    debug!("Username: {_s_username}");
     debug!("Email: {}", s_email.to_lowercase());
-    debug!("Password: {}", _s_password);
-    debug!("DC: {:?}", s_dc);
-    debug!("Kerberos: {:?}", kerberos);
+    debug!("Password: {_s_password}");
+    debug!("DC: {s_dc:?}");
+    debug!("Kerberos: {kerberos:?}");
 
     Ok(LdapArgs {
         s_url: s_url.to_string(),

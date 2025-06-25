@@ -23,7 +23,7 @@ pub async fn resolving_all_fqdn(
     for value in copy {
         for computer in vec_computer.iter() {
             if (*computer.properties().name() == value.0) && (*computer.properties().enabled()) {
-                debug!("Trying to resolve FQDN: {}", value.0.to_string());
+                debug!("Trying to resolve FQDN: {}", value.0);
                 // Resolve FQDN to IP address
                 let address = resolver(value.0.to_string(), dns_tcp, name_server).await;
                 if let Some(addr) = address {

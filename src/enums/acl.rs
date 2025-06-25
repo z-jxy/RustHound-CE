@@ -31,7 +31,7 @@ pub fn parse_ntsecuritydescriptor<T: LdapObject>(
     let mut owner_sid: String = "".to_string();
 
     let secdesc: SecurityDescriptor = SecurityDescriptor::parse(nt).unwrap().1;
-    trace!("SECURITY-DESCRIPTOR: {:?}", secdesc);
+    trace!("SECURITY-DESCRIPTOR: {secdesc:?}");
 
     // Check for ACL protected for Bloodhound4.1+
     // IsACLProtected
@@ -53,7 +53,7 @@ pub fn parse_ntsecuritydescriptor<T: LdapObject>(
                 .1,
             domain,
         );
-        trace!("OWNER-SID: {:?}", owner_sid);
+        trace!("OWNER-SID: {owner_sid:?}");
     }
 
     if secdesc.offset_group as usize != 0 {
@@ -63,7 +63,7 @@ pub fn parse_ntsecuritydescriptor<T: LdapObject>(
                 .1,
             domain,
         );
-        trace!("GROUP-SID: {:?}", group_sid);
+        trace!("GROUP-SID: {group_sid:?}");
     }
 
     if secdesc.offset_sacl as usize != 0 {
@@ -71,7 +71,7 @@ pub fn parse_ntsecuritydescriptor<T: LdapObject>(
         match res {
             Ok(_res) => {
                 let sacl = _res.1;
-                trace!("SACL: {:?}", sacl);
+                trace!("SACL: {sacl:?}");
                 //let aces = sacl.data;
                 /*ace_maker(
                     object,
@@ -83,7 +83,7 @@ pub fn parse_ntsecuritydescriptor<T: LdapObject>(
                     result_attrs,
                     result_bin,
                 );*/
-                trace!("RESULT: {:?}", relations_sacl);
+                trace!("RESULT: {relations_sacl:?}");
             }
             Err(err) => error!("Error. Reason: {err}"),
         }
@@ -95,7 +95,7 @@ pub fn parse_ntsecuritydescriptor<T: LdapObject>(
         match res {
             Ok(_res) => {
                 let dacl = _res.1;
-                trace!("DACL: {:?}", dacl);
+                trace!("DACL: {dacl:?}");
                 let aces = dacl.data;
                 ace_maker(
                     object,
@@ -107,7 +107,7 @@ pub fn parse_ntsecuritydescriptor<T: LdapObject>(
                     result_attrs,
                     result_bin,
                 );
-                trace!("RESULT: {:?}", relations_dacl);
+                trace!("RESULT: {relations_dacl:?}");
             }
             Err(err) => error!("Error. Reason: {err}"),
         }
@@ -181,7 +181,7 @@ fn ace_maker<T: LdapObject>(
 
             // https://github.com/fox-it/BloodHound.py/blob/645082e3462c93f31b571db945cde1fd7b837fb9/bloodhound/enumeration/acls.py#L82
             if (ace.ace_flags & INHERITED_ACE == INHERITED_ACE) 
-                && (&flags & ACE_INHERITED_OBJECT_TYPE_PRESENT == ACE_INHERITED_OBJECT_TYPE_PRESENT)
+                && (flags & ACE_INHERITED_OBJECT_TYPE_PRESENT == ACE_INHERITED_OBJECT_TYPE_PRESENT)
             {
                 // ACE is set on this object, but only inherited, so not applicable to us
                 // need to verify if the ACE applies to this object type #todo
@@ -189,7 +189,7 @@ fn ace_maker<T: LdapObject>(
                 // if not ace_applies(ace_object.acedata.get_inherited_object_type().lower(), entrytype, objecttype_guid_map):
                 // continue
                 // https://github.com/fox-it/BloodHound.py/blob/645082e3462c93f31b571db945cde1fd7b837fb9/bloodhound/enumeration/acls.py#L85
-                let ace_guid = decode_guid_le(&inherited_object_type.to_le_bytes().to_vec()).to_lowercase();
+                let ace_guid = decode_guid_le(inherited_object_type.to_le_bytes().as_ref()).to_lowercase();
                 if !(ace_applies(&ace_guid, entry_type)) {
                     continue;
                 }
@@ -199,10 +199,10 @@ fn ace_maker<T: LdapObject>(
                 Some(mask) => mask,
                 None => continue,
             };
-            trace!("ACE MASK for ACETYPE 0x05: {:?}", mask);
+            trace!("ACE MASK for ACETYPE 0x05: {mask:?}");
 
             let ace_guid = decode_guid_le(object_type.to_le_bytes().as_ref()).to_lowercase();
-            trace!("ACE GUID for ACETYPE 0x05: {:?}", ace_guid);
+            trace!("ACE GUID for ACETYPE 0x05: {ace_guid:?}");
 
             // https://github.com/fox-it/BloodHound.py/blob/645082e3462c93f31b571db945cde1fd7b837fb9/bloodhound/enumeration/acls.py#L92
             if ((MaskFlags::GENERIC_ALL.bits() | mask) == mask)
@@ -211,7 +211,7 @@ fn ace_maker<T: LdapObject>(
                 || ((MaskFlags::GENERIC_WRITE.bits() | mask) == mask)
             {
                 trace!("ACE MASK contain: GENERIC_ALL or WRITE_DACL or WRITE_OWNER or GENERIC_WRITE");
-                if &flags & ACE_OBJECT_TYPE_PRESENT == ACE_OBJECT_TYPE_PRESENT && !ace_applies(&ace_guid, entry_type) {
+                if flags & ACE_OBJECT_TYPE_PRESENT == ACE_OBJECT_TYPE_PRESENT && !ace_applies(&ace_guid, entry_type) {
                     continue;
                 }
                 if (MaskFlags::GENERIC_ALL.bits() | mask) == mask 
@@ -417,7 +417,7 @@ fn ace_maker<T: LdapObject>(
                     ));
                 }
                 if (entry_type == "Computer")
-                    && !(&flags & ACE_OBJECT_TYPE_PRESENT == ACE_OBJECT_TYPE_PRESENT)
+                    && (flags & ACE_OBJECT_TYPE_PRESENT != ACE_OBJECT_TYPE_PRESENT)
                     // && false
                 {
                     relations.push(AceTemplate::new(
@@ -504,7 +504,7 @@ fn ace_maker<T: LdapObject>(
                 Some(mask) => mask,
                 None => continue,
             };
-            trace!("ACE MASK for ACETYPE 0x00: {:?}", mask);
+            trace!("ACE MASK for ACETYPE 0x00: {mask:?}");
 
             if (MaskFlags::GENERIC_ALL.bits() | mask) == mask {
                 relations.push(AceTemplate::new(
