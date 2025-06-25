@@ -1,4 +1,3 @@
-#![allow(clippy::too_many_arguments)]
 //! Run a LDAP enumeration and parse results
 //!
 //! This module will prepare your connection and request the LDAP server to retrieve all the information needed to create the json files.
@@ -7,7 +6,8 @@
 //!
 //! Example in rust
 //!
-//! ```
+//! ```ignore
+//! use rusthound_ce::ldap_search;
 //! let search = ldap_search(...)
 //! ```
 
