@@ -65,6 +65,7 @@ pub enum LdapAuth {
 }
 
 /// Function to request all AD values.
+#[allow(clippy::too_many_arguments)]
 pub async fn ldap_search(
     ldaps: bool,
     ip: Option<&str>,
@@ -227,6 +228,7 @@ pub async fn ldap_search(
 }
 
 /// Function to request all AD values.
+#[allow(clippy::too_many_arguments)]
 pub async fn ldap_search_with_cache(
     ldaps: bool,
     ip: Option<&str>,
@@ -420,6 +422,7 @@ struct LdapArgs {
 }
 
 /// Function to prepare LDAP arguments.
+#[allow(clippy::too_many_arguments)]
 fn ldap_constructor(
     ldaps: bool,
     ip: Option<&str>,

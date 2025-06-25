@@ -2,18 +2,6 @@ use std::collections::HashMap;
 
 use ldap3::SearchEntry;
 
-#[derive(Default)]
-pub struct DomainMappings {
-    /// DN to SID
-    pub dn_sid: HashMap<String, String>,
-    ///  DN to Type
-    pub sid_type: HashMap<String, String>,
-    /// FQDN to SID
-    pub fqdn_sid: HashMap<String, String>,
-    /// fqdn to an ip address
-    pub fqdn_ip: HashMap<String, String>,
-}
-
 use crate::{
     args::Options,
     cache::CacheHandle,
@@ -48,6 +36,18 @@ pub struct ADResults {
     pub issuancepolicies: Vec<IssuancePolicie>,
 
     pub mappings: DomainMappings,
+}
+
+#[derive(Default)]
+pub struct DomainMappings {
+    /// DN to SID
+    pub dn_sid: HashMap<String, String>,
+    ///  DN to Type
+    pub sid_type: HashMap<String, String>,
+    /// FQDN to SID
+    pub fqdn_sid: HashMap<String, String>,
+    /// fqdn to an ip address
+    pub fqdn_ip: HashMap<String, String>,
 }
 
 impl ADResults {

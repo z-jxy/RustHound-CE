@@ -168,7 +168,6 @@ pub fn parse_result_type_from_mem(
     Ok(results)
 }
 
-#[allow(clippy::too_many_arguments)]
 // for `total_objects`, the total number of objects may not be known if the ldap query was never run
 // (e.g run was resumed from cached results)
 pub fn parse_result_type_from_cache(
