@@ -133,19 +133,16 @@ impl Group {
                     }*/
 
                     // highvalue
-                    if sid.ends_with("-512")
+                    self.properties.highvalue = sid.ends_with("-512")
                         || sid.ends_with("-516")
                         || sid.ends_with("-519")
                         || sid.ends_with("-520")
-                    {
-                        self.properties.highvalue = true;
-                    } else {
-                        self.properties.highvalue = sid.ends_with("S-1-5-32-544")
-                            || sid.ends_with("S-1-5-32-548")
-                            || sid.ends_with("S-1-5-32-549")
-                            || sid.ends_with("S-1-5-32-550")
-                            || sid.ends_with("S-1-5-32-551");
-                    };
+                        || sid.ends_with("S-1-5-32-544")
+                        || sid.ends_with("S-1-5-32-548")
+                        || sid.ends_with("S-1-5-32-549")
+                        || sid.ends_with("S-1-5-32-550")
+                        || sid.ends_with("S-1-5-32-551");
+                 
                 }
                 "whenCreated" => {
                     let epoch = string_to_epoch(&value[0])?;
@@ -173,19 +170,16 @@ impl Group {
                     }
 
                     // highvalue
-                    if sid.ends_with("-512")
+                    self.properties.highvalue = sid.ends_with("-512")
                         || sid.ends_with("-516")
                         || sid.ends_with("-519")
                         || sid.ends_with("-520")
-                    {
-                        self.properties.highvalue = true;
-                    } else {
-                        self.properties.highvalue = sid.ends_with("S-1-5-32-544")
-                            || sid.ends_with("S-1-5-32-548")
-                            || sid.ends_with("S-1-5-32-549")
-                            || sid.ends_with("S-1-5-32-550")
-                            || sid.ends_with("S-1-5-32-551")
-                    };
+                        || sid.ends_with("S-1-5-32-544")
+                        || sid.ends_with("S-1-5-32-548")
+                        || sid.ends_with("S-1-5-32-549")
+                        || sid.ends_with("S-1-5-32-550")
+                        || sid.ends_with("S-1-5-32-551");
+          
                 }
                 "nTSecurityDescriptor" => {
                     // nTSecurityDescriptor raw to string

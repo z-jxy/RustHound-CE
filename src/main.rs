@@ -57,7 +57,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let mut results = match common_args.resume {
         true => {
-            // TODO: just continue and call the prepare_results_from_cache function
             let ldap_cache_path = std::path::PathBuf::from(CACHE_DIR)
                 .join(&common_args.domain)
                 .join("searched_objects.bin");
