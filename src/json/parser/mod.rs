@@ -9,6 +9,7 @@ use crate::objects::{
 use crate::ADResults;
 use indicatif::ProgressBar;
 use ldap3::SearchEntry;
+use log::info;
 use regex::Regex;
 use std::convert::TryInto;
 use std::error::Error;
@@ -16,7 +17,9 @@ use std::error::Error;
 use crate::args::Options;
 use crate::banner::progress_bar;
 use crate::enums::ldaptype::*;
-use log::info;
+use crate::enums::regex::{PARSER_MOD_RE1,PARSER_MOD_RE2};
+
+// use crate::modules::adcs::parser::{parse_adcs_ca,parse_adcs_template};
 
 /// Function to get type for object by object
 pub fn parse_result_type_from_mem(
@@ -193,11 +196,6 @@ pub fn parse_result_type_from_cache(
     let fqdn_sid = &mut results.mappings.fqdn_sid;
     let fqdn_ip = &mut results.mappings.fqdn_ip;
 
-    let (container_re_filt1, container_re_filt2) = (
-        Regex::new(r"[0-9a-z-A-Z]{1,}-[0-9a-z-A-Z]{1,}-[0-9a-z-A-Z]{1,}-[0-9a-z-A-Z]{1,}")?,
-        Regex::new(r"CN=DOMAINUPDATES,CN=SYSTEM,")?,
-    );
-
     for entry in ldap_cache_path {
         let entry: SearchEntry = entry?.into();
         // Start parsing with Type matching
@@ -249,10 +247,11 @@ pub fn parse_result_type_from_cache(
                 results.fsps.push(security_principal);
             }
             Type::Container => {
-                let upper = entry.dn.to_uppercase();
-                if container_re_filt1.is_match(&upper) || container_re_filt2.is_match(&upper) {
-                    //trace!("Container not to add: {}",&entry.dn.to_uppercase());
-                    continue;
+                if PARSER_MOD_RE1.is_match(&entry.dn.to_uppercase()) 
+                || PARSER_MOD_RE2.is_match(&entry.dn.to_uppercase()) 
+                {
+                    //trace!("Container not to add: {}",&cloneresult.dn.to_uppercase());
+                    continue
                 }
 
                 //trace!("Container: {}",&entry.dn.to_uppercase());

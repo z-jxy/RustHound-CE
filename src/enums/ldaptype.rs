@@ -1,6 +1,5 @@
 use ldap3::SearchEntry;
 use std::collections::HashMap;
-
 //use log::trace;
 
 /// Enum to get ldap object type.
@@ -59,7 +58,8 @@ pub fn get_type(result: &SearchEntry) -> std::result::Result<Type, Type> {
             _ if contains(vals, "groupPolicyContainer") => {
                 return Ok(Type::Gpo);
             }
-            _ if contains(vals, "top") && contains(vals, "foreignSecurityPrincipal") => {
+            _ if contains(vals, "top")
+                && contains(vals, "foreignSecurityPrincipal") => {
                 return Ok(Type::ForeignSecurityPrincipal);
             }
             _ if contains(vals, "top")

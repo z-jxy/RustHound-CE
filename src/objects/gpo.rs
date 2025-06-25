@@ -1,14 +1,11 @@
 use serde::{Deserialize, Serialize};
-use serde_json::value::Value;
-
-use crate::enums::decode_guid_le;
-use crate::objects::common::{AceTemplate, LdapObject, Link, Member, SPNTarget};
-
 use ldap3::SearchEntry;
 use log::{debug, trace};
 use std::collections::HashMap;
 use std::error::Error;
 
+use crate::objects::common::{LdapObject, AceTemplate, Link, SPNTarget, Member};
+use crate::enums::decode_guid_le;
 use crate::enums::acl::parse_ntsecuritydescriptor;
 use crate::utils::date::string_to_epoch;
 
@@ -44,24 +41,25 @@ impl Gpo {
     pub fn parse(
         &mut self,
         result: SearchEntry,
-        domain: &String,
+        domain: &str,
         dn_sid: &mut HashMap<String, String>,
         sid_type: &mut HashMap<String, String>,
-        domain_sid: &String,
+        domain_sid: &str
     ) -> Result<(), Box<dyn Error>> {
         let result_dn: String = result.dn.to_uppercase();
         let result_attrs: HashMap<String, Vec<String>> = result.attrs;
         let result_bin: HashMap<String, Vec<Vec<u8>>> = result.bin_attrs;
 
         // Debug for current object
-        debug!("Parse gpo: {}", result_dn);
+        debug!("Parse gpo: {result_dn}");
+
         // Trace all result attributes
         for (key, value) in &result_attrs {
-            trace!("  {:?}:{:?}", key, value);
+            trace!("  {key:?}:{value:?}");
         }
         // Trace all bin result attributes
         for (key, value) in &result_bin {
-            trace!("  {:?}:{:?}", key, value);
+            trace!("  {key:?}:{value:?}");
         }
 
         // Change all values...
@@ -104,13 +102,11 @@ impl Gpo {
                     self.object_identifier = decode_guid_le(&value[0]).to_owned();
                 }
                 "nTSecurityDescriptor" => {
-                    // Needed with acl
-                    let entry_type = "Gpo".to_string();
                     // nTSecurityDescriptor raw to string
                     let relations_ace = parse_ntsecuritydescriptor(
                         self,
                         &value[0],
-                        entry_type,
+                        "Gpo",
                         &result_attrs,
                         &result_bin,
                         domain,

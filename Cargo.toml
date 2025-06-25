@@ -6,7 +6,7 @@ keywords = ["bloodhound", "pentest", "ldap", "tokio", "async"]
 repository = "https://github.com/g0h4n/RustHound-CE"
 homepage = "https://github.com/g0h4n/RustHound-CE"
 documentation = "https://docs.rs/rusthound-ce/"
-version = "2.3.4"
+version = "2.3.7"
 edition = "2021"
 license = "MIT"
 readme = "README.md"
@@ -21,7 +21,6 @@ nom7 = { version="7.0", package="nom" }
 colored = "2"
 chrono = "0.4"
 bitflags = "2.4.1"
-regex = "1"
 env_logger = "0.11"
 log = "0.4"
 lazy_static = "1.4.0"
@@ -34,6 +33,8 @@ ldap3 = { version = "0.11.5", default-features = false }
 winreg = { version = "0.52", optional = true }
 sha1 = "0.10"
 bincode = "2.0.1"
+regex = "1"
+once_cell = "1.19"
 
 [features]
 noargs = ["winreg"] # Only available for Windows

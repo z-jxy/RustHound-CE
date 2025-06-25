@@ -38,6 +38,7 @@ pub fn check_all_result(
 ) -> Result<(), Box<dyn Error>> {
     let domain = &common_args.domain;
     info!("Starting checker to replace some values...");
+    
     debug!("Replace SID with checker.rs started");
     common::replace_fqdn_by_sid(Type::User, vec_users, fqdn_sid)?;
     common::replace_fqdn_by_sid(Type::Computer, vec_computers, fqdn_sid)?;

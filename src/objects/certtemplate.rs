@@ -1,16 +1,13 @@
 use serde::{Deserialize, Serialize};
-use serde_json::value::Value;
-
-use crate::enums::{
-    decode_guid_le, get_pki_cert_name_flags, get_pki_enrollment_flags, parse_ntsecuritydescriptor,
-};
-use crate::json::checker::common::get_name_from_full_distinguishedname;
-use crate::objects::common::{AceTemplate, LdapObject, Link, Member, SPNTarget};
-use crate::utils::date::{filetime_to_span, span_to_string, string_to_epoch};
 use ldap3::SearchEntry;
 use log::{debug, trace};
 use std::collections::HashMap;
 use std::error::Error;
+
+use crate::objects::common::{LdapObject, AceTemplate, SPNTarget, Link, Member};
+use crate::enums::{decode_guid_le, get_pki_cert_name_flags, get_pki_enrollment_flags, parse_ntsecuritydescriptor};
+use crate::json::checker::common::get_name_from_full_distinguishedname;
+use crate::utils::date::{filetime_to_span, span_to_string, string_to_epoch};
 
 /// CertTemplate structure
 #[derive(Debug, Clone, Deserialize, Serialize, Default)]
@@ -49,24 +46,25 @@ impl CertTemplate {
     pub fn parse(
         &mut self,
         result: SearchEntry,
-        domain: &String,
+        domain: &str,
         dn_sid: &mut HashMap<String, String>,
         sid_type: &mut HashMap<String, String>,
-        domain_sid: &String,
+        domain_sid: &str
     ) -> Result<(), Box<dyn Error>> {
         let result_dn: String = result.dn.to_uppercase();
         let result_attrs: HashMap<String, Vec<String>> = result.attrs;
         let result_bin: HashMap<String, Vec<Vec<u8>>> = result.bin_attrs;
 
         // Debug for current object
-        debug!("Parse CertTemplate: {}", result_dn);
+        debug!("Parse CertTemplate: {result_dn}");
+
         // Trace all result attributes
         for (key, value) in &result_attrs {
-            trace!("  {:?}:{:?}", key, value);
+            trace!("  {key:?}:{value:?}");
         }
         // Trace all bin result attributes
         for (key, value) in &result_bin {
-            trace!("  {:?}:{:?}", key, value);
+            trace!("  {key:?}:{value:?}");
         }
 
         // Change all values...
@@ -115,7 +113,7 @@ impl CertTemplate {
                     }
                 }
                 "msPKI-Private-Key-Flag" => {
-                    // if value.len() != 0 {
+                    // if !value.is_empty() {
                     //     self.properties.() = get_pki_private_flags(value[0].parse::<i64>().unwrap_or(0) as u64);
                     // }
                 }
@@ -178,13 +176,11 @@ impl CertTemplate {
                     self.object_identifier = guid.to_owned();
                 }
                 "nTSecurityDescriptor" => {
-                    // Needed with acl
-                    let entry_type = "CertTemplate".to_string();
                     // nTSecurityDescriptor raw to string
                     let relations_ace = parse_ntsecuritydescriptor(
                         self,
                         &value[0],
-                        entry_type,
+                        "CertTemplate",
                         &result_attrs,
                         &result_bin,
                         domain,

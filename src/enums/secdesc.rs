@@ -193,7 +193,7 @@ impl AceFormat {
         }
     }
     
-    pub fn get_mask(value: AceFormat) -> Option<u32>
+    pub fn get_mask(value: &AceFormat) -> Option<u32>
     {
         match value {
             AceFormat::AceAllowed(ace) => Some(ace.mask),
@@ -229,7 +229,7 @@ impl AceFormat {
         }
     }
 
-    pub fn get_inherited_object_type(value: AceFormat) -> Option<u128>
+    pub fn get_inherited_object_type(value: &AceFormat) -> Option<u128>
     {
         match value {
             AceFormat::AceAllowed(_) => None,
@@ -347,7 +347,7 @@ mod tests {
         assert_eq!(nt.offset_group, 0);
         assert_eq!(nt.offset_sacl, 0);
         assert_eq!(nt.offset_dacl, 20);
-        
+
         println!("[NT SecurityDescriptor]: {:?}",&nt)
     }
     

@@ -1,17 +1,14 @@
 use serde::{Deserialize, Serialize};
-use serde_json::value::Value;
-
-use crate::objects::common::{
-    AceTemplate, DCRegistryData, LdapObject, Link, LocalGroup, Member, SPNTarget, Session,
-};
-
 use colored::Colorize;
 use ldap3::SearchEntry;
-use log::{debug, info, trace};
-use regex::Regex;
+use log::{info, debug, trace};
 use std::collections::HashMap;
 use std::error::Error;
 
+use crate::enums::{OBJECT_SID_RE1, SID_PART1_RE1};
+use crate::objects::common::{LdapObject, Session, AceTemplate, Member, SPNTarget, LocalGroup, Link, DCRegistryData};
+use crate::utils::date::{convert_timestamp,string_to_epoch};
+use crate::utils::crypto::convert_encryption_types;
 use crate::enums::acl::parse_ntsecuritydescriptor;
 use crate::enums::secdesc::LdapSid;
 use crate::enums::sid::sid_maker;
@@ -118,14 +115,16 @@ impl Computer {
         let result_attrs: HashMap<String, Vec<String>> = result.attrs;
         let result_bin: HashMap<String, Vec<Vec<u8>>> = result.bin_attrs;
 
-        debug!("Parse computer: {}", result_dn);
+        // Debug for current object
+        debug!("Parse computer: {result_dn}");
+
         // Trace all result attributes
         for (key, value) in &result_attrs {
-            trace!("  {:?}:{:?}", key, value);
+            trace!("  {key:?}:{value:?}");
         }
         // Trace all bin result attributes
         for (key, value) in &result_bin {
-            trace!("  {:?}:{:?}", key, value);
+            trace!("  {key:?}:{value:?}");
         }
 
         // Computer structure
@@ -220,7 +219,7 @@ impl Computer {
                         if flag.contains("AccountDisable") {
                             self.properties.enabled = false;
                         };
-                        //if flag.contains("Lockout") { let enabled = true; computer_json["Properties"]["enabled"] = enabled.into(); };
+                        //if flag.contains("Lockout") { let enabled = true; computer_json["Properties"]["enabled"] = enabled; };
                         // KUD (Kerberos Unconstrained Delegation)
                         if flag.contains("TrustedForDelegation") {
                             self.properties.unconstraineddelegation = true;
@@ -318,9 +317,6 @@ impl Computer {
             }
         }
 
-        let domain_sid_re =
-            Regex::new(r"^S-[0-9]{1}-[0-9]{1}-[0-9]{1,}-[0-9]{1,}-[0-9]{1,}-[0-9]{1,}")?;
-
         // For all, bins attributs
         for (key, value) in &result_bin {
             match key.as_str() {
@@ -329,18 +325,16 @@ impl Computer {
                     sid = sid_maker(LdapSid::parse(&value[0]).unwrap().1, domain);
                     self.object_identifier = sid.to_owned();
 
-                    for domain_sid in domain_sid_re.captures_iter(&sid) {
+                    for domain_sid in OBJECT_SID_RE1.captures_iter(&sid) {
                         self.properties.domainsid = domain_sid[0].to_owned().to_string();
                     }
                 }
                 "nTSecurityDescriptor" => {
-                    // Needed with acl
-                    let entry_type = "Computer".to_string();
                     // nTSecurityDescriptor raw to string
                     let relations_ace = parse_ntsecuritydescriptor(
                         &mut computer,
                         &value[0],
-                        entry_type,
+                        "Computer",
                         &result_attrs,
                         &result_bin,
                         domain,
@@ -349,13 +343,11 @@ impl Computer {
                 }
                 "msDS-AllowedToActOnBehalfOfOtherIdentity" => {
                     // RBCD (Resource-based constrained)
-                    // Needed with acl
-                    let entry_type = "Computer".to_string();
                     // msDS-AllowedToActOnBehalfOfOtherIdentity parsing ACEs
                     let relations_ace = parse_ntsecuritydescriptor(
                         &mut computer,
                         &value[0],
-                        entry_type,
+                        "Computer",
                         &result_attrs,
                         &result_bin,
                         domain,
@@ -381,8 +373,7 @@ impl Computer {
         // primaryGroupID if group_id is set
         #[allow(irrefutable_let_patterns)]
         if let id = group_id {
-            let re = Regex::new(r"S-.*-")?;
-            if let Some(part1) = re.find(&sid) {
+            if let Some(part1) = SID_PART1_RE1.find(&sid) {
                 self.primary_group_sid = format!("{}{}", part1.as_str(), id);
             } else {
                 eprintln!("[!] Regex did not match any part of the SID");

@@ -19,6 +19,8 @@ pub use gplink::*;
 pub use trusts::*;
 #[doc(inline)]
 pub use adcs::*;
+#[doc(inline)]
+pub use regex::*;
 
 pub mod uacflags;
 pub mod ldaptype;
@@ -31,3 +33,4 @@ pub mod gplink;
 pub mod constants;
 pub mod trusts;
 pub mod adcs;
+pub mod regex;

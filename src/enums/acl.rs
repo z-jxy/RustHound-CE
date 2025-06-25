@@ -21,14 +21,13 @@ use log::{error, trace};
 pub fn parse_ntsecuritydescriptor<T: LdapObject>(
     object: &mut T,
     nt: &[u8],
-    entry_type: String,
+    entry_type: &str,
     result_attrs: &HashMap<String, Vec<String>>,
     result_bin: &HashMap<String, Vec<Vec<u8>>>,
     domain: &str,
 ) -> Vec<AceTemplate> {
     let mut relations_dacl: Vec<AceTemplate> = Vec::new();
     let relations_sacl: Vec<AceTemplate> = Vec::new();
-
     let mut owner_sid: String = "".to_string();
 
     let secdesc: SecurityDescriptor = SecurityDescriptor::parse(nt).unwrap().1;
@@ -39,7 +38,8 @@ pub fn parse_ntsecuritydescriptor<T: LdapObject>(
     let acl_is_protected = has_control(secdesc.control, SecurityDescriptorFlags::DACL_PROTECTED);
     //trace!("{} acl_is_protected: {:?}",object.properties().name,acl_is_protected);
 
-    match entry_type.as_str() {
+    match entry_type
+    {
         "EnterpriseCA" | "RootCA" | "CertTemplate" => {
             object.set_is_acl_protected(acl_is_protected);
         }
@@ -103,7 +103,7 @@ pub fn parse_ntsecuritydescriptor<T: LdapObject>(
                     &mut relations_dacl,
                     &owner_sid,
                     aces,
-                    &entry_type,
+                    entry_type,
                     result_attrs,
                     result_bin,
                 );
@@ -153,35 +153,35 @@ fn ace_maker<T: LdapObject>(
         trace!("SID for this ACE: {}", &sid);
 
         // Check if sid is in the ignored list
-        if IGNORE_SIDS.iter().any(|i| sid.contains(i)) {
+        if IGNORE_SIDS.iter().any(|i| sid.contains(i))
+        {
             continue;
         }
 
         // https://github.com/fox-it/BloodHound.py/blob/645082e3462c93f31b571db945cde1fd7b837fb9/bloodhound/enumeration/acls.py#L74
         if ace.ace_type == 0x05 {
+
             trace!("TYPE: 0x05");
             // GUID : inherited_object_type
-            let inherited_object_type =
-                AceFormat::get_inherited_object_type(ace.data.to_owned()).unwrap_or_default();
+            let inherited_object_type = AceFormat::get_inherited_object_type(&ace.data).unwrap_or_default();
             // GUID : object_type
             let object_type = AceFormat::get_object_type(&ace.data).unwrap_or_default();
             // Get and check ace.ace_flags object content INHERITED_ACE and return boolean
             let is_inherited = ace.ace_flags & INHERITED_ACE == INHERITED_ACE;
-
             // Get the Flag for the ace.datas
             let flags = AceFormat::get_flags(&ace.data).unwrap().bits();
 
             // https://github.com/fox-it/BloodHound.py/blob/645082e3462c93f31b571db945cde1fd7b837fb9/bloodhound/enumeration/acls.py#L77
             if (ace.ace_flags & INHERITED_ACE != INHERITED_ACE)
-                && (ace.ace_flags & INHERIT_ONLY_ACE == INHERIT_ONLY_ACE)
+                && (ace.ace_flags & INHERIT_ONLY_ACE == INHERIT_ONLY_ACE) 
             {
                 // ACE is set on this object, but only inherited, so not applicable to us
                 continue;
             }
 
             // https://github.com/fox-it/BloodHound.py/blob/645082e3462c93f31b571db945cde1fd7b837fb9/bloodhound/enumeration/acls.py#L82
-            if (ace.ace_flags & INHERITED_ACE == INHERITED_ACE)
-                && (flags & ACE_INHERITED_OBJECT_TYPE_PRESENT == ACE_INHERITED_OBJECT_TYPE_PRESENT)
+            if (ace.ace_flags & INHERITED_ACE == INHERITED_ACE) 
+                && (&flags & ACE_INHERITED_OBJECT_TYPE_PRESENT == ACE_INHERITED_OBJECT_TYPE_PRESENT)
             {
                 // ACE is set on this object, but only inherited, so not applicable to us
                 // need to verify if the ACE applies to this object type #todo
@@ -189,14 +189,13 @@ fn ace_maker<T: LdapObject>(
                 // if not ace_applies(ace_object.acedata.get_inherited_object_type().lower(), entrytype, objecttype_guid_map):
                 // continue
                 // https://github.com/fox-it/BloodHound.py/blob/645082e3462c93f31b571db945cde1fd7b837fb9/bloodhound/enumeration/acls.py#L85
-                let ace_guid =
-                    decode_guid_le(inherited_object_type.to_le_bytes().as_ref()).to_lowercase();
+                let ace_guid = decode_guid_le(&inherited_object_type.to_le_bytes().to_vec()).to_lowercase();
                 if !(ace_applies(&ace_guid, entry_type)) {
                     continue;
                 }
             }
 
-            let mask = match AceFormat::get_mask(ace.data.to_owned()) {
+            let mask = match AceFormat::get_mask(&ace.data) {
                 Some(mask) => mask,
                 None => continue,
             };
@@ -211,32 +210,24 @@ fn ace_maker<T: LdapObject>(
                 || ((MaskFlags::WRITE_OWNER.bits() | mask) == mask)
                 || ((MaskFlags::GENERIC_WRITE.bits() | mask) == mask)
             {
-                trace!(
-                    "ACE MASK contain: GENERIC_ALL or WRITE_DACL or WRITE_OWNER or GENERIC_WRITE"
-                );
-                if (flags & ACE_OBJECT_TYPE_PRESENT == ACE_OBJECT_TYPE_PRESENT)
-                    && !(ace_applies(&ace_guid, entry_type))
-                {
+                trace!("ACE MASK contain: GENERIC_ALL or WRITE_DACL or WRITE_OWNER or GENERIC_WRITE");
+                if &flags & ACE_OBJECT_TYPE_PRESENT == ACE_OBJECT_TYPE_PRESENT && !ace_applies(&ace_guid, entry_type) {
                     continue;
                 }
-                if (MaskFlags::GENERIC_ALL.bits() | mask) == mask {
-                    if entry_type == "Computer"
+                if (MaskFlags::GENERIC_ALL.bits() | mask) == mask 
+                {
+                    if entry_type == "Computer" 
                         && (flags & ACE_OBJECT_TYPE_PRESENT == ACE_OBJECT_TYPE_PRESENT)
                         && object.get_haslaps().to_owned()
+                        && &ace_guid == OBJECTTYPE_GUID_HASHMAP.get("ms-mcs-admpwd").unwrap_or(&String::from("GUID-NOT-FOUND"))
                     {
-                        if &ace_guid
-                            == OBJECTTYPE_GUID_HASHMAP
-                                .get("ms-mcs-admpwd")
-                                .unwrap_or(&String::from("GUID-NOT-FOUND"))
-                        {
-                            relations.push(AceTemplate::new(
-                                sid.to_owned(),
-                                "".to_string(),
-                                "ReadLAPSPassword".to_string(),
-                                is_inherited,
-                                "".to_string(),
-                            ));
-                        }
+                        relations.push(AceTemplate::new(
+                            sid.to_owned(),
+                            "".to_string(),
+                            "ReadLAPSPassword".to_string(),
+                            is_inherited,
+                            "".to_string(),
+                        ));
                     } else {
                         relations.push(AceTemplate::new(
                             sid.to_owned(),
@@ -425,18 +416,21 @@ fn ace_maker<T: LdapObject>(
                         "".to_string(),
                     ));
                 }
-                // if (entry_type == "Computer")
-                //     && (flags & ACE_OBJECT_TYPE_PRESENT != ACE_OBJECT_TYPE_PRESENT)
-                // {
-                //     relations.push(AceTemplate::new(
-                //         sid.to_owned(),
-                //         "".to_string(),
-                //         "AllExtendedRights".to_string(),
-                //         is_inherited,
-                //         "".to_string(),
-                //     ));
-                // }
-                if (entry_type == "Domain") && has_extended_right(&ace, GET_CHANGES) {
+                if (entry_type == "Computer")
+                    && !(&flags & ACE_OBJECT_TYPE_PRESENT == ACE_OBJECT_TYPE_PRESENT)
+                    // && false
+                {
+                    relations.push(AceTemplate::new(
+                        sid.to_owned(),
+                        "".to_string(),
+                        "AllExtendedRights".to_string(),
+                        is_inherited,
+                        "".to_string(),
+                    ));
+                }
+                if (entry_type == "Domain")
+                    && has_extended_right(&ace, GET_CHANGES) 
+                {
                     relations.push(AceTemplate::new(
                         sid.to_owned(),
                         "".to_string(),
@@ -454,7 +448,8 @@ fn ace_maker<T: LdapObject>(
                         "".to_string(),
                     ));
                 }
-                if (entry_type == "Domain") && has_extended_right(&ace, GET_CHANGES_IN_FILTERED_SET)
+                if (entry_type == "Domain")
+                    && has_extended_right(&ace, GET_CHANGES_IN_FILTERED_SET)
                 {
                     relations.push(AceTemplate::new(
                         sid.to_owned(),
@@ -505,7 +500,7 @@ fn ace_maker<T: LdapObject>(
 
             let is_inherited = ace.ace_flags & INHERITED_ACE == INHERITED_ACE;
 
-            let mask = match AceFormat::get_mask(ace.data.to_owned()) {
+            let mask = match AceFormat::get_mask(&ace.data) {
                 Some(mask) => mask,
                 None => continue,
             };
@@ -552,18 +547,20 @@ fn ace_maker<T: LdapObject>(
                 ));
             }
             // For computer
-            // if (entry_type == "Computer")
-            //     && ((MaskFlags::ADS_RIGHT_DS_CONTROL_ACCESS.bits() | mask) == mask)
-            // {
-            //     relations.push(AceTemplate::new(
-            //         sid.to_owned(),
-            //         "".to_string(),
-            //         "AllExtendedRights".to_string(),
-            //         is_inherited,
-            //         "".to_string(),
-            //     ));
-            // }
-            if (MaskFlags::WRITE_DACL.bits() | mask) == mask {
+            if (entry_type == "Computer")
+                && ((MaskFlags::ADS_RIGHT_DS_CONTROL_ACCESS.bits() | mask) == mask)
+                // && false
+            {
+                relations.push(AceTemplate::new(
+                    sid.to_owned(),
+                    "".to_string(),
+                    "AllExtendedRights".to_string(),
+                    is_inherited,
+                    "".to_string(),
+                ));
+            }
+            if (MaskFlags::WRITE_DACL.bits() | mask) == mask 
+            {
                 relations.push(AceTemplate::new(
                     sid.to_owned(),
                     "".to_string(),
@@ -633,7 +630,7 @@ fn can_write_property(ace: &Ace, bin_property: &str) -> bool {
     // [MS-ADTS] section 5.1.3.2: https://msdn.microsoft.com/en-us/library/cc223511.aspx
 
     // If not found, then assume can't write. Should not happen, but missing some parsers.
-    let mask = match AceFormat::get_mask(ace.data.to_owned()) {
+    let mask = match AceFormat::get_mask(&ace.data) {
         Some(mask) => mask,
         None => return false,
     };
@@ -674,7 +671,7 @@ fn has_extended_right(ace: &Ace, bin_right_guid: &str) -> bool {
     // is empty, in which case we have all extended rights. This is documented in
     // [MS-ADTS] section 5.1.3.2: https://msdn.microsoft.com/en-us/library/cc223511.aspx
 
-    let mask = match AceFormat::get_mask(ace.data.to_owned()) {
+    let mask = match AceFormat::get_mask(&ace.data) {
         Some(mask) => mask,
         None => return false,
     };
@@ -715,27 +712,19 @@ fn ace_applies(ace_guid: &str, entry_type: &str) -> bool {
     // Note that this function assumes you already verified that InheritedObjectType is set (via the flag).
     // If this is not set, the ACE applies to all object types.
     trace!("ACE GUID: {}", &ace_guid);
-    trace!(
-        "OBJECTTYPE_GUID_HASHMAP: {}",
-        OBJECTTYPE_GUID_HASHMAP
-            .get(entry_type)
-            .unwrap_or(&String::from("GUID-NOT-FOUND"))
-    );
-    OBJECTTYPE_GUID_HASHMAP
-        .get(entry_type)
-        .is_some_and(|guid| ace_guid == guid)
+    trace!("OBJECTTYPE_GUID_HASHMAP: {}",OBJECTTYPE_GUID_HASHMAP.get(entry_type).unwrap_or(&String::from("GUID-NOT-FOUND")));
+    ace_guid == OBJECTTYPE_GUID_HASHMAP.get(entry_type).unwrap_or(&String::from("GUID-NOT-FOUND"))
 }
 
-/// Function to check the user can read Service Account password
-pub fn parse_gmsa(processed_aces: &mut [AceTemplate], user: &mut User) {
+/// Function to parse GMSA DACL which states which users (or groups) can read the password
+pub fn parse_gmsa(processed_aces: &[AceTemplate], user: &mut User) {
     for ace in processed_aces {
-        match ace.right_name().as_str() {
-            "Owns" | "Owner" => {}
-            _ => {
-                *ace.right_name_mut() = "ReadGMSAPassword".to_string();
-                user.aces_mut().push(ace.to_owned());
-            }
+        if ace.right_name() == "Owner"  { // || ace.right_name() == "Owns" {
+            continue;
         }
+        let mut ace = ace.clone();
+        *ace.right_name_mut() = "ReadGMSAPassword".to_string();
+        user.aces_mut().push(ace);
     }
 }
 
@@ -774,7 +763,7 @@ pub fn parse_ca_security(
                 let aces = dacl.data;
                 for ace in aces {
                     let sid = sid_maker(AceFormat::get_sid(ace.data.to_owned()).unwrap(), domain);
-                    let mask = match AceFormat::get_mask(ace.data.to_owned()) {
+                    let mask = match AceFormat::get_mask(&ace.data) {
                         Some(mask) => mask,
                         None => continue,
                     };

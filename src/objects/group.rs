@@ -1,14 +1,12 @@
 use serde::{Deserialize, Serialize};
 use serde_json::value::Value;
-
-use crate::objects::common::{AceTemplate, LdapObject, Link, Member, SPNTarget};
-
 use ldap3::SearchEntry;
 use log::{debug, trace};
-use regex::Regex;
 use std::collections::HashMap;
 use std::error::Error;
 
+use crate::enums::regex::OBJECT_SID_RE1;
+use crate::objects::common::{LdapObject, AceTemplate, SPNTarget, Link, Member};
 use crate::enums::acl::parse_ntsecuritydescriptor;
 use crate::enums::secdesc::LdapSid;
 use crate::enums::sid::{objectsid_to_vec8, sid_maker};
@@ -60,10 +58,10 @@ impl Group {
     pub fn parse(
         &mut self,
         result: SearchEntry,
-        domain: &String,
+        domain: &str,
         dn_sid: &mut HashMap<String, String>,
         sid_type: &mut HashMap<String, String>,
-        domain_sid: &String,
+        domain_sid: &str,
     ) -> Result<(), Box<dyn Error>> {
         let result_dn: String = result.dn.to_uppercase();
         let result_attrs: HashMap<String, Vec<String>> = result.attrs;
@@ -72,11 +70,11 @@ impl Group {
         debug!("Parse group: {}", result_dn);
         // Trace all result attributes
         for (key, value) in &result_attrs {
-            trace!("  {:?}:{:?}", key, value);
+            trace!("  {key:?}:{value:?}");
         }
         // Trace all bin result attributes
         for (key, value) in &result_bin {
-            trace!("  {:?}:{:?}", key, value);
+            trace!("  {key:?}:{value:?}");
         }
 
         // Some needed vectors.
@@ -131,7 +129,7 @@ impl Group {
                     /*let re = Regex::new(r"^S-[0-9]{1}-[0-9]{1}-[0-9]{1,}-[0-9]{1,}-[0-9]{1,}-[0-9]{1,}").unwrap();
                     for domain_sid in re.captures_iter(&sid)
                     {
-                        group_json["Properties"]["domainsid"] = domain_sid[0].to_owned().to_string().into();
+                        group_json["Properties"]["domainsid"] = domain_sid[0].to_owned().to_string();
                     }*/
 
                     // highvalue
@@ -162,8 +160,6 @@ impl Group {
             }
         }
 
-        let re = Regex::new(r"^S-[0-9]{1}-[0-9]{1}-[0-9]{1,}-[0-9]{1,}-[0-9]{1,}-[0-9]{1,}")?;
-
         // For all, bins attributs
         for (key, value) in &result_bin {
             match key.as_str() {
@@ -192,13 +188,11 @@ impl Group {
                     };
                 }
                 "nTSecurityDescriptor" => {
-                    // Needed with acl
-                    let entry_type = "Group".to_string();
                     // nTSecurityDescriptor raw to string
                     let relations_ace = parse_ntsecuritydescriptor(
                         self,
                         &value[0],
-                        entry_type,
+                        "Group",
                         &result_attrs,
                         &result_bin,
                         domain,

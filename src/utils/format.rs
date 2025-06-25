@@ -6,7 +6,7 @@ pub fn domain_to_dc(domain: &str) -> String {
     for (i, s) in split.enumerate() {
         dc.push_str("DC=");
         dc.push_str(s);
-        
+
         if i < domain.split('.').count() - 1 {
             dc.push(',');
         }

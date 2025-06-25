@@ -1,14 +1,12 @@
 use serde::{Deserialize, Serialize};
-use serde_json::value::Value;
-
-use crate::objects::common::{AceTemplate, LdapObject, Link, Member, SPNTarget};
-
 use ldap3::SearchEntry;
 use log::{debug, trace};
-use regex::Regex;
 use std::collections::HashMap;
 use std::error::Error;
 
+use crate::enums::regex::OBJECT_SID_RE1;
+use crate::objects::common::{LdapObject, AceTemplate, SPNTarget, Link, Member};
+use crate::utils::date::string_to_epoch;
 use crate::enums::secdesc::LdapSid;
 use crate::enums::sid::{objectsid_to_vec8, sid_maker};
 use crate::utils::date::string_to_epoch;
@@ -42,7 +40,7 @@ impl Fsp {
     pub fn parse(
         &mut self,
         result: SearchEntry,
-        domain: &String,
+        domain: &str,
         dn_sid: &mut HashMap<String, String>,
         sid_type: &mut HashMap<String, String>,
     ) -> Result<(), Box<dyn Error>> {
@@ -51,14 +49,15 @@ impl Fsp {
         let result_bin: HashMap<String, Vec<Vec<u8>>> = result.bin_attrs;
 
         // Debug for current object
-        debug!("Parse ForeignSecurityPrincipal: {}", result_dn);
+        debug!("Parse ForeignSecurityPrincipal: {result_dn}");
+
         // Trace all result attributes
         for (key, value) in &result_attrs {
-            trace!("  {:?}:{:?}", key, value);
+            trace!("  {key:?}:{value:?}");
         }
         // Trace all bin result attributes
         for (key, value) in &result_bin {
-            trace!("  {:?}:{:?}", key, value);
+            trace!("  {key:?}:{value:?}");
         }
 
         // Change all values...
@@ -68,8 +67,6 @@ impl Fsp {
         #[allow(unused_assignments)]
         let mut sid: String = "".to_owned();
         let mut ftype: &str = "Base";
-
-        let re = Regex::new(r"^S-[0-9]{1}-[0-9]{1}-[0-9]{1,}-[0-9]{1,}-[0-9]{1,}-[0-9]{1,}")?;
 
         // With a check
         for (key, value) in &result_attrs {
@@ -102,7 +99,7 @@ impl Fsp {
                     sid = sid_maker(LdapSid::parse(&vec_sid).unwrap().1, domain);
                     self.object_identifier = sid.to_owned();
 
-                    for domain_sid in re.captures_iter(&sid) {
+                    for domain_sid in OBJECT_SID_RE1.captures_iter(&sid) {
                         self.properties.domainsid = domain_sid[0].to_owned().to_string();
                     }
                 }

@@ -2,16 +2,15 @@ use serde::{Deserialize, Serialize};
 use serde_json::value::Value;
 use x509_parser::oid_registry::asn1_rs::oid;
 use x509_parser::prelude::*;
-
-use crate::enums::{decode_guid_le, parse_ntsecuritydescriptor};
-use crate::objects::common::{AceTemplate, LdapObject, Link, Member, SPNTarget};
-use crate::utils::crypto::calculate_sha1;
-use crate::utils::date::string_to_epoch;
-
 use ldap3::SearchEntry;
 use log::{debug, error, trace};
 use std::collections::HashMap;
 use std::error::Error;
+
+use crate::objects::common::{LdapObject, AceTemplate, SPNTarget, Link, Member};
+use crate::enums::{decode_guid_le, parse_ntsecuritydescriptor};
+use crate::utils::date::string_to_epoch;
+use crate::utils::crypto::calculate_sha1;
 
 /// AIACA structure
 #[derive(Debug, Clone, Deserialize, Serialize, Default)]
@@ -44,25 +43,27 @@ impl AIACA {
     pub fn parse(
         &mut self,
         result: SearchEntry,
-        domain: &String,
+        domain: &str,
         dn_sid: &mut HashMap<String, String>,
         sid_type: &mut HashMap<String, String>,
-        domain_sid: &String,
+        domain_sid: &str
     ) -> Result<(), Box<dyn Error>> {
         let result_dn: String = result.dn.to_uppercase();
         let result_attrs: HashMap<String, Vec<String>> = result.attrs;
         let result_bin: HashMap<String, Vec<Vec<u8>>> = result.bin_attrs;
 
         // Debug for current object
-        debug!("Parse AIACA: {}", result_dn);
+        debug!("Parse AIACA: {result_dn}");
+
         // Trace all result attributes
         for (key, value) in &result_attrs {
-            trace!("  {:?}:{:?}", key, value);
+            trace!("  {key:?}:{value:?}");
         }
         // Trace all bin result attributes
         for (key, value) in &result_bin {
-            trace!("  {:?}:{:?}", key, value);
+            trace!("  {key:?}:{value:?}");
         }
+
 
         // Change all values...
         self.properties.domain = domain.to_uppercase();
@@ -106,13 +107,11 @@ impl AIACA {
                     self.object_identifier = guid.to_owned();
                 }
                 "nTSecurityDescriptor" => {
-                    // Needed with acl
-                    let entry_type = "AIACA".to_string();
                     // nTSecurityDescriptor raw to string
                     let relations_ace = parse_ntsecuritydescriptor(
                         self,
                         &value[0],
-                        entry_type,
+                        "AIACA",
                         &result_attrs,
                         &result_bin,
                         domain,

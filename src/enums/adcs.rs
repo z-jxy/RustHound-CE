@@ -43,7 +43,7 @@ pub fn get_pki_cert_name_flags(value: u64) -> String
     {
         flags.push("ENROLLEE_SUPPLIES_SUBJECT".to_string());
         // template.enrollee_supplies_subject = true;
-        // template_json["Properties"]["Enrollee Supplies Subject"] = template.enrollee_supplies_subject.to_owned().into();
+        // template_json["Properties"]["Enrollee Supplies Subject"] = template.enrollee_supplies_subject.to_owned();
     }
     if (PkiCertificateNameFlag::ADD_EMAIL.bits() | value) == value
     {
@@ -153,7 +153,7 @@ pub fn get_pki_enrollment_flags(value: u64) -> String
     {
         flags.push("PEND_ALL_REQUESTS".to_string());
         // template.requires_manager_approval = true;
-        // template_json["Properties"]["Requires Manager Approval"] = template.requires_manager_approval.to_owned().into();
+        // template_json["Properties"]["Requires Manager Approval"] = template.requires_manager_approval.to_owned();
     }
     if (PkiEnrollmentFlag::PUBLISH_TO_KRA_CONTAINER.bits() | value) == value
     {
@@ -260,7 +260,7 @@ pub fn get_pki_private_flags(value: u64) -> String
     {
         flags.push("REQUIRE_PRIVATE_KEY_ARCHIVAL".to_string());
         // template.requires_key_archival = true;
-        // template_json["Properties"]["Requires Key Archival"] = template.requires_key_archival.to_owned().into();
+        // template_json["Properties"]["Requires Key Archival"] = template.requires_key_archival.to_owned();
     }
     if (PkiPrivateKeyFlag::EXPORTABLE_KEY.bits() | value) == value
     {
@@ -319,8 +319,8 @@ pub fn get_pki_private_flags(value: u64) -> String
 
 /// Function to replace displayname by SID in enabled cert templates.
 pub fn templates_enabled_change_displayname_to_sid(
-    vec_certtemplates: &mut Vec<CertTemplate>,
-    vec_enterprisecas: &mut Vec<EnterpriseCA>,
+    vec_certtemplates: &mut [CertTemplate],
+    vec_enterprisecas: &mut [EnterpriseCA],
 ) -> Result<(), Box<dyn Error>> {
     let mut name_sid: HashMap<String, String> = HashMap::new();
     for certtemplate in vec_certtemplates {
