@@ -27,6 +27,10 @@ pub struct Options {
     pub zip: bool,
     pub verbose: log::LevelFilter,
     pub ldap_filter: String,
+
+    pub cache: bool,
+    pub cache_buffer_size: usize,
+    pub resume: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -155,6 +159,25 @@ fn cli() -> Command {
         .action(ArgAction::SetTrue)
         .global(false)
     )
+    .arg(Arg::new("cache")
+        .long("cache")
+        .help("Cache LDAP search results to disk (reduce memory usage on large domains)")
+        .required(false)
+        .action(ArgAction::SetTrue)
+    )
+    .arg(Arg::new("cache_buffer")
+        .long("cache-buffer")
+        .help("Buffer size to use when caching")
+        .required(false)
+        .value_parser(value_parser!(usize))
+        .default_value("1000")
+    )
+    .arg(Arg::new("resume")
+        .long("resume")
+        .help("Resume the collection from the last saved state")
+        .required(false)
+        .action(ArgAction::SetTrue)
+    )
     .next_help_heading("OPTIONAL MODULES")
     .arg(Arg::new("fqdn-resolver")
         .long("fqdn-resolver")
@@ -232,6 +255,13 @@ pub fn extract_args() -> Options {
     };
     let ldap_filter = matches.get_one::<String>("ldap-filter").map(|s| s.as_str()).unwrap_or("(objectClass=*)");
 
+    let cache = matches.get_flag("cache");
+    let cache_buffer_size = matches
+        .get_one::<usize>("cache_buffer")
+        .copied()
+        .unwrap_or(1000);
+    let resume = matches.get_flag("resume");
+
     // Return all
     Options {
         domain: d.to_string(),
@@ -250,6 +280,9 @@ pub fn extract_args() -> Options {
         zip: z,
         verbose: v,
         ldap_filter: ldap_filter.to_string(),
+        cache,
+        cache_buffer_size,
+        resume,
     }
 }
 
@@ -308,6 +341,9 @@ pub fn auto_args() -> Options {
         kerberos: true,
         zip: true,
         verbose: log::LevelFilter::Info,
-        ldap_filter: "(objectClass=*)".to_string()
+        ldap_filter: "(objectClass=*)".to_string(),
+        cache: false,
+        cache_buffer_size: 1000,
+        resume: false,
     }
 }

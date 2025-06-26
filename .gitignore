@@ -5,3 +5,4 @@ target/
 datas/
 rusthound-ce*
 .vscode
+.rusthound-cache

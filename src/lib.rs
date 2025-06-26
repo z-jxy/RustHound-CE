@@ -88,6 +88,9 @@ pub mod utils;
 pub mod enums;
 pub mod json;
 pub mod objects;
+pub mod storage;
+
+pub (crate) mod api;
 
 extern crate bitflags;
 extern crate chrono;
@@ -98,3 +101,8 @@ extern crate regex;
 pub use ldap::ldap_search;
 #[doc(inline)]
 pub use ldap3::SearchEntry;
+
+
+pub use api::{export_results, prepare_results_from_source, ADResults, DomainMappings};
+pub use storage::{Storage, EntrySource};
+

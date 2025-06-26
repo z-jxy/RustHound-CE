@@ -1,5 +1,4 @@
 use ldap3::SearchEntry;
-use std::collections::HashMap;
 //use log::trace;
 
 /// Enum to get ldap object type.
@@ -23,8 +22,8 @@ pub enum Type {
 }
 
 /// Get object type, like ("user","group","computer","ou", "container", "gpo", "domain" "trust").
-pub fn get_type(result: SearchEntry) -> std::result::Result<Type, Type> {
-    let result_attrs: HashMap<String, Vec<String>> = result.attrs;
+pub fn get_type(result: &SearchEntry) -> std::result::Result<Type, Type> {
+    let result_attrs = &result.attrs;
 
     let contains = |values: &Vec<String>, to_find: &str| values.iter().any(|elem| elem == to_find);
     let object_class_vals = result_attrs.get("objectClass");
