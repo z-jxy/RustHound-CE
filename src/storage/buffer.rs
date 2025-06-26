@@ -18,7 +18,7 @@ where
     fn flush(&mut self) -> Result<(), Box<dyn Error>>;
 
     /// Add an item to the buffer,
-    /// Default implemetation flushes to disk if it reaches capacity
+    /// Default implemetation calls [`Storage::flush`] if it reaches capacity
     fn add(&mut self, item: T) -> Result<(), Box<dyn Error>> {
         self.buffer_mut().push(item);
 
@@ -28,7 +28,7 @@ where
         Ok(())
     }
 
-    /// Flush the buffer to disk and consume `self`
+    /// Flush the buffer and consume `self`
     fn finish(mut self) -> Result<(), Box<dyn Error>> {
         self.flush()
     }
