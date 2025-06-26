@@ -6,7 +6,7 @@ use log::{error, info, trace};
 
 use rusthound_ce::{
     args, ldap, objects,
-    storage::{BincodeDiskStorage, BincodeFileIterator},
+    DiskStorage, DiskStorageReader,
     utils,
 };
 
@@ -52,7 +52,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 .join(&common_args.domain)
                 .join(CACHE_FILE);
             info!("Resuming from cache: {}", ldap_cache_path.display());
-            let cache = BincodeFileIterator::from_path(ldap_cache_path)?;
+            let cache = DiskStorageReader::from_path(ldap_cache_path)?;
             rusthound_ce::prepare_results_from_source(cache, &common_args, None).await?
         }
         false => {
@@ -68,7 +68,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 )?;
                 info!("Using cache for LDAP search: {}", ldap_cache_path.display());
 
-                let mut cache_writer = BincodeDiskStorage::new_with_capacity(
+                let mut cache_writer = DiskStorage::new_with_capacity(
                     ldap_cache_path,
                     common_args.cache_buffer_size,
                 )?;

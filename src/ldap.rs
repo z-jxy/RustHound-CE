@@ -6,7 +6,7 @@
 //!
 //! Example in rust
 //!
-//! ```
+//! ```ignore
 //! let search = ldap_search(...)
 //! ```
 

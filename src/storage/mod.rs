@@ -2,14 +2,12 @@ pub mod buffer;
 pub mod iter;
 use std::error::Error;
 
-pub use iter::BincodeIterator;
-
 pub use buffer::{BincodeObjectBuffer, Storage};
 
 use crate::ldap::LdapSearchEntry;
-pub use iter::BincodeFileIterator;
+pub use iter::DiskStorageReader;
 
-pub type BincodeDiskStorage = BincodeObjectBuffer<LdapSearchEntry>;
+pub type DiskStorage = BincodeObjectBuffer<LdapSearchEntry>;
 
 /// Used to iterate over LDAP search entries.
 ///
@@ -21,7 +19,7 @@ pub trait EntrySource {
 }
 
 // For reading from cache
-impl EntrySource for BincodeFileIterator<LdapSearchEntry> {
+impl EntrySource for DiskStorageReader<LdapSearchEntry> {
     type Iter = Self;
 
     fn into_entry_iter(self) -> Self::Iter {

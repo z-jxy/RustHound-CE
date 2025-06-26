@@ -3,7 +3,7 @@ use std::fs::File;
 use std::io::{BufReader, Read};
 use std::marker::PhantomData;
 
-pub type BincodeFileIterator<T> = BincodeIterator<T, BufReader<File>>;
+pub type DiskStorageReader<T> = BincodeIterator<T, BufReader<File>>;
 
 /// Lazy iterator for bincode-encoded, length-prefixed data
 pub struct BincodeIterator<T, R: Read> {

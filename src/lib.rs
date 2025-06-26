@@ -88,7 +88,7 @@ pub mod utils;
 pub mod enums;
 pub mod json;
 pub mod objects;
-pub mod storage;
+pub (crate) mod storage;
 
 pub (crate) mod api;
 
@@ -103,6 +103,6 @@ pub use ldap::ldap_search;
 pub use ldap3::SearchEntry;
 
 
-pub use api::{export_results, prepare_results_from_source, ADResults, DomainMappings};
-pub use storage::{Storage, EntrySource};
+pub use api::{export_results, prepare_results_from_source};
+pub use storage::{Storage, EntrySource, DiskStorage, DiskStorageReader};
 
