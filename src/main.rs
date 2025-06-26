@@ -124,7 +124,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     .await?;
 
     // Add all in json files
-    match rusthound_ce::export_results(&common_args, results) {
+    match rusthound_ce::make_result(&common_args, results) {
         Ok(_) => trace!("Making json/zip files finished!"),
         Err(err) => error!("Error. Reason: {err}"),
     }

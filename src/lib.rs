@@ -102,7 +102,7 @@ pub use ldap::ldap_search;
 #[doc(inline)]
 pub use ldap3::SearchEntry;
 
-
-pub use api::{export_results, prepare_results_from_source};
+pub use json::maker::make_result;
+pub use api::prepare_results_from_source;
 pub use storage::{Storage, EntrySource, DiskStorage, DiskStorageReader};
 

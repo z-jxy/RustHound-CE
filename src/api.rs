@@ -86,28 +86,6 @@ pub async fn prepare_results_from_source<S: EntrySource>(
     Ok(ad_results)
 }
 
-pub fn export_results(
-    common_args: &Options,
-    results: ADResults,
-) -> Result<(), Box<dyn std::error::Error>> {
-    crate::json::maker::make_result(
-        common_args,
-        results.users,
-        results.groups,
-        results.computers,
-        results.ous,
-        results.domains,
-        results.gpos,
-        results.containers,
-        results.ntauthstores,
-        results.aiacas,
-        results.rootcas,
-        results.enterprisecas,
-        results.certtemplates,
-        results.issuancepolicies,
-    )
-}
-
 // for `total_objects`, the total number of objects may not be known if the ldap query was never run
 // (e.g run was resumed from cached results)
 pub fn parse_result_type_from_source(

@@ -200,8 +200,6 @@ pub async fn ldap_search<S: Storage<LdapSearchEntry>>(
 
     storage.flush()?;
 
-    // reopen file handle
-    // let cache_handle = CacheHandle(rs.into_reader()?);
 
     // Return the vector with the result
     Ok(total)
