@@ -11,6 +11,7 @@ use rusthound_ce::{
 };
 
 use std::error::Error;
+use colored::Colorize;
 
 #[cfg(feature = "noargs")]
 use args::auto_args;
@@ -51,7 +52,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
             let ldap_cache_path = std::path::PathBuf::from(CACHE_DIR)
                 .join(&common_args.domain)
                 .join(CACHE_FILE);
-            info!("Resuming from cache: {}", ldap_cache_path.display());
+            info!("Resuming from cache: {}", format!("{}",ldap_cache_path.display()).bold());
             let cache = DiskStorageReader::from_path(ldap_cache_path)?;
             rusthound_ce::prepare_results_from_source(cache, &common_args, None).await?
         }
@@ -66,7 +67,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                         .parent()
                         .expect("Unable to get parent directory for cache path"), // shouldn't happen
                 )?;
-                info!("Using cache for LDAP search: {}", ldap_cache_path.display());
+                info!("Using cache for LDAP search: {}", format!("{}",ldap_cache_path.display()).bold());
 
                 let mut cache_writer = DiskStorage::new_with_capacity(
                     ldap_cache_path,

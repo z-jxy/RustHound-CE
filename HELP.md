@@ -12,6 +12,7 @@
   - [How to build documentation?](#how-to-build-documentation)
 - [Usage](#usage)
   - [Simple usage](#simple-usage)
+  - [Using disk instead of memory](#using-disk-instead-of-memory)
   - [Module FQDN resolver](#module-fqdn-resolver)
 
 <hr />
@@ -271,6 +272,19 @@ export KRB5CCNAME="/tmp/jeor.mormont.ccache"
 rusthound-ce -d sevenkingdoms.local -f kingslanding -k -z
 # Kerberos authentication (Windows)
 rusthound-ce.exe -d sevenkingdoms.local -f kingslanding -k -z
+```
+
+## Using disk instead of memory
+
+```bash
+# Using disk instead of memory with --cache option, ldap bin datas will be stored in ".rusthound-cache/sevenkingdoms.local/ldap.bin"
+rusthound-ce -c All -d sevenkingdoms.local -u vagrant -p vagrant -o /tmp/demo -z --cache
+
+# Using --cache-buffer to set a buffer size to use when caching [default: 1000]
+rusthound-ce -c All -d sevenkingdoms.local -u vagrant -p vagrant -o /tmp/demo -z --cache --cache-buffer 10000
+
+# Using --resume to resume the collection from the last saved state file ".rusthound-cache/sevenkingdoms.local/ldap.bin"
+rusthound-ce -d sevenkingdoms.local -o /tmp/demo -z --resume 
 ```
 
 ## Module FQDN resolver

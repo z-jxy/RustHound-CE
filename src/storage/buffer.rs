@@ -104,7 +104,7 @@ where
     fn flush(&mut self) -> Result<(), Box<dyn Error>> {
         for item in self.buffer.drain(..) {
             self.encode_buffer.clear();
-            bincode::encode_into_slice(
+            bincode::encode_into_std_write(
                 &item,
                 &mut self.encode_buffer,
                 bincode::config::standard(),

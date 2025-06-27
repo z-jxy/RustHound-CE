@@ -1,5 +1,18 @@
 # Changelog
 
+## v2.4.0
+
+### Date
+`2025/06/27`
+
+### Summary
+
+This release introduces the new `--cache`,`--cache-buffer`,`--resume` features, allowing LDAP dump results to be store and load from disk instead of in memory, making it possible to handle much larger datasets with significantly lower RAM usage (saving approximately 70% of memory at peak usage). More informations how to use disk intead of memory in the help section here: [Using disk instead of memory](https://github.com/g0h4n/RustHound-CE/blob/main/HELP.md#using-disk-instead-of-memory)
+
+All information regarding the code changes can be found in the original pull request: [#14](https://github.com/g0h4n/RustHound-CE/pull/14)
+
+Big thanks to [z-jxy](https://github.com/z-jxy) for the excellent work and for implementing this much-needed feature, as requested in issue #[7](https://github.com/g0h4n/RustHound-CE/issues/7)
+
 ## v2.3.7
 
 ### Date
