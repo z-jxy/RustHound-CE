@@ -2,42 +2,13 @@ use std::collections::HashMap;
 use std::error::Error;
 
 extern crate zip;
+use crate::api::ADResults;
 use crate::args::Options;
 use crate::utils::date::return_current_fulldate;
-use crate::objects::{
-   user::User,
-   computer::Computer,
-   group::Group,
-   ou::Ou,
-   container::Container,
-   gpo::Gpo,
-   domain::Domain,
-   ntauthstore::NtAuthStore,
-   aiaca::AIACA,
-   rootca::RootCA,
-   enterpriseca::EnterpriseCA,
-   certtemplate::CertTemplate,
-   inssuancepolicie::IssuancePolicie,
-};
 pub mod common;
 
 /// This function will create json output and zip output
-pub fn make_result(
-   common_args:            &Options,
-   vec_users:              Vec<User>,
-   vec_groups:             Vec<Group>,
-   vec_computers:          Vec<Computer>,
-   vec_ous:                Vec<Ou>,
-   vec_domains:            Vec<Domain>,
-   vec_gpos:               Vec<Gpo>,
-   vec_containers:         Vec<Container>,
-   vec_ntauthstores:       Vec<NtAuthStore>,
-   vec_aiacas:             Vec<AIACA>,
-   vec_rootcas:            Vec<RootCA>,
-   vec_enterprisecas:      Vec<EnterpriseCA>,
-   vec_certtemplates:      Vec<CertTemplate>,
-   vec_issuancepolicies:   Vec<IssuancePolicie>,
-) -> Result<(), Box<dyn Error>> {
+pub fn make_result(common_args: &Options, ad_results: ADResults) -> Result<(), Box<dyn Error>> {
    // Format domain name
    let filename = common_args.domain.replace(".", "-").to_lowercase();
 
@@ -52,7 +23,7 @@ pub fn make_result(
       &datetime,
       "users".to_string(),
 		&filename,
-      vec_users,
+      ad_results.users,
       &mut json_result,
       common_args,
    )?;
@@ -60,7 +31,7 @@ pub fn make_result(
       &datetime,
       "groups".to_string(),
 		&filename,
-      vec_groups,
+      ad_results.groups,
       &mut json_result,
       common_args,
    )?;
@@ -68,7 +39,7 @@ pub fn make_result(
       &datetime,
       "computers".to_string(),
 		&filename,
-      vec_computers,
+      ad_results.computers,
       &mut json_result,
       common_args,
    )?;
@@ -76,7 +47,7 @@ pub fn make_result(
       &datetime,
       "ous".to_string(),
 		&filename,
-      vec_ous,
+      ad_results.ous,
       &mut json_result,
       common_args,
    )?;
@@ -84,7 +55,7 @@ pub fn make_result(
       &datetime,
       "domains".to_string(),
 		&filename,
-      vec_domains,
+      ad_results.domains,
       &mut json_result,
       common_args,
    )?;
@@ -92,7 +63,7 @@ pub fn make_result(
       &datetime,
       "gpos".to_string(),
       &filename,
-      vec_gpos,
+      ad_results.gpos,
       &mut json_result,
       common_args,
    )?;
@@ -101,7 +72,7 @@ pub fn make_result(
       &datetime,
       "containers".to_string(),
 		&filename,
-      vec_containers,
+      ad_results.containers,
       &mut json_result,
       common_args,
    )?;
@@ -109,7 +80,7 @@ pub fn make_result(
       &datetime,
       "ntauthstores".to_string(),
 		&filename,
-      vec_ntauthstores,
+      ad_results.ntauthstores,
       &mut json_result,
       common_args,
    )?;
@@ -117,7 +88,7 @@ pub fn make_result(
       &datetime,
       "aiacas".to_string(),
 		&filename,
-      vec_aiacas,
+      ad_results.aiacas,
       &mut json_result,
       common_args,
    )?;
@@ -125,7 +96,7 @@ pub fn make_result(
       &datetime,
       "rootcas".to_string(),
 		&filename,
-      vec_rootcas,
+      ad_results.rootcas,
       &mut json_result,
       common_args,
    )?;
@@ -133,7 +104,7 @@ pub fn make_result(
       &datetime,
       "enterprisecas".to_string(),
 		&filename,
-      vec_enterprisecas,
+      ad_results.enterprisecas,
       &mut json_result,
       common_args,
    )?;
@@ -141,7 +112,7 @@ pub fn make_result(
       &datetime,
       "certtemplates".to_string(),
 		&filename,
-      vec_certtemplates,
+      ad_results.certtemplates,
       &mut json_result,
       common_args,
    )?;
@@ -149,7 +120,7 @@ pub fn make_result(
       &datetime,
       "issuancepolicies".to_string(),
 		&filename,
-      vec_issuancepolicies,
+      ad_results.issuancepolicies,
       &mut json_result,
       common_args,
    )?;

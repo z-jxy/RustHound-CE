@@ -1,48 +1,29 @@
-pub mod modules;
-pub mod enums;
-pub mod json;
-
-pub mod args;
-pub mod objects;
-pub mod utils;
 pub mod banner;
-pub mod ldap;
+pub mod modules;
 
-use log::{info,trace,error};
 use env_logger::Builder;
-use std::collections::HashMap;
-use std::error::Error;
+use log::{error, info, trace};
 
-#[cfg(not(feature = "noargs"))]
-use args::{Options,extract_args};
+use rusthound_ce::{
+    args, ldap, objects,
+    DiskStorage, DiskStorageReader,
+    utils,
+};
+
+use std::error::Error;
+use colored::Colorize;
+
 #[cfg(feature = "noargs")]
 use args::auto_args;
+#[cfg(not(feature = "noargs"))]
+use args::{extract_args, Options};
 
-use banner::{print_banner,print_end_banner};
+use banner::{print_banner, print_end_banner};
 use ldap::ldap_search;
 use modules::run_modules;
-use json::{
-    parser::parse_result_type,
-    checker::check_all_result,
-    maker::make_result,
-};
-use objects::{
-    user::User,
-    computer::Computer,
-    group::Group,
-    ou::Ou,
-    container::Container,
-    gpo::Gpo,
-    domain::Domain,
-    fsp::Fsp,
-    trust::Trust,
-    ntauthstore::NtAuthStore,
-    aiaca::AIACA,
-    rootca::RootCA,
-    enterpriseca::EnterpriseCA,
-    certtemplate::CertTemplate,
-    inssuancepolicie::IssuancePolicie,
-};
+
+const CACHE_DIR: &str = ".rusthound-cache";
+const CACHE_FILE: &str = "ldap.bin";
 
 /// Main of RustHound
 #[tokio::main]
@@ -66,121 +47,87 @@ async fn main() -> Result<(), Box<dyn Error>> {
     info!("Verbosity level: {:?}", common_args.verbose);
     info!("Collection method: {:?}", common_args.collection_method);
 
-    // LDAP request to get all informations in result
-    let result = ldap_search(
-        common_args.ldaps,
-        common_args.ip.as_deref(),
-        &common_args.port,
-        &common_args.domain,
-        &common_args.ldapfqdn,
-        common_args.username.as_deref(),
-        common_args.password.as_deref(),
-        common_args.kerberos,
-        &common_args.ldap_filter
-    ).await?;
+    let mut results = match common_args.resume {
+        true => {
+            let ldap_cache_path = std::path::PathBuf::from(CACHE_DIR)
+                .join(&common_args.domain)
+                .join(CACHE_FILE);
+            info!("Resuming from cache: {}", format!("{}",ldap_cache_path.display()).bold());
+            let cache = DiskStorageReader::from_path(ldap_cache_path)?;
+            rusthound_ce::prepare_results_from_source(cache, &common_args, None).await?
+        }
+        false => {
+            if common_args.cache {
+                // store ldap results in cache
+                let ldap_cache_path = std::path::PathBuf::from(CACHE_DIR)
+                    .join(&common_args.domain)
+                    .join(CACHE_FILE);
+                std::fs::create_dir_all(
+                    ldap_cache_path
+                        .parent()
+                        .expect("Unable to get parent directory for cache path"), // shouldn't happen
+                )?;
+                info!("Using cache for LDAP search: {}", format!("{}",ldap_cache_path.display()).bold());
 
-    // Vector for content all
-    let mut vec_users:              Vec<User>            = Vec::new();
-    let mut vec_groups:             Vec<Group>           = Vec::new();
-    let mut vec_computers:          Vec<Computer>        = Vec::new();
-    let mut vec_ous:                Vec<Ou>              = Vec::new();
-    let mut vec_domains:            Vec<Domain>          = Vec::new();
-    let mut vec_gpos:               Vec<Gpo>             = Vec::new();
-    let mut vec_fsps:               Vec<Fsp>             = Vec::new();
-    let mut vec_containers:         Vec<Container>       = Vec::new();
-    let mut vec_trusts:             Vec<Trust>           = Vec::new();
-    let mut vec_ntauthstores:       Vec<NtAuthStore>     = Vec::new();
-    let mut vec_aiacas:             Vec<AIACA>           = Vec::new();
-    let mut vec_rootcas:            Vec<RootCA>          = Vec::new();
-    let mut vec_enterprisecas:      Vec<EnterpriseCA>    = Vec::new();
-    let mut vec_certtemplates:      Vec<CertTemplate>    = Vec::new();
-    let mut vec_issuancepolicies:   Vec<IssuancePolicie> = Vec::new();
+                let mut cache_writer = DiskStorage::new_with_capacity(
+                    ldap_cache_path,
+                    common_args.cache_buffer_size,
+                )?;
 
-    // Hashmap to link DN to SID
-    let mut dn_sid: HashMap<String, String> = HashMap::new();
-    // Hashmap to link DN to Type
-    let mut sid_type: HashMap<String, String> = HashMap::new();
-    // Hashmap to link FQDN to SID
-    let mut fqdn_sid: HashMap<String, String> = HashMap::new();
-    // Hashmap to link fqdn to an ip address
-    let mut fqdn_ip: HashMap<String, String> = HashMap::new();
+                let total_cached = ldap_search(
+                    common_args.ldaps,
+                    common_args.ip.as_deref(),
+                    common_args.port,
+                    &common_args.domain,
+                    &common_args.ldapfqdn,
+                    common_args.username.as_deref(),
+                    common_args.password.as_deref(),
+                    common_args.kerberos,
+                    &common_args.ldap_filter,
+                    &mut cache_writer,
+                )
+                .await?;
 
-    // Analyze object by object 
-    // Get type and parse it to get values
-    parse_result_type(
-        &common_args,
-        result,
-        &mut vec_users,
-        &mut vec_groups,
-        &mut vec_computers,
-        &mut vec_ous,
-        &mut vec_domains,
-        &mut vec_gpos,
-        &mut vec_fsps,
-        &mut vec_containers,
-        &mut vec_trusts,
-        &mut vec_ntauthstores,
-        &mut vec_aiacas,
-        &mut vec_rootcas,
-        &mut vec_enterprisecas,
-        &mut vec_certtemplates,
-        &mut vec_issuancepolicies,
-        &mut dn_sid,
-        &mut sid_type,
-        &mut fqdn_sid,
-        &mut fqdn_ip,
-    )?;
-    
-    // Functions to replace and add missing values
-    check_all_result(
-        &common_args,
-        &mut vec_users,
-        &mut vec_groups,
-        &mut vec_computers,
-        &mut vec_ous,
-        &mut vec_domains,
-        &mut vec_gpos,
-        &mut vec_fsps,
-        &mut vec_containers,
-        &mut vec_trusts,
-        &mut vec_ntauthstores,
-        &mut vec_aiacas,
-        &mut vec_rootcas,
-        &mut vec_enterprisecas,
-        &mut vec_certtemplates,
-        &mut vec_issuancepolicies,
-        &mut dn_sid,
-        &mut sid_type,
-        &mut fqdn_sid,
-        &mut fqdn_ip,
-    )?;
+                rusthound_ce::prepare_results_from_source(
+                    cache_writer.into_reader()?,
+                    &common_args,
+                    Some(total_cached),
+                )
+                .await?
+            } else {
+                // store ldap results in memory
+                let mut ldap_results = Vec::new();
+                let total = rusthound_ce::ldap::ldap_search(
+                    common_args.ldaps,
+                    common_args.ip.as_deref(),
+                    common_args.port,
+                    &common_args.domain,
+                    &common_args.ldapfqdn,
+                    common_args.username.as_deref(),
+                    common_args.password.as_deref(),
+                    common_args.kerberos,
+                    &common_args.ldap_filter,
+                    &mut ldap_results,
+                )
+                .await?;
+                rusthound_ce::prepare_results_from_source(ldap_results, &common_args, Some(total))
+                    .await?
+            }
+        }
+    };
 
     // Running modules
     run_modules(
         &common_args,
-        &mut fqdn_ip,
-        &mut vec_computers,
-    ).await?;
+        &mut results.mappings.fqdn_ip,
+        &mut results.computers,
+    )
+    .await?;
 
     // Add all in json files
-    match make_result(
-        &common_args,
-        vec_users,
-        vec_groups,
-        vec_computers,
-        vec_ous,
-        vec_domains,
-        vec_gpos,
-        vec_containers,
-        vec_ntauthstores,
-        vec_aiacas,
-        vec_rootcas,
-        vec_enterprisecas,
-        vec_certtemplates,
-        vec_issuancepolicies,
-    ) {
-        Ok(_res) => trace!("Making json/zip files finished!"),
-        Err(err) => error!("Error. Reason: {err}")
+    match rusthound_ce::make_result(&common_args, results) {
+        Ok(_) => trace!("Making json/zip files finished!"),
+        Err(err) => error!("Error. Reason: {err}"),
     }
 
     // End banner

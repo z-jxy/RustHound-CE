@@ -1,5 +1,7 @@
 //! <p align="center">
 //!     <picture>
+//!         <source media="(prefers-color-scheme: dark)" srcset="https://github.com/g0h4n/RustHound-CE/raw/main/img/rusthoundce-transparent-dark-theme.png">
+//!         <source media="(prefers-color-scheme: light)" srcset="https://github.com/g0h4n/RustHound-CE/raw/main/img/rusthoundce-transparent-light-theme.png">
 //!         <img src="https://github.com/g0h4n/RustHound-CE/raw/main/img/rusthoundce-transparent-dark-theme.png" alt="rusthound-ce logo" width='250' />
 //!     </picture>
 //! </p>
@@ -12,23 +14,22 @@
 //! ```ignore
 //! ---------------------------------------------------
 //! Initializing RustHound-CE at 13:37:00 UTC on 01/12/23
-//! Powered by g0h4n from OpenCyber | NH-RED-TEAM
+//! Powered by @g0h4n_0
 //! ---------------------------------------------------
-//!
-//! RustHound-CE
-//! g0h4n https://twitter.com/g0h4n_0
-//! Active Directory data collector for BloodHound.
-//!
-//! Usage: rusthound [OPTIONS] --domain <domain>
-//!
+//! 
+//! Active Directory data collector for BloodHound Community Edition.
+//! g0h4n <https://twitter.com/g0h4n_0>
+//! 
+//! Usage: rusthound-ce [OPTIONS] --domain <domain>
+//! 
 //! Options:
 //!   -v...          Set the level of verbosity
 //!   -h, --help     Print help
 //!   -V, --version  Print version
-//!
+//! 
 //! REQUIRED VALUES:
 //!   -d, --domain <domain>  Domain name like: DOMAIN.LOCAL
-//!
+//! 
 //! OPTIONAL VALUES:
 //!   -u, --ldapusername <ldapusername>  LDAP username, like: user@domain.local
 //!   -p, --ldappassword <ldappassword>  LDAP password
@@ -37,36 +38,41 @@
 //!   -P, --ldapport <ldapport>          LDAP port [default: 389]
 //!   -n, --name-server <name-server>    Alternative IP address name server to use for DNS queries
 //!   -o, --output <output>              Output directory where you would like to save JSON files [default: ./]
-//!
+//! 
 //! OPTIONAL FLAGS:
 //!   -c, --collectionmethod [<COLLECTIONMETHOD>]
 //!           Which information to collect. Supported: All (LDAP,SMB,HTTP requests), DCOnly (no computer connections, only LDAP requests). (default: All) [possible values: All, DCOnly]
+//!       --ldap-filter <ldap-filter>
+//!           Use custom ldap-filter default is : (objectClass=*)
 //!       --ldaps
 //!           Force LDAPS using for request like: ldaps://DOMAIN.LOCAL/
 //!   -k, --kerberos
 //!           Use Kerberos authentication. Grabs credentials from ccache file (KRB5CCNAME) based on target parameters for Linux.
 //!       --dns-tcp
 //!           Use TCP instead of UDP for DNS queries
-//!       --dc-only
-//!           Collects data only from the domain controller. Will not try to retrieve CA security/configuration or check for Web Enrollment
 //!   -z, --zip
 //!           Compress the JSON files into a zip archive
-//!
+//!       --cache
+//!           Cache LDAP search results to disk (reduce memory usage on large domains)
+//!       --cache-buffer <cache_buffer>
+//!           Buffer size to use when caching [default: 1000]
+//!       --resume
+//!           Resume the collection from the last saved state
+//! 
 //! OPTIONAL MODULES:
 //!       --fqdn-resolver  Use fqdn-resolver module to get computers IP address
 //! ```
 //! 
 //! Or build your own using the ldap_search() function:
-//! 
 //! ```ignore
 //! # use rusthound::ldap::ldap_search;
 //! # let ldaps = true;
-//! # let ip = "127.0.0.1".to_owned();
-//! # let port = 676
-//! # let domain = "DOMAIN".to_owned()
-//! # let ldapfqdn = "domain.com".to_owned()
-//! # let username = "user".to_owned()
-//! # let password = "pwd".to_owned()
+//! # let ip = Some("127.0.0.1");
+//! # let port = Some(676);
+//! # let domain = "DOMAIN.COM";
+//! # let ldapfqdn = "ad1.domain.com";
+//! # let username = Some("user");
+//! # let password = Some("pwd");
 //! # let kerberos= false;
 //! let result = ldap_search(
 //!     &ldaps,
@@ -88,6 +94,9 @@ pub mod utils;
 pub mod enums;
 pub mod json;
 pub mod objects;
+pub (crate) mod storage;
+
+pub (crate) mod api;
 
 extern crate bitflags;
 extern crate chrono;
@@ -98,3 +107,7 @@ extern crate regex;
 pub use ldap::ldap_search;
 #[doc(inline)]
 pub use ldap3::SearchEntry;
+
+pub use json::maker::make_result;
+pub use api::prepare_results_from_source;
+pub use storage::{Storage, EntrySource, DiskStorage, DiskStorageReader};

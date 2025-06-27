@@ -70,7 +70,7 @@ pub fn parse_result_type(
         // Start parsing with Type matching
         let cloneresult = entry.clone();
         //println!("{:?}",&entry);
-        let atype = get_type(entry).unwrap_or(Type::Unknown);
+        let atype = get_type(&entry).unwrap_or(Type::Unknown);
         match atype {
             Type::User => {
                 let mut user: User = User::new();
