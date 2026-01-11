@@ -13,7 +13,7 @@ use regex::Regex;
 pub struct Options {
     pub domain: String,
     pub username: Option<String>,
-    pub password: Option<String>,
+    pub auth: Option<LdapAuth>,
     pub ldapfqdn: String,
     pub ip: Option<String>,
     pub port: Option<u16>,
@@ -31,6 +31,12 @@ pub struct Options {
     pub cache: bool,
     pub cache_buffer_size: usize,
     pub resume: bool,
+}
+
+#[derive(Debug, Clone)]
+pub enum LdapAuth {
+    Password(String),
+    Ntlm(ldap3::NtlmHash)
 }
 
 #[derive(Clone, Debug)]
@@ -75,6 +81,14 @@ fn cli() -> Command {
         .help("LDAP password")
         .required(false)
         .value_parser(value_parser!(String))
+    )
+    .arg(Arg::new("ldapntlmhash")
+        .short('H')
+        .long("ldapntlmhash")
+        .help("LDAP NTLM hash")
+        .required(false)
+        .conflicts_with("ldappassword")
+        .value_parser(value_parser!(ldap3::NtlmHash))
     )
     .arg(Arg::new("ldapfqdn")
         .short('f')
@@ -206,6 +220,9 @@ pub fn extract_args() -> Options {
     let password = matches
         .get_one::<String>("ldappassword")
         .map(|s| s.to_owned());
+    let ntlm_hash = matches
+        .get_one::<ldap3::NtlmHash>("ldapntlmhash")
+        .cloned();
     let f = matches
         .get_one::<String>("ldapfqdn")
         .map(|s| s.as_str())
@@ -262,11 +279,18 @@ pub fn extract_args() -> Options {
         .unwrap_or(1000);
     let resume = matches.get_flag("resume");
 
+    let auth = match (password, ntlm_hash) {
+        (Some(p), None) => Some(LdapAuth::Password(p)),
+        (None, Some(h)) => Some(LdapAuth::Ntlm(h)),
+        (None, None) => None,
+        _ => unreachable!(), // clap `conflicts_with` prevents this 
+    };
+
     // Return all
     Options {
         domain: d.to_string(),
         username,
-        password,
+        auth,
         ldapfqdn: f.to_string(),
         ip,
         port,
@@ -328,7 +352,7 @@ pub fn auto_args() -> Options {
     Options {
         domain: domain.to_string(),
         username: "not set".to_string(),
-        password: "not set".to_string(),
+        auth: None,
         ldapfqdn: fqdn.to_string(),
         ip: None, 
         port: port,
