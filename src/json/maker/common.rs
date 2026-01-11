@@ -1,3 +1,5 @@
+use obfstr::obfstr;
+
 use serde_json::value::Value;
 
 use std::collections::HashMap;
@@ -7,6 +9,8 @@ use log::{info, debug, trace};
 use std::fs;
 use std::fs::File;
 use std::io::{Seek, Write};
+use std::error::Error;
+
 use zip::result::ZipResult;
 use zip::write::{SimpleFileOptions, ZipWriter};
 
@@ -76,12 +80,13 @@ pub fn add_file<T: LdapObject>(
    domain: &String,
    path: &String,
    json_result: &HashMap<String, String>
- ){
-   let final_path = format!("{}/{}_{}_rusthound-ce.zip",path,datetime,domain);
+ ) -> Result<String, Box<dyn Error>> {
+   let final_path = format!("{}/{}_{}_{}.zip",path,datetime,domain,obfstr!("rusthound-ce"));
    let mut file = File::create(&final_path).expect("Couldn't create file");
    create_zip_archive(&mut file, json_result).expect("Couldn't create archive");
  
    info!("{} created!",&final_path.bold());
+   Ok(final_path)
  }
  
  
@@ -95,7 +100,7 @@ pub fn add_file<T: LdapObject>(
       let filename = file.0;
       let content = file.1;
       trace!("Adding file {}",filename.bold());
-      let options = SimpleFileOptions::default().compression_method(zip::CompressionMethod::Stored);
+      let options = SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated);
       writer.start_file(filename, options)?;
       writer.write_all(content.as_bytes())?;
    }

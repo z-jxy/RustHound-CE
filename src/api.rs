@@ -105,9 +105,6 @@ pub fn parse_result_type_from_source(
 
     log::info!("Starting the LDAP objects parsing...");
 
-    let output_dir = format!(".rusthound-cache/{domain}");
-    std::fs::create_dir_all(&output_dir)?;
-
     let dn_sid = &mut results.mappings.dn_sid;
     let sid_type = &mut results.mappings.sid_type;
     let fqdn_sid = &mut results.mappings.fqdn_sid;
@@ -151,7 +148,10 @@ pub fn parse_result_type_from_source(
                 let domain_sid_from_domain =
                     domain_object.parse(entry, domain, dn_sid, sid_type)?;
                 domain_sid = domain_sid_from_domain;
-                results.domains.push(domain_object);
+                // Only add domains with valid ObjectIdentifier (excludes DomainDnsZones, ForestDnsZones, etc.)
+                if !domain_object.object_identifier().is_empty() {
+                    results.domains.push(domain_object);
+                }
             }
             Type::Gpo => {
                 let mut gpo = Gpo::new();

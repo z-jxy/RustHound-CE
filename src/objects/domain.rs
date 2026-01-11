@@ -47,6 +47,11 @@ impl Domain {
         Self { ..Default::default() } 
     }
 
+    // Get access.
+    pub fn object_identifier(&self) -> &String {
+        &self.object_identifier
+    }
+
     // Mutable access.
     pub fn properties_mut(&mut self) -> &mut DomainProperties {
         &mut self.properties
