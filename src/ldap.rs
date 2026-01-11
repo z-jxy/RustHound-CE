@@ -65,7 +65,7 @@ pub async fn ldap_search<S: Storage<LdapSearchEntry>>(
                 // or refactor `ldap_constructor`
                 let (username, domain) = ldap_args._s_email.split_once('@').unwrap_or((&ldap_args.s_username, "not set"));
 
-                ldap.sasl_ntlmv2_bind_with_hash(username, domain, ntlm_hash.as_bytes()).await?.success()
+                ldap.sasl_ntlm_bind_with_hash_sspi(username, domain, ntlm_hash.as_bytes()).await?.success()
             },
         };
         match res {
